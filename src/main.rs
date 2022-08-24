@@ -1,11 +1,14 @@
 extern crate gl;
 extern crate glfw;
+extern crate image;
 
 mod shader_program;
 
 use self::glfw::{Context, Key, Action};
 use std::sync::mpsc::Receiver;
 use shader_program::ShaderProgram;
+use std::path::Path;
+use std::ffi::CString;
 
 fn main() {
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -28,69 +31,81 @@ fn main() {
     
     // Triangle
     let vertices: Vec<f32> = vec![
-        0.5, -0.5, 0.0,  1.0, 0.0, 0.0,  // bottom right
-        -0.5, -0.5, 0.0,  0.0, 1.0, 0.0,  // bottom left
-        0.0,  0.5, 0.0,  0.0, 0.0, 1.0   // top
+        // positions      // colors        // texture coords
+        0.5,  0.5, 0.0,   1.0, 0.0, 0.0,   1.0, 1.0,   // top right
+        0.5, -0.5, 0.0,   0.0, 1.0, 0.0,   1.0, 0.0,   // bottom right
+       -0.5, -0.5, 0.0,   0.0, 0.0, 1.0,   0.0, 0.0,   // bottom left
+       -0.5,  0.5, 0.0,   1.0, 1.0, 0.0,   0.0, 1.0    // top left 
     ];
 
-    let (shader_program, vao) = unsafe {
+    let indices = [
+        0, 1, 3,  // first Triangle
+        1, 2, 3   // second Triangle
+    ];
+
+    let (shader_program, vao, vbo, ebo, texture1, texture2) = unsafe {
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
             "assets/shaders/shader.frag"
         );
 
-        // let vertices: Vec<f32> = vec![
-        //     0.5, 0.5, 0.0,  // top right
-        //     0.5, -0.5, 0.0,  // bottom right
-        //     -0.5, -0.5, 0.0,  // bottom left
-        //     -0.5, 0.5, 0.0   // top left 
-        // ];
-        // let indices: Vec<u8> = vec![
-        //     0, 1, 3,   // first triangle
-        //     1, 2, 3    // second triangle
-        // ];
-
-        let (mut vao, mut vbo, mut _ebo) = (0, 0, 0);
+        let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
         gl::GenVertexArrays(1, &mut vao);
         gl::GenBuffers(1, &mut vbo);
-        // gl::GenBuffers(1, &mut ebo);
+        gl::GenBuffers(1, &mut ebo);
 
         gl::BindVertexArray(vao);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        // gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
 
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
             (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
             vertices.as_ptr() as *const gl::types::GLvoid,
             gl::STATIC_DRAW
         );
-        // gl::BufferData(
-        //     gl::ELEMENT_ARRAY_BUFFER,
-        //     (vertices.len() * std::mem::size_of::<u8>()) as gl::types::GLsizeiptr,
-        //     indices.as_ptr() as *const gl::types::GLvoid,
-        //     gl::STATIC_DRAW
-        // );
+        
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            (indices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+            indices.as_ptr() as *const gl::types::GLvoid,
+            gl::STATIC_DRAW
+        );
 
+        let stride = (8 * std::mem::size_of::<f32>()) as gl::types::GLint;
+
+        // Vertex coords
         gl::VertexAttribPointer(
             0,
             3,
             gl::FLOAT,
             gl::FALSE,
-            (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            stride,
             std::ptr::null()
         );
         gl::EnableVertexAttribArray(0);
 
+        // Color
         gl::VertexAttribPointer(
             1,
             3,
             gl::FLOAT,
             gl::FALSE,
-            (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            stride,
             (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
         );
         gl::EnableVertexAttribArray(1);
+
+        // Texture coords
+        gl::VertexAttribPointer(
+            2,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            stride,
+            (6 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+        );
+        gl::EnableVertexAttribArray(2);
 
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
@@ -98,7 +113,69 @@ fn main() {
         // Uncomment to enable wireframe mode
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 
-        (shader_program, vao)
+        // Load textures
+        let mut texture1 = 0;
+        gl::GenTextures(1, &mut texture1);
+        gl::BindTexture(gl::TEXTURE_2D, texture1);
+
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+
+        let img = image::open(&Path::new("assets/textures/container.jpg")).expect("Failed to load texture");
+        let data = img.as_bytes();
+
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RGB as i32,
+            img.width() as i32,
+            img.height() as i32,
+            0,
+            gl::RGB,
+            gl::UNSIGNED_BYTE,
+            data.as_ptr() as *const gl::types::GLvoid
+        );
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+
+        let mut texture2 = 0;
+        gl::GenTextures(1, &mut texture2);
+        gl::BindTexture(gl::TEXTURE_2D, texture2);
+
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+
+        let img = image::open(&Path::new("assets/textures/awesomeface.png")).expect("Failed to load texture");
+        let img = img.flipv();
+        let data = img.as_bytes();
+
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::RGB as i32,
+            img.width() as i32,
+            img.height() as i32,
+            0,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            data.as_ptr() as *const gl::types::GLvoid
+        );
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+
+        shader_program.use_program();
+
+        let (texture1_cstr, texture2_cstr) = (
+            &CString::new("texture1").unwrap(),
+            &CString::new("texture2").unwrap()
+        );
+        shader_program.set_int(&texture1_cstr, 0);
+        shader_program.set_int(&texture2_cstr, 1);
+
+
+        (shader_program, vao, vbo, ebo, texture1, texture2)
     };
 
     // Render loop, each iteration is a "frame"
@@ -106,26 +183,32 @@ fn main() {
         process_events(&mut window, &events);
 
         unsafe {
-            // let time_value: f64 = glfw::Glfw::get_time(&glfw);
-            // let green_value: f64 = (time_value.sin() / 2.0) + 0.5;
-            // let our_color = CString::new("ourColor").unwrap();
-            // let vertex_color_location = gl::GetUniformLocation(shader_program, our_color.as_ptr());
-
             shader_program.use_program();
-
-            // gl::Uniform4f(vertex_color_location, 0.0, green_value as f32, 0.0, 1.0);
 
             gl::ClearColor(1.0, 0.0, 1.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
+            // bind textures on corresponding texture units
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, texture1);
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, texture2);
+
             gl::BindVertexArray(vao);
-            // gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_BYTE, ptr::null());
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
             gl::BindVertexArray(0);
         }
 
         window.swap_buffers();
         glfw.poll_events();
+    }
+
+    // Delete GL objects
+    unsafe {
+        gl::DeleteVertexArrays(1, &vao);
+        gl::DeleteBuffers(1, &vbo);
+        gl::DeleteBuffers(1, &ebo);
     }
 }
 

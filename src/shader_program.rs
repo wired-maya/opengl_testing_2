@@ -107,7 +107,7 @@ impl ShaderProgram {
         gl::Uniform1i(gl::GetUniformLocation(self.id, name.as_ptr()), value as gl::types::GLint);
     }
 
-    pub unsafe fn _set_int(&self, name: &CStr, value: i32) {
+    pub unsafe fn set_int(&self, name: &CStr, value: i32) {
         gl::Uniform1i(gl::GetUniformLocation(self.id, name.as_ptr()), value as gl::types::GLint);
     }
 
