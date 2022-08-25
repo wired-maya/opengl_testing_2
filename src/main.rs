@@ -9,6 +9,7 @@ use std::sync::mpsc::Receiver;
 use shader_program::ShaderProgram;
 use std::path::Path;
 use std::ffi::CString;
+use cgmath::{prelude::*, Matrix4, vec3,  Rad};
 
 fn main() {
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -194,10 +195,37 @@ fn main() {
             gl::ActiveTexture(gl::TEXTURE1);
             gl::BindTexture(gl::TEXTURE_2D, texture2);
 
+            // Transform the box
+            let mut transform: Matrix4<f32> = Matrix4::identity();
+            transform = transform * Matrix4::<f32>::from_translation(vec3(0.5, -0.5, 0.0));
+            transform = transform * Matrix4::<f32>::from_axis_angle(
+                vec3(0.0, 0.0, 1.0),
+                Rad(glfw.get_time() as f32)
+            );
+
+            let transform_cstring = &CString::new("transform").unwrap();
+            let transform_location = gl::GetUniformLocation(shader_program.id, transform_cstring.as_ptr());
+
+            gl::UniformMatrix4fv(transform_location, 1, gl::FALSE, transform.as_ptr());
+
             gl::BindVertexArray(vao);
             // gl::DrawArrays(gl::TRIANGLES, 0, 3);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
-            gl::BindVertexArray(0);
+
+            // Transform the box
+            let mut transform: Matrix4<f32> = Matrix4::identity();
+            transform = transform * Matrix4::<f32>::from_translation(vec3(-0.5, 0.5, 0.0));
+            transform = transform * Matrix4::<f32>::from_scale(((glfw.get_time().sin() / 2.0) + 0.5) as f32);
+
+            let transform_cstring = &CString::new("transform").unwrap();
+            let transform_location = gl::GetUniformLocation(shader_program.id, transform_cstring.as_ptr());
+
+            gl::UniformMatrix4fv(transform_location, 1, gl::FALSE, transform.as_ptr());
+
+            gl::BindVertexArray(vao);
+            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
+            // gl::BindVertexArray(0);
         }
 
         window.swap_buffers();
