@@ -35,11 +35,47 @@ fn main() {
     
     // Triangle
     let vertices: Vec<f32> = vec![
-        // positions      // colors        // texture coords
-        0.5,  0.5, 0.0,   1.0, 0.0, 0.0,   1.0, 1.0,   // top right
-        0.5, -0.5, 0.0,   0.0, 1.0, 0.0,   1.0, 0.0,   // bottom right
-       -0.5, -0.5, 0.0,   0.0, 0.0, 1.0,   0.0, 0.0,   // bottom left
-       -0.5,  0.5, 0.0,   1.0, 1.0, 0.0,   0.0, 1.0    // top left 
+        -0.5, -0.5, -0.5,  0.0, 0.0,
+        0.5, -0.5, -0.5,  1.0, 0.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        -0.5,  0.5, -0.5,  0.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0, 0.0,
+
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+        0.5, -0.5,  0.5,  1.0, 0.0,
+        0.5,  0.5,  0.5,  1.0, 1.0,
+        0.5,  0.5,  0.5,  1.0, 1.0,
+        -0.5,  0.5,  0.5,  0.0, 1.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+
+        -0.5,  0.5,  0.5,  1.0, 0.0,
+        -0.5,  0.5, -0.5,  1.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+        -0.5,  0.5,  0.5,  1.0, 0.0,
+
+        0.5,  0.5,  0.5,  1.0, 0.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        0.5, -0.5, -0.5,  0.0, 1.0,
+        0.5, -0.5, -0.5,  0.0, 1.0,
+        0.5, -0.5,  0.5,  0.0, 0.0,
+        0.5,  0.5,  0.5,  1.0, 0.0,
+
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+        0.5, -0.5, -0.5,  1.0, 1.0,
+        0.5, -0.5,  0.5,  1.0, 0.0,
+        0.5, -0.5,  0.5,  1.0, 0.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0,
+
+        -0.5,  0.5, -0.5,  0.0, 1.0,
+        0.5,  0.5, -0.5,  1.0, 1.0,
+        0.5,  0.5,  0.5,  1.0, 0.0,
+        0.5,  0.5,  0.5,  1.0, 0.0,
+        -0.5,  0.5,  0.5,  0.0, 0.0,
+        -0.5,  0.5, -0.5,  0.0, 1.0
     ];
 
     let indices = [
@@ -52,6 +88,8 @@ fn main() {
             "assets/shaders/shader.vert",
             "assets/shaders/shader.frag"
         );
+
+        gl::Enable(gl::DEPTH_TEST);
 
         let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
         gl::GenVertexArrays(1, &mut vao);
@@ -76,7 +114,7 @@ fn main() {
             gl::STATIC_DRAW
         );
 
-        let stride = (8 * std::mem::size_of::<f32>()) as gl::types::GLint;
+        let stride = (5 * std::mem::size_of::<f32>()) as gl::types::GLint;
 
         // Vertex coords
         gl::VertexAttribPointer(
@@ -90,26 +128,26 @@ fn main() {
         gl::EnableVertexAttribArray(0);
 
         // Color
+        // gl::VertexAttribPointer(
+        //     1,
+        //     3,
+        //     gl::FLOAT,
+        //     gl::FALSE,
+        //     stride,
+        //     (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+        // );
+        // gl::EnableVertexAttribArray(1);
+
+        // Texture coords
         gl::VertexAttribPointer(
             1,
-            3,
+            2,
             gl::FLOAT,
             gl::FALSE,
             stride,
             (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
         );
         gl::EnableVertexAttribArray(1);
-
-        // Texture coords
-        gl::VertexAttribPointer(
-            2,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            stride,
-            (6 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
-        );
-        gl::EnableVertexAttribArray(2);
 
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
@@ -190,7 +228,7 @@ fn main() {
             shader_program.use_program();
 
             gl::ClearColor(1.0, 0.0, 1.0, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             // bind textures on corresponding texture units
             gl::ActiveTexture(gl::TEXTURE0);
@@ -198,7 +236,10 @@ fn main() {
             gl::ActiveTexture(gl::TEXTURE1);
             gl::BindTexture(gl::TEXTURE_2D, texture2);
 
-            let model_transform = cgmath::Matrix4::from_angle_x(Deg(-55.0));
+            let model_transform = cgmath::Matrix4::from_axis_angle(
+                vec3(0.5, 1.0, 0.0).normalize(),
+                Rad(glfw.get_time() as f32)
+            );
             let view_transform = cgmath::Matrix4::from_translation(vec3(0.0, 0.0, -3.0));
             let projection_transform = cgmath::perspective(
                 Deg(45.0),
@@ -224,8 +265,8 @@ fn main() {
             gl::UniformMatrix4fv(project_location, 1, gl::FALSE, projection_transform.as_ptr());
 
             gl::BindVertexArray(vao);
-            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            // gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
             // gl::BindVertexArray(0);
         }
 
