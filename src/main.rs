@@ -9,17 +9,20 @@ use std::sync::mpsc::Receiver;
 use shader_program::ShaderProgram;
 use std::path::Path;
 use std::ffi::CString;
-use cgmath::{prelude::*, Matrix4, vec3,  Rad};
+use cgmath::{prelude::*, Matrix4, vec3,  Rad, Deg};
 
 fn main() {
+    let width = 800;
+    let height = 600;
+
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
     #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
 
     let (mut window, events) = glfw.create_window(
-        800,
-        600,
+        width,
+        height,
         "LearnOpenGL",
         glfw::WindowMode::Windowed
     ).expect("Failed to create GLFW window");
@@ -195,32 +198,30 @@ fn main() {
             gl::ActiveTexture(gl::TEXTURE1);
             gl::BindTexture(gl::TEXTURE_2D, texture2);
 
-            // Transform the box
-            let mut transform: Matrix4<f32> = Matrix4::identity();
-            transform = transform * Matrix4::<f32>::from_translation(vec3(0.5, -0.5, 0.0));
-            transform = transform * Matrix4::<f32>::from_axis_angle(
-                vec3(0.0, 0.0, 1.0),
-                Rad(glfw.get_time() as f32)
+            let model_transform = cgmath::Matrix4::from_angle_x(Deg(-55.0));
+            let view_transform = cgmath::Matrix4::from_translation(vec3(0.0, 0.0, -3.0));
+            let projection_transform = cgmath::perspective(
+                Deg(45.0),
+                width as f32 / height as f32,
+                0.1,
+                100.0
             );
 
-            let transform_cstring = &CString::new("transform").unwrap();
-            let transform_location = gl::GetUniformLocation(shader_program.id, transform_cstring.as_ptr());
+            let (model_cstr, view_cstr, projection_cstr) = (
+                &CString::new("model").unwrap(),
+                &CString::new("view").unwrap(),
+                &CString::new("projection").unwrap()
+            );
+            let (model_location, view_location, project_location) = (
+                gl::GetUniformLocation(shader_program.id, model_cstr.as_ptr()),
+                gl::GetUniformLocation(shader_program.id, view_cstr.as_ptr()),
+                gl::GetUniformLocation(shader_program.id, projection_cstr.as_ptr()),
+            );
 
-            gl::UniformMatrix4fv(transform_location, 1, gl::FALSE, transform.as_ptr());
-
-            gl::BindVertexArray(vao);
-            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
-
-            // Transform the box
-            let mut transform: Matrix4<f32> = Matrix4::identity();
-            transform = transform * Matrix4::<f32>::from_translation(vec3(-0.5, 0.5, 0.0));
-            transform = transform * Matrix4::<f32>::from_scale(((glfw.get_time().sin() / 2.0) + 0.5) as f32);
-
-            let transform_cstring = &CString::new("transform").unwrap();
-            let transform_location = gl::GetUniformLocation(shader_program.id, transform_cstring.as_ptr());
-
-            gl::UniformMatrix4fv(transform_location, 1, gl::FALSE, transform.as_ptr());
+            gl::UniformMatrix4fv(model_location, 1, gl::FALSE, model_transform.as_ptr());
+            gl::UniformMatrix4fv(view_location, 1, gl::FALSE, view_transform.as_ptr());
+            // Remember to set projection matrix once instead of each frame
+            gl::UniformMatrix4fv(project_location, 1, gl::FALSE, projection_transform.as_ptr());
 
             gl::BindVertexArray(vao);
             // gl::DrawArrays(gl::TRIANGLES, 0, 3);
