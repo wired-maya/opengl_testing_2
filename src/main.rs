@@ -83,6 +83,19 @@ fn main() {
         1, 2, 3   // second Triangle
     ];
 
+    let cube_positions: [cgmath::Vector3<f32>; 10] = [
+        vec3(0.0, 0.0, 0.0),
+        vec3(2.0, 5.0, -15.0),
+        vec3(-1.5, -2.2, -2.5),
+        vec3(-3.8, -2.0, -12.3),
+        vec3(2.4, -0.4, -3.5),
+        vec3(-1.7, 3.0, -7.5),
+        vec3(1.3, -2.0, -2.5),
+        vec3(1.5, 2.0, -2.5),
+        vec3(1.5, 0.2, -1.5),
+        vec3(-1.3, 1.0, -1.5)
+    ];
+
     let (shader_program, vao, vbo, ebo, texture1, texture2) = unsafe {
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
@@ -265,7 +278,15 @@ fn main() {
             gl::UniformMatrix4fv(project_location, 1, gl::FALSE, projection_transform.as_ptr());
 
             gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            for (i, position) in cube_positions.iter().enumerate() {
+                let mut model_transform = cgmath::Matrix4::from_translation(*position);
+                let angle = glfw.get_time() as f32 * i as f32;
+                model_transform = model_transform * cgmath::Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Rad(angle));
+
+                gl::UniformMatrix4fv(model_location, 1, gl::FALSE, model_transform.as_ptr());
+
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
             // gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
             // gl::BindVertexArray(0);
         }
