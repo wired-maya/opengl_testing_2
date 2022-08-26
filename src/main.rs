@@ -5,13 +5,12 @@ extern crate image;
 mod shader_program;
 
 use self::glfw::{Context, Key, Action};
-use std::sync::mpsc::Receiver;
+use std::{sync::mpsc::Receiver, vec};
 use shader_program::ShaderProgram;
 use std::path::Path;
 use std::ffi::CString;
 use cgmath::{prelude::*, Matrix4, vec3,  Rad, Deg, Vector3, Point3};
 
-const CAMERA_FRONT: Vector3<f32> = vec3(0.0, 0.0, -1.0);
 const CAMERA_UP: Vector3<f32> = vec3(0.0, 1.0, 0.0);
 
 fn main() {
@@ -19,15 +18,25 @@ fn main() {
     let height = 600;
 
     let mut camera_pos = cgmath::point3(0.0, 0.0, 3.0);
+    let mut camera_front = vec3(0.0, 0.0, -1.0);
 
     // Timing
     let mut delta_time: f32; // Time between current frame and last frame
     let mut last_frame: f32 = 0.0;
 
+    let mut yaw: f32 = -90.0;
+    let mut pitch: f32 = 0.0;
+
+    let mut last_x = width as f32 / 2.0;
+    let mut last_y = height as f32 / 2.0;
+
+    let mut first_mouse = true;
+
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
     #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
+    
 
     let (mut window, events) = glfw.create_window(
         width,
@@ -39,6 +48,8 @@ fn main() {
     window.make_current();
     window.set_key_polling(true);
     window.set_framebuffer_size_polling(true);
+    window.set_cursor_pos_polling(true);
+    window.set_cursor_mode(glfw::CursorMode::Disabled);
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
     
@@ -279,7 +290,19 @@ fn main() {
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
-        process_events(&mut window, &events, projection_location, &mut camera_pos, delta_time);
+        process_events(
+            &mut window,
+            &events,
+            projection_location,
+            &mut camera_pos,
+            &mut camera_front,
+            delta_time,
+            &mut last_x,
+            &mut last_y,
+            &mut yaw,
+            &mut pitch,
+            &mut first_mouse
+        );
 
         unsafe {
             gl::ClearColor(1.0, 0.0, 1.0, 1.0);
@@ -287,7 +310,7 @@ fn main() {
 
             let view_transform = Matrix4::look_to_rh(
                 camera_pos,
-                CAMERA_FRONT,
+                camera_front,
                 CAMERA_UP
             );
 
@@ -324,9 +347,17 @@ fn process_events(
     events: &Receiver<(f64, glfw::WindowEvent)>,
     projection_location: i32,
     camera_pos: &mut Point3<f32>,
-    delta_time: f32
+    camera_front: &mut Vector3<f32>,
+    delta_time: f32,
+    last_x: &mut f32,
+    last_y: &mut f32,
+    yaw: &mut f32,
+    pitch: &mut f32,
+    first_mouse: &mut bool
 ) {
     let camera_speed = 2.5 * delta_time;
+    // let sensitivity = 2.5 * delta_time;
+    let sensitivity = 0.1;
 
     for (_, event) in glfw::flush_messages(events) {
         match event {
@@ -347,20 +378,54 @@ fn process_events(
             // glfw::WindowEvent::Key(Key::S, _, Action::Press, _) => *camera_pos += -(camera_speed * CAMERA_FRONT),
             // glfw::WindowEvent::Key(Key::A, _, Action::Press, _) => *camera_pos += -(CAMERA_FRONT.cross(CAMERA_UP).normalize() * camera_speed),
             // glfw::WindowEvent::Key(Key::D, _, Action::Press, _) => *camera_pos += CAMERA_FRONT.cross(CAMERA_UP).normalize() * camera_speed,
+            glfw::WindowEvent::CursorPos(x, y) => {
+                if *first_mouse {
+                    *last_x = x as f32;
+                    *last_y = y as f32;
+                    *first_mouse = false;
+                }
+
+                let mut x_offset = x as f32 - *last_x;
+                let mut y_offset = *last_y - y as f32;
+
+                *last_x = x as f32;
+                *last_y = y as f32;
+
+                x_offset *= sensitivity;
+                y_offset *= sensitivity;
+
+                *yaw += x_offset;
+                *pitch += y_offset;
+
+                // Make sure that when pitch is out of bounds, screen doesn't get flipped
+                if *pitch > 89.0 {
+                    *pitch = 89.0;
+                }
+                if *pitch < -89.0 {
+                    *pitch = -89.0;
+                }
+
+                let direction = vec3(
+                    (*yaw).to_radians().cos() * (*pitch).to_radians().cos(),
+                    (*pitch).to_radians().sin(),
+                    (*yaw).to_radians().sin() * (*pitch).to_radians().cos()
+                );
+                *camera_front = direction.normalize();
+            }
             _ => {}
         }
     }
 
     if window.get_key(Key::W) == Action::Press {
-        *camera_pos += camera_speed * CAMERA_FRONT
+        *camera_pos += camera_speed * (*camera_front)
     }
     if window.get_key(Key::S) == Action::Press {
-        *camera_pos += -(camera_speed * CAMERA_FRONT)
+        *camera_pos += -(camera_speed * (*camera_front))
     }
     if window.get_key(Key::A) == Action::Press {
-        *camera_pos += -(CAMERA_FRONT.cross(CAMERA_UP).normalize() * camera_speed)
+        *camera_pos += -((*camera_front).cross(CAMERA_UP).normalize() * camera_speed)
     }
     if window.get_key(Key::D) == Action::Press {
-        *camera_pos += CAMERA_FRONT.cross(CAMERA_UP).normalize() * camera_speed
+        *camera_pos += (*camera_front).cross(CAMERA_UP).normalize() * camera_speed
     }
 }
