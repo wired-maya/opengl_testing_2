@@ -272,7 +272,21 @@ fn main() {
             gl::ClearColor(1.0, 0.0, 1.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            let view_transform = cgmath::Matrix4::from_translation(vec3(0.0, 0.0, -3.0));
+            // let camera_pos = vec3(0.0, 0.0, 3.0);
+            // let camera_target = vec3(0.0, 0.0, 0.0);
+            // let camera_direction = (camera_pos - camera_target).normalize();
+            // let camera_right = vec3(0.0, 1.0, 0.0).cross(camera_direction);
+            // let camera_up = camera_direction.cross(camera_right);
+
+            let radius: f32 = 10.0;
+            let cam_x: f32 = (glfw.get_time() * 20.0).sin() as f32 * radius;
+            let cam_z: f32 = (glfw.get_time() * 20.0).cos() as f32 * radius;
+            let view_transform = Matrix4::look_at_rh(
+                cgmath::point3(cam_x, 0.0, cam_z),
+                cgmath::point3(0.0, 0.0, 0.0),
+                vec3(0.0, 1.0, 0.0)
+            );
+
             gl::UniformMatrix4fv(view_location, 1, gl::FALSE, view_transform.as_ptr());
             // Remember to set projection matrix once instead of each frame
 
