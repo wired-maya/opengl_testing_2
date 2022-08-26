@@ -67,6 +67,8 @@ impl Camera {
         if direction == CameraMovement::RIGHT {
             self.position += self.right * velocity;
         }
+
+        self.position.y = 0.0;
     }
 
     pub fn process_mouse_movement(&mut self, mut x_offset: f32, mut y_offset: f32, constrain_pitch: bool) {
