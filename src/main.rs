@@ -9,11 +9,20 @@ use std::sync::mpsc::Receiver;
 use shader_program::ShaderProgram;
 use std::path::Path;
 use std::ffi::CString;
-use cgmath::{prelude::*, Matrix4, vec3,  Rad, Deg};
+use cgmath::{prelude::*, Matrix4, vec3,  Rad, Deg, Vector3, Point3};
+
+const CAMERA_FRONT: Vector3<f32> = vec3(0.0, 0.0, -1.0);
+const CAMERA_UP: Vector3<f32> = vec3(0.0, 1.0, 0.0);
 
 fn main() {
     let width = 800;
     let height = 600;
+
+    let mut camera_pos = cgmath::point3(0.0, 0.0, 3.0);
+
+    // Timing
+    let mut delta_time: f32; // Time between current frame and last frame
+    let mut last_frame: f32 = 0.0;
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -96,7 +105,7 @@ fn main() {
         vec3(-1.3, 1.0, -1.5)
     ];
 
-    let (shader_program, vao, vbo, ebo, texture1, texture2) = unsafe {
+    let (shader_program, vao, vbo, ebo, _texture1, _texture2) = unsafe {
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
             "assets/shaders/shader.frag"
@@ -266,29 +275,23 @@ fn main() {
 
     // Render loop, each iteration is a "frame"
     while !window.should_close() {
-        process_events(&mut window, &events, projection_location);
+        let current_frame = glfw.get_time() as f32;
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+
+        process_events(&mut window, &events, projection_location, &mut camera_pos, delta_time);
 
         unsafe {
             gl::ClearColor(1.0, 0.0, 1.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            // let camera_pos = vec3(0.0, 0.0, 3.0);
-            // let camera_target = vec3(0.0, 0.0, 0.0);
-            // let camera_direction = (camera_pos - camera_target).normalize();
-            // let camera_right = vec3(0.0, 1.0, 0.0).cross(camera_direction);
-            // let camera_up = camera_direction.cross(camera_right);
-
-            let radius: f32 = 10.0;
-            let cam_x: f32 = (glfw.get_time() * 20.0).sin() as f32 * radius;
-            let cam_z: f32 = (glfw.get_time() * 20.0).cos() as f32 * radius;
-            let view_transform = Matrix4::look_at_rh(
-                cgmath::point3(cam_x, 0.0, cam_z),
-                cgmath::point3(0.0, 0.0, 0.0),
-                vec3(0.0, 1.0, 0.0)
+            let view_transform = Matrix4::look_to_rh(
+                camera_pos,
+                CAMERA_FRONT,
+                CAMERA_UP
             );
 
             gl::UniformMatrix4fv(view_location, 1, gl::FALSE, view_transform.as_ptr());
-            // Remember to set projection matrix once instead of each frame
 
             gl::BindVertexArray(vao);
             for (i, position) in cube_positions.iter().enumerate() {
@@ -316,7 +319,15 @@ fn main() {
     }
 }
 
-fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::WindowEvent)>, projection_location: i32) {
+fn process_events(
+    window: &mut glfw::Window,
+    events: &Receiver<(f64, glfw::WindowEvent)>,
+    projection_location: i32,
+    camera_pos: &mut Point3<f32>,
+    delta_time: f32
+) {
+    let camera_speed = 2.5 * delta_time;
+
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
@@ -332,7 +343,24 @@ fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::Windo
                 }
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
+            // glfw::WindowEvent::Key(Key::W, _, Action::Press, _) => *camera_pos += camera_speed * CAMERA_FRONT,
+            // glfw::WindowEvent::Key(Key::S, _, Action::Press, _) => *camera_pos += -(camera_speed * CAMERA_FRONT),
+            // glfw::WindowEvent::Key(Key::A, _, Action::Press, _) => *camera_pos += -(CAMERA_FRONT.cross(CAMERA_UP).normalize() * camera_speed),
+            // glfw::WindowEvent::Key(Key::D, _, Action::Press, _) => *camera_pos += CAMERA_FRONT.cross(CAMERA_UP).normalize() * camera_speed,
             _ => {}
         }
+    }
+
+    if window.get_key(Key::W) == Action::Press {
+        *camera_pos += camera_speed * CAMERA_FRONT
+    }
+    if window.get_key(Key::S) == Action::Press {
+        *camera_pos += -(camera_speed * CAMERA_FRONT)
+    }
+    if window.get_key(Key::A) == Action::Press {
+        *camera_pos += -(CAMERA_FRONT.cross(CAMERA_UP).normalize() * camera_speed)
+    }
+    if window.get_key(Key::D) == Action::Press {
+        *camera_pos += CAMERA_FRONT.cross(CAMERA_UP).normalize() * camera_speed
     }
 }
