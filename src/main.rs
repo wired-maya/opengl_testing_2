@@ -229,53 +229,52 @@ fn main() {
         shader_program.set_int(&texture1_cstr, 0);
         shader_program.set_int(&texture2_cstr, 1);
 
+        // bind textures on corresponding texture units
+        gl::ActiveTexture(gl::TEXTURE0);
+        gl::BindTexture(gl::TEXTURE_2D, texture1);
+        gl::ActiveTexture(gl::TEXTURE1);
+        gl::BindTexture(gl::TEXTURE_2D, texture2);
+
+        shader_program.use_program();
 
         (shader_program, vao, vbo, ebo, texture1, texture2)
     };
 
+    let (model_cstr, view_cstr, projection_cstr) = (
+        &CString::new("model").unwrap(),
+        &CString::new("view").unwrap(),
+        &CString::new("projection").unwrap()
+    );
+    let (model_location, view_location, projection_location) = unsafe {
+        (
+            gl::GetUniformLocation(shader_program.id, model_cstr.as_ptr()),
+            gl::GetUniformLocation(shader_program.id, view_cstr.as_ptr()),
+            gl::GetUniformLocation(shader_program.id, projection_cstr.as_ptr()),
+        )
+    };
+
+    let projection_transform = cgmath::perspective(
+        Deg(45.0),
+        width as f32 / height as f32,
+        0.1,
+        100.0
+    );
+    unsafe {
+        gl::UniformMatrix4fv(projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+    }
+
+
     // Render loop, each iteration is a "frame"
     while !window.should_close() {
-        process_events(&mut window, &events);
+        process_events(&mut window, &events, projection_location);
 
         unsafe {
-            shader_program.use_program();
-
             gl::ClearColor(1.0, 0.0, 1.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            // bind textures on corresponding texture units
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, texture1);
-            gl::ActiveTexture(gl::TEXTURE1);
-            gl::BindTexture(gl::TEXTURE_2D, texture2);
-
-            let model_transform = cgmath::Matrix4::from_axis_angle(
-                vec3(0.5, 1.0, 0.0).normalize(),
-                Rad(glfw.get_time() as f32)
-            );
             let view_transform = cgmath::Matrix4::from_translation(vec3(0.0, 0.0, -3.0));
-            let projection_transform = cgmath::perspective(
-                Deg(45.0),
-                width as f32 / height as f32,
-                0.1,
-                100.0
-            );
-
-            let (model_cstr, view_cstr, projection_cstr) = (
-                &CString::new("model").unwrap(),
-                &CString::new("view").unwrap(),
-                &CString::new("projection").unwrap()
-            );
-            let (model_location, view_location, project_location) = (
-                gl::GetUniformLocation(shader_program.id, model_cstr.as_ptr()),
-                gl::GetUniformLocation(shader_program.id, view_cstr.as_ptr()),
-                gl::GetUniformLocation(shader_program.id, projection_cstr.as_ptr()),
-            );
-
-            gl::UniformMatrix4fv(model_location, 1, gl::FALSE, model_transform.as_ptr());
             gl::UniformMatrix4fv(view_location, 1, gl::FALSE, view_transform.as_ptr());
             // Remember to set projection matrix once instead of each frame
-            gl::UniformMatrix4fv(project_location, 1, gl::FALSE, projection_transform.as_ptr());
 
             gl::BindVertexArray(vao);
             for (i, position) in cube_positions.iter().enumerate() {
@@ -303,11 +302,20 @@ fn main() {
     }
 }
 
-fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::WindowEvent)>) {
+fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::WindowEvent)>, projection_location: i32) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
-                unsafe { gl::Viewport(0, 0, width, height) }
+                unsafe {
+                    gl::Viewport(0, 0, width, height);
+                    let projection_transform = cgmath::perspective(
+                        Deg(45.0),
+                        width as f32 / height as f32,
+                        0.1,
+                        100.0
+                    );
+                    gl::UniformMatrix4fv(projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                }
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
             _ => {}
