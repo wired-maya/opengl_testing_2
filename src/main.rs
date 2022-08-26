@@ -3,34 +3,31 @@ extern crate glfw;
 extern crate image;
 
 mod shader_program;
+mod camera;
 
 use self::glfw::{Context, Key, Action};
 use std::{sync::mpsc::Receiver, vec};
+use camera::{Camera, CameraMovement};
 use shader_program::ShaderProgram;
 use std::path::Path;
 use std::ffi::CString;
-use cgmath::{prelude::*, Matrix4, vec3,  Rad, Deg, Vector3, Point3};
-
-const CAMERA_UP: Vector3<f32> = vec3(0.0, 1.0, 0.0);
+use cgmath::{prelude::*, vec3,  Rad, Deg, Point3};
 
 fn main() {
-    let width = 800;
-    let height = 600;
-
-    let mut camera_pos = cgmath::point3(0.0, 0.0, 3.0);
-    let mut camera_front = vec3(0.0, 0.0, -1.0);
+    let mut width = 800;
+    let mut height = 600;
 
     // Timing
     let mut delta_time: f32; // Time between current frame and last frame
     let mut last_frame: f32 = 0.0;
 
-    let mut yaw: f32 = -90.0;
-    let mut pitch: f32 = 0.0;
-
     let mut last_x = width as f32 / 2.0;
     let mut last_y = height as f32 / 2.0;
 
     let mut first_mouse = true;
+
+    let mut camera = Camera::default();
+    camera.position = Point3 { x: 0.0, y: 0.0, z: 3.0 };
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -49,6 +46,7 @@ fn main() {
     window.set_key_polling(true);
     window.set_framebuffer_size_polling(true);
     window.set_cursor_pos_polling(true);
+    window.set_scroll_polling(true);
     window.set_cursor_mode(glfw::CursorMode::Disabled);
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
@@ -98,11 +96,6 @@ fn main() {
         -0.5,  0.5, -0.5,  0.0, 1.0
     ];
 
-    let indices = [
-        0, 1, 3,  // first Triangle
-        1, 2, 3   // second Triangle
-    ];
-
     let cube_positions: [cgmath::Vector3<f32>; 10] = [
         vec3(0.0, 0.0, 0.0),
         vec3(2.0, 5.0, -15.0),
@@ -116,7 +109,7 @@ fn main() {
         vec3(-1.3, 1.0, -1.5)
     ];
 
-    let (shader_program, vao, vbo, ebo, _texture1, _texture2) = unsafe {
+    let (shader_program, vao, vbo) = unsafe {
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
             "assets/shaders/shader.frag"
@@ -124,10 +117,9 @@ fn main() {
 
         gl::Enable(gl::DEPTH_TEST);
 
-        let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
+        let (mut vao, mut vbo) = (0, 0);
         gl::GenVertexArrays(1, &mut vao);
         gl::GenBuffers(1, &mut vbo);
-        gl::GenBuffers(1, &mut ebo);
 
         gl::BindVertexArray(vao);
 
@@ -136,14 +128,6 @@ fn main() {
             gl::ARRAY_BUFFER,
             (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
             vertices.as_ptr() as *const gl::types::GLvoid,
-            gl::STATIC_DRAW
-        );
-        
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (indices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
-            indices.as_ptr() as *const gl::types::GLvoid,
             gl::STATIC_DRAW
         );
 
@@ -159,17 +143,6 @@ fn main() {
             std::ptr::null()
         );
         gl::EnableVertexAttribArray(0);
-
-        // Color
-        // gl::VertexAttribPointer(
-        //     1,
-        //     3,
-        //     gl::FLOAT,
-        //     gl::FALSE,
-        //     stride,
-        //     (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
-        // );
-        // gl::EnableVertexAttribArray(1);
 
         // Texture coords
         gl::VertexAttribPointer(
@@ -257,7 +230,7 @@ fn main() {
 
         shader_program.use_program();
 
-        (shader_program, vao, vbo, ebo, texture1, texture2)
+        (shader_program, vao, vbo)
     };
 
     let (model_cstr, view_cstr, projection_cstr) = (
@@ -283,7 +256,6 @@ fn main() {
         gl::UniformMatrix4fv(projection_location, 1, gl::FALSE, projection_transform.as_ptr());
     }
 
-
     // Render loop, each iteration is a "frame"
     while !window.should_close() {
         let current_frame = glfw.get_time() as f32;
@@ -294,25 +266,20 @@ fn main() {
             &mut window,
             &events,
             projection_location,
-            &mut camera_pos,
-            &mut camera_front,
             delta_time,
             &mut last_x,
             &mut last_y,
-            &mut yaw,
-            &mut pitch,
-            &mut first_mouse
+            &mut first_mouse,
+            &mut camera,
+            &mut width,
+            &mut height
         );
 
         unsafe {
             gl::ClearColor(1.0, 0.0, 1.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            let view_transform = Matrix4::look_to_rh(
-                camera_pos,
-                camera_front,
-                CAMERA_UP
-            );
+            let view_transform = camera.get_view_matrix();
 
             gl::UniformMatrix4fv(view_location, 1, gl::FALSE, view_transform.as_ptr());
 
@@ -326,8 +293,6 @@ fn main() {
 
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
             }
-            // gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
-            // gl::BindVertexArray(0);
         }
 
         window.swap_buffers();
@@ -338,7 +303,6 @@ fn main() {
     unsafe {
         gl::DeleteVertexArrays(1, &vao);
         gl::DeleteBuffers(1, &vbo);
-        gl::DeleteBuffers(1, &ebo);
     }
 }
 
@@ -346,27 +310,25 @@ fn process_events(
     window: &mut glfw::Window,
     events: &Receiver<(f64, glfw::WindowEvent)>,
     projection_location: i32,
-    camera_pos: &mut Point3<f32>,
-    camera_front: &mut Vector3<f32>,
     delta_time: f32,
     last_x: &mut f32,
     last_y: &mut f32,
-    yaw: &mut f32,
-    pitch: &mut f32,
-    first_mouse: &mut bool
+    first_mouse: &mut bool,
+    camera: &mut Camera,
+    width: &mut u32,
+    height: &mut u32
 ) {
-    let camera_speed = 2.5 * delta_time;
-    // let sensitivity = 2.5 * delta_time;
-    let sensitivity = 0.1;
-
     for (_, event) in glfw::flush_messages(events) {
         match event {
-            glfw::WindowEvent::FramebufferSize(width, height) => {
+            glfw::WindowEvent::FramebufferSize(window_width, window_height) => {
+                *width = window_width as u32;
+                *height = window_height as u32;
+
                 unsafe {
-                    gl::Viewport(0, 0, width, height);
+                    gl::Viewport(0, 0, window_width, window_height);
                     let projection_transform = cgmath::perspective(
-                        Deg(45.0),
-                        width as f32 / height as f32,
+                        Deg(camera.zoom),
+                        *width as f32 / *height as f32,
                         0.1,
                         100.0
                     );
@@ -374,10 +336,6 @@ fn process_events(
                 }
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
-            // glfw::WindowEvent::Key(Key::W, _, Action::Press, _) => *camera_pos += camera_speed * CAMERA_FRONT,
-            // glfw::WindowEvent::Key(Key::S, _, Action::Press, _) => *camera_pos += -(camera_speed * CAMERA_FRONT),
-            // glfw::WindowEvent::Key(Key::A, _, Action::Press, _) => *camera_pos += -(CAMERA_FRONT.cross(CAMERA_UP).normalize() * camera_speed),
-            // glfw::WindowEvent::Key(Key::D, _, Action::Press, _) => *camera_pos += CAMERA_FRONT.cross(CAMERA_UP).normalize() * camera_speed,
             glfw::WindowEvent::CursorPos(x, y) => {
                 if *first_mouse {
                     *last_x = x as f32;
@@ -385,47 +343,42 @@ fn process_events(
                     *first_mouse = false;
                 }
 
-                let mut x_offset = x as f32 - *last_x;
-                let mut y_offset = *last_y - y as f32;
+                let x_offset = x as f32 - *last_x;
+                let y_offset = *last_y - y as f32;
 
                 *last_x = x as f32;
                 *last_y = y as f32;
 
-                x_offset *= sensitivity;
-                y_offset *= sensitivity;
+                camera.process_mouse_movement(x_offset, y_offset, true);
+            }
+            glfw::WindowEvent::Scroll(_x_offset, y_offset) => {
+                camera.process_mouse_scroll(y_offset as f32);
 
-                *yaw += x_offset;
-                *pitch += y_offset;
-
-                // Make sure that when pitch is out of bounds, screen doesn't get flipped
-                if *pitch > 89.0 {
-                    *pitch = 89.0;
-                }
-                if *pitch < -89.0 {
-                    *pitch = -89.0;
-                }
-
-                let direction = vec3(
-                    (*yaw).to_radians().cos() * (*pitch).to_radians().cos(),
-                    (*pitch).to_radians().sin(),
-                    (*yaw).to_radians().sin() * (*pitch).to_radians().cos()
+                let projection_transform = cgmath::perspective(
+                    Deg(camera.zoom),
+                    *width as f32 / *height as f32,
+                    0.1,
+                    100.0
                 );
-                *camera_front = direction.normalize();
+
+                unsafe {
+                    gl::UniformMatrix4fv(projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                }
             }
             _ => {}
         }
     }
 
     if window.get_key(Key::W) == Action::Press {
-        *camera_pos += camera_speed * (*camera_front)
+        camera.process_keyboard(CameraMovement::FORWARD, delta_time);
     }
     if window.get_key(Key::S) == Action::Press {
-        *camera_pos += -(camera_speed * (*camera_front))
+        camera.process_keyboard(CameraMovement::BACKWARD, delta_time);
     }
     if window.get_key(Key::A) == Action::Press {
-        *camera_pos += -((*camera_front).cross(CAMERA_UP).normalize() * camera_speed)
+        camera.process_keyboard(CameraMovement::LEFT, delta_time);
     }
     if window.get_key(Key::D) == Action::Press {
-        *camera_pos += (*camera_front).cross(CAMERA_UP).normalize() * camera_speed
+        camera.process_keyboard(CameraMovement::RIGHT, delta_time);
     }
 }
