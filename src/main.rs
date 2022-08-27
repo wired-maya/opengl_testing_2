@@ -11,7 +11,7 @@ use camera::{Camera, CameraMovement};
 use shader_program::ShaderProgram;
 use std::path::Path;
 use std::ffi::CString;
-use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4};
+use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4, Vector3};
 
 fn main() {
     let mut width = 800;
@@ -29,7 +29,7 @@ fn main() {
     let mut camera = Camera::default();
     camera.position = Point3 { x: 0.0, y: 0.0, z: 3.0 };
 
-    let light_pos = vec3(1.2, 1.0, 2.0);
+    let light_pos: Vector3<f32> = vec3(1.2, 1.0, 2.0);
     // let light_pos = vec3(0.0, 0.0, 0.0);
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -289,21 +289,37 @@ fn main() {
         (shader_program, light_shader_program, vao, light_vao, vbo)
     };
 
-    let (model_cstr, view_cstr, projection_cstr, light_color_cstr, light_pos_cstr) = (
+    let (
+        model_cstr,
+        view_cstr,
+        projection_cstr,
+        light_color_cstr,
+        light_pos_cstr,
+        view_pos_cstr
+    ) = (
         &CString::new("model").unwrap(),
         &CString::new("view").unwrap(),
         &CString::new("projection").unwrap(),
         &CString::new("lightColor").unwrap(),
-        &CString::new("lightPos").unwrap()
+        &CString::new("lightPos").unwrap(),
+        &CString::new("viewPos").unwrap()
     );
 
-    let (model_location, view_location, projection_location, light_color_location, light_pos_location) = unsafe {
+    let (
+        model_location,
+        view_location,
+        projection_location,
+        light_color_location,
+        light_pos_location,
+        view_pos_location
+    ) = unsafe {
         (
             gl::GetUniformLocation(shader_program.id, model_cstr.as_ptr()),
             gl::GetUniformLocation(shader_program.id, view_cstr.as_ptr()),
             gl::GetUniformLocation(shader_program.id, projection_cstr.as_ptr()),
             gl::GetUniformLocation(shader_program.id, light_color_cstr.as_ptr()),
-            gl::GetUniformLocation(shader_program.id, light_pos_cstr.as_ptr())
+            gl::GetUniformLocation(shader_program.id, light_pos_cstr.as_ptr()),
+            gl::GetUniformLocation(shader_program.id, view_pos_cstr.as_ptr())
         )
     };
 
@@ -326,7 +342,7 @@ fn main() {
         shader_program.use_program();
         gl::UniformMatrix4fv(projection_location, 1, gl::FALSE, projection_transform.as_ptr());
         gl::Uniform3f(light_color_location, 1.0, 1.0, 1.0);
-        gl::Uniform3fv(light_pos_location, 1, light_pos.as_ptr());
+        // gl::Uniform3fv(light_pos_location, 1, light_pos.as_ptr());
         light_shader_program.use_program();
         gl::UniformMatrix4fv(light_projection_location, 1, gl::FALSE, projection_transform.as_ptr());
     }
@@ -340,15 +356,17 @@ fn main() {
         process_events(
             &mut window,
             &events,
-            projection_location,
-            light_projection_location,
-            delta_time,
+            &projection_location,
+            &light_projection_location,
+            &delta_time,
             &mut last_x,
             &mut last_y,
             &mut first_mouse,
             &mut camera,
             &mut width,
-            &mut height
+            &mut height,
+            &shader_program,
+            &light_shader_program
         );
 
         unsafe {
@@ -360,6 +378,8 @@ fn main() {
             let view_transform = camera.get_view_matrix();
 
             gl::UniformMatrix4fv(view_location, 1, gl::FALSE, view_transform.as_ptr());
+            gl::Uniform3fv(view_pos_location, 1, camera.position.as_ptr());
+            gl::Uniform3fv(light_pos_location, 1, light_pos.as_ptr());
 
             gl::BindVertexArray(vao);
             for (i, position) in cube_positions.iter().enumerate() {
@@ -397,15 +417,17 @@ fn main() {
 fn process_events(
     window: &mut glfw::Window,
     events: &Receiver<(f64, glfw::WindowEvent)>,
-    projection_location: i32,
-    light_projection_location: i32,
-    delta_time: f32,
+    projection_location: &i32,
+    light_projection_location: &i32,
+    delta_time: &f32,
     last_x: &mut f32,
     last_y: &mut f32,
     first_mouse: &mut bool,
     camera: &mut Camera,
     width: &mut u32,
-    height: &mut u32
+    height: &mut u32,
+    shader_program: &ShaderProgram,
+    light_shader_program: &ShaderProgram
 ) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
@@ -421,7 +443,10 @@ fn process_events(
                         0.1,
                         100.0
                     );
-                    gl::UniformMatrix4fv(projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                    shader_program.use_program();
+                    gl::UniformMatrix4fv(*projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                    light_shader_program.use_program();
+                    gl::UniformMatrix4fv(*light_projection_location, 1, gl::FALSE, projection_transform.as_ptr());
                 }
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
@@ -451,8 +476,10 @@ fn process_events(
                 );
 
                 unsafe {
-                    gl::UniformMatrix4fv(projection_location, 1, gl::FALSE, projection_transform.as_ptr());
-                    gl::UniformMatrix4fv(light_projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                    shader_program.use_program();
+                    gl::UniformMatrix4fv(*projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                    light_shader_program.use_program();
+                    gl::UniformMatrix4fv(*light_projection_location, 1, gl::FALSE, projection_transform.as_ptr());
                 }
             }
             _ => {}
@@ -460,15 +487,15 @@ fn process_events(
     }
 
     if window.get_key(Key::W) == Action::Press {
-        camera.process_keyboard(CameraMovement::FORWARD, delta_time);
+        camera.process_keyboard(CameraMovement::FORWARD, *delta_time);
     }
     if window.get_key(Key::S) == Action::Press {
-        camera.process_keyboard(CameraMovement::BACKWARD, delta_time);
+        camera.process_keyboard(CameraMovement::BACKWARD, *delta_time);
     }
     if window.get_key(Key::A) == Action::Press {
-        camera.process_keyboard(CameraMovement::LEFT, delta_time);
+        camera.process_keyboard(CameraMovement::LEFT, *delta_time);
     }
     if window.get_key(Key::D) == Action::Press {
-        camera.process_keyboard(CameraMovement::RIGHT, delta_time);
+        camera.process_keyboard(CameraMovement::RIGHT, *delta_time);
     }
 }
