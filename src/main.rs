@@ -11,7 +11,7 @@ use camera::{Camera, CameraMovement};
 use shader_program::ShaderProgram;
 use std::path::Path;
 use std::ffi::CString;
-use cgmath::{prelude::*, vec3,  Rad, Deg, Point3};
+use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4};
 
 fn main() {
     let mut width = 800;
@@ -28,6 +28,9 @@ fn main() {
 
     let mut camera = Camera::default();
     camera.position = Point3 { x: 0.0, y: 0.0, z: 3.0 };
+
+    let light_pos = vec3(1.2, 1.0, 2.0);
+    // let light_pos = vec3(0.0, 0.0, 0.0);
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -53,47 +56,47 @@ fn main() {
     
     // Triangle
     let vertices: Vec<f32> = vec![
-        -0.5, -0.5, -0.5,  0.0, 0.0,
-        0.5, -0.5, -0.5,  1.0, 0.0,
-        0.5,  0.5, -0.5,  1.0, 1.0,
-        0.5,  0.5, -0.5,  1.0, 1.0,
-        -0.5,  0.5, -0.5,  0.0, 1.0,
-        -0.5, -0.5, -0.5,  0.0, 0.0,
+        -0.5, -0.5, -0.5,  0.0, 0.0, 0.0,  0.0, -1.0,
+        0.5, -0.5, -0.5,  1.0, 0.0, 0.0,  0.0, -1.0,
+        0.5,  0.5, -0.5,  1.0, 1.0, 0.0,  0.0, -1.0,
+        0.5,  0.5, -0.5,  1.0, 1.0, 0.0,  0.0, -1.0,
+        -0.5,  0.5, -0.5,  0.0, 1.0, 0.0,  0.0, -1.0,
+        -0.5, -0.5, -0.5,  0.0, 0.0, 0.0,  0.0, -1.0,
 
-        -0.5, -0.5,  0.5,  0.0, 0.0,
-        0.5, -0.5,  0.5,  1.0, 0.0,
-        0.5,  0.5,  0.5,  1.0, 1.0,
-        0.5,  0.5,  0.5,  1.0, 1.0,
-        -0.5,  0.5,  0.5,  0.0, 1.0,
-        -0.5, -0.5,  0.5,  0.0, 0.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0, 0.0,  0.0, 1.0,
+        0.5, -0.5,  0.5,  1.0, 0.0, 0.0,  0.0, 1.0,
+        0.5,  0.5,  0.5,  1.0, 1.0, 0.0,  0.0, 1.0,
+        0.5,  0.5,  0.5,  1.0, 1.0, 0.0,  0.0, 1.0,
+        -0.5,  0.5,  0.5,  0.0, 1.0, 0.0,  0.0, 1.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0, 0.0,  0.0, 1.0,
 
-        -0.5,  0.5,  0.5,  1.0, 0.0,
-        -0.5,  0.5, -0.5,  1.0, 1.0,
-        -0.5, -0.5, -0.5,  0.0, 1.0,
-        -0.5, -0.5, -0.5,  0.0, 1.0,
-        -0.5, -0.5,  0.5,  0.0, 0.0,
-        -0.5,  0.5,  0.5,  1.0, 0.0,
+        -0.5,  0.5,  0.5,  1.0, 0.0, -1.0,  0.0,  0.0,
+        -0.5,  0.5, -0.5,  1.0, 1.0, -1.0,  0.0,  0.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0, -1.0,  0.0,  0.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0, -1.0,  0.0,  0.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0, -1.0,  0.0,  0.0,
+        -0.5,  0.5,  0.5,  1.0, 0.0, -1.0,  0.0,  0.0,
 
-        0.5,  0.5,  0.5,  1.0, 0.0,
-        0.5,  0.5, -0.5,  1.0, 1.0,
-        0.5, -0.5, -0.5,  0.0, 1.0,
-        0.5, -0.5, -0.5,  0.0, 1.0,
-        0.5, -0.5,  0.5,  0.0, 0.0,
-        0.5,  0.5,  0.5,  1.0, 0.0,
+        0.5,  0.5,  0.5,  1.0, 0.0, 1.0,  0.0,  0.0,
+        0.5,  0.5, -0.5,  1.0, 1.0, 1.0,  0.0,  0.0,
+        0.5, -0.5, -0.5,  0.0, 1.0, 1.0,  0.0,  0.0,
+        0.5, -0.5, -0.5,  0.0, 1.0, 1.0,  0.0,  0.0,
+        0.5, -0.5,  0.5,  0.0, 0.0, 1.0,  0.0,  0.0,
+        0.5,  0.5,  0.5,  1.0, 0.0, 1.0,  0.0,  0.0,
 
-        -0.5, -0.5, -0.5,  0.0, 1.0,
-        0.5, -0.5, -0.5,  1.0, 1.0,
-        0.5, -0.5,  0.5,  1.0, 0.0,
-        0.5, -0.5,  0.5,  1.0, 0.0,
-        -0.5, -0.5,  0.5,  0.0, 0.0,
-        -0.5, -0.5, -0.5,  0.0, 1.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0, 0.0, -1.0,  0.0,
+        0.5, -0.5, -0.5,  1.0, 1.0, 0.0, -1.0,  0.0,
+        0.5, -0.5,  0.5,  1.0, 0.0, 0.0, -1.0,  0.0,
+        0.5, -0.5,  0.5,  1.0, 0.0, 0.0, -1.0,  0.0,
+        -0.5, -0.5,  0.5,  0.0, 0.0, 0.0, -1.0,  0.0,
+        -0.5, -0.5, -0.5,  0.0, 1.0, 0.0, -1.0,  0.0,
 
-        -0.5,  0.5, -0.5,  0.0, 1.0,
-        0.5,  0.5, -0.5,  1.0, 1.0,
-        0.5,  0.5,  0.5,  1.0, 0.0,
-        0.5,  0.5,  0.5,  1.0, 0.0,
-        -0.5,  0.5,  0.5,  0.0, 0.0,
-        -0.5,  0.5, -0.5,  0.0, 1.0
+        -0.5,  0.5, -0.5,  0.0, 1.0, 0.0,  1.0,  0.0,
+        0.5,  0.5, -0.5,  1.0, 1.0, 0.0,  1.0,  0.0,
+        0.5,  0.5,  0.5,  1.0, 0.0, 0.0,  1.0,  0.0,
+        0.5,  0.5,  0.5,  1.0, 0.0, 0.0,  1.0,  0.0,
+        -0.5,  0.5,  0.5,  0.0, 0.0, 0.0,  1.0,  0.0,
+        -0.5,  0.5, -0.5,  0.0, 1.0, 0.0,  1.0,  0.0,
     ];
 
     let cube_positions: [cgmath::Vector3<f32>; 10] = [
@@ -109,10 +112,14 @@ fn main() {
         vec3(-1.3, 1.0, -1.5)
     ];
 
-    let (shader_program, vao, vbo) = unsafe {
+    let (shader_program, light_shader_program, vao, light_vao, vbo) = unsafe {
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
             "assets/shaders/shader.frag"
+        );
+        let light_shader_program = ShaderProgram::new(
+            "assets/shaders/shader.vert",
+            "assets/shaders/light_source.frag"
         );
 
         gl::Enable(gl::DEPTH_TEST);
@@ -131,7 +138,7 @@ fn main() {
             gl::STATIC_DRAW
         );
 
-        let stride = (5 * std::mem::size_of::<f32>()) as gl::types::GLint;
+        let stride = (8 * std::mem::size_of::<f32>()) as gl::types::GLint;
 
         // Vertex coords
         gl::VertexAttribPointer(
@@ -154,6 +161,57 @@ fn main() {
             (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
         );
         gl::EnableVertexAttribArray(1);
+
+        // Normal vectors (gosh it's getting crowded in here)
+        gl::VertexAttribPointer(
+            2,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            stride,
+            (5 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+        );
+        gl::EnableVertexAttribArray(2);
+
+        // Light source VAO
+        let mut light_vao = 0;
+        gl::GenVertexArrays(1, &mut light_vao);
+        gl::BindVertexArray(light_vao);
+
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+
+        // Vertex coords
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            stride,
+            std::ptr::null()
+        );
+        gl::EnableVertexAttribArray(0);
+
+        // Texture coords
+        // gl::VertexAttribPointer(
+        //     1,
+        //     2,
+        //     gl::FLOAT,
+        //     gl::FALSE,
+        //     stride,
+        //     (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+        // );
+        // gl::EnableVertexAttribArray(1);
+
+        // // Normal vectors (gosh it's getting crowded in here)
+        // gl::VertexAttribPointer(
+        //     2,
+        //     3,
+        //     gl::FLOAT,
+        //     gl::FALSE,
+        //     stride,
+        //     (5 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+        // );
+        // gl::EnableVertexAttribArray(2);
 
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
@@ -228,21 +286,32 @@ fn main() {
         gl::ActiveTexture(gl::TEXTURE1);
         gl::BindTexture(gl::TEXTURE_2D, texture2);
 
-        shader_program.use_program();
-
-        (shader_program, vao, vbo)
+        (shader_program, light_shader_program, vao, light_vao, vbo)
     };
 
-    let (model_cstr, view_cstr, projection_cstr) = (
+    let (model_cstr, view_cstr, projection_cstr, light_color_cstr, light_pos_cstr) = (
         &CString::new("model").unwrap(),
         &CString::new("view").unwrap(),
-        &CString::new("projection").unwrap()
+        &CString::new("projection").unwrap(),
+        &CString::new("lightColor").unwrap(),
+        &CString::new("lightPos").unwrap()
     );
-    let (model_location, view_location, projection_location) = unsafe {
+
+    let (model_location, view_location, projection_location, light_color_location, light_pos_location) = unsafe {
         (
             gl::GetUniformLocation(shader_program.id, model_cstr.as_ptr()),
             gl::GetUniformLocation(shader_program.id, view_cstr.as_ptr()),
             gl::GetUniformLocation(shader_program.id, projection_cstr.as_ptr()),
+            gl::GetUniformLocation(shader_program.id, light_color_cstr.as_ptr()),
+            gl::GetUniformLocation(shader_program.id, light_pos_cstr.as_ptr())
+        )
+    };
+
+    let (light_model_location, light_view_location, light_projection_location) = unsafe {
+        (
+            gl::GetUniformLocation(light_shader_program.id, model_cstr.as_ptr()),
+            gl::GetUniformLocation(light_shader_program.id, view_cstr.as_ptr()),
+            gl::GetUniformLocation(light_shader_program.id, projection_cstr.as_ptr())
         )
     };
 
@@ -253,7 +322,13 @@ fn main() {
         100.0
     );
     unsafe {
+        // Use needs to be called before setting these even if you have the location
+        shader_program.use_program();
         gl::UniformMatrix4fv(projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+        gl::Uniform3f(light_color_location, 1.0, 1.0, 1.0);
+        gl::Uniform3fv(light_pos_location, 1, light_pos.as_ptr());
+        light_shader_program.use_program();
+        gl::UniformMatrix4fv(light_projection_location, 1, gl::FALSE, projection_transform.as_ptr());
     }
 
     // Render loop, each iteration is a "frame"
@@ -266,6 +341,7 @@ fn main() {
             &mut window,
             &events,
             projection_location,
+            light_projection_location,
             delta_time,
             &mut last_x,
             &mut last_y,
@@ -276,8 +352,10 @@ fn main() {
         );
 
         unsafe {
-            gl::ClearColor(1.0, 0.0, 1.0, 1.0);
+            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+            shader_program.use_program();
 
             let view_transform = camera.get_view_matrix();
 
@@ -293,6 +371,16 @@ fn main() {
 
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
             }
+
+            light_shader_program.use_program();
+            gl::UniformMatrix4fv(light_view_location, 1, gl::FALSE, view_transform.as_ptr());
+
+            let mut model_transform = Matrix4::from_translation(light_pos);
+            model_transform = model_transform * Matrix4::from_scale(0.2); // Smallify the cube
+            gl::UniformMatrix4fv(light_model_location, 1, gl::FALSE, model_transform.as_ptr());
+
+            gl::BindVertexArray(light_vao);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
 
         window.swap_buffers();
@@ -310,6 +398,7 @@ fn process_events(
     window: &mut glfw::Window,
     events: &Receiver<(f64, glfw::WindowEvent)>,
     projection_location: i32,
+    light_projection_location: i32,
     delta_time: f32,
     last_x: &mut f32,
     last_y: &mut f32,
@@ -363,6 +452,7 @@ fn process_events(
 
                 unsafe {
                     gl::UniformMatrix4fv(projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                    gl::UniformMatrix4fv(light_projection_location, 1, gl::FALSE, projection_transform.as_ptr());
                 }
             }
             _ => {}
