@@ -252,6 +252,9 @@ fn main() {
         shader_program.set_vec3("light.diffuse", 0.5, 0.5, 0.5);
         shader_program.set_vec3("light.specular", 1.0, 1.0, 1.0);
         shader_program.set_vector_3("light.position", &light_pos);
+        shader_program.set_float("light.constant", 1.0);
+        shader_program.set_float("light.linear", 0.09);
+        shader_program.set_float("light.quadratic", 0.032);
 
         light_shader_program.use_program();
         light_shader_program.set_mat4("projection", &projection_transform);
