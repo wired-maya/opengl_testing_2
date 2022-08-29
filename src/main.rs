@@ -294,7 +294,8 @@ fn main() {
         shader_program.use_program();
         shader_program.set_mat4("projection", &projection_transform);
         shader_program.set_vec3("lightColor", 1.0, 1.0, 1.0);
-        // gl::Uniform3fv(light_pos_location, 1, light_pos.as_ptr());
+        shader_program.set_vector_3("lightPos", &light_pos);
+
         light_shader_program.use_program();
         light_shader_program.set_mat4("projection", &projection_transform);
     }
@@ -328,7 +329,6 @@ fn main() {
             shader_program.use_program();
             shader_program.set_mat4("view", &view_transform);
             shader_program.set_vector_3("viewPos", &camera.position.to_vec());
-            shader_program.set_vector_3("lightPos", &light_pos);
 
             gl::BindVertexArray(vao);
             for (i, position) in cube_positions.iter().enumerate() {

@@ -1,4 +1,4 @@
-use std::ffi::{CString, CStr};
+use std::ffi::CString;
 use std::fs::File;
 use std::io::Read;
 use std::ptr;
@@ -106,26 +106,32 @@ impl ShaderProgram {
     }
 
     pub unsafe fn _set_bool(&self, name: &str, value: bool) {
-        gl::Uniform1i(gl::GetUniformLocation(self.id, CString::new(name).unwrap().as_ptr()), value as gl::types::GLint);
+        let cstr = CString::new(name).unwrap();
+        gl::Uniform1i(gl::GetUniformLocation(self.id, cstr.as_ptr()), value as gl::types::GLint);
     }
 
     pub unsafe fn set_int(&self, name: &str, value: i32) {
-        gl::Uniform1i(gl::GetUniformLocation(self.id, CString::new(name).unwrap().as_ptr()), value as gl::types::GLint);
+        let cstr = CString::new(name).unwrap();
+        gl::Uniform1i(gl::GetUniformLocation(self.id, cstr.as_ptr()), value as gl::types::GLint);
     }
 
     pub unsafe fn _set_float(&self, name: &str, value: f32) {
-        gl::Uniform1f(gl::GetUniformLocation(self.id, CString::new(name).unwrap().as_ptr()), value as gl::types::GLfloat);
+        let cstr = CString::new(name).unwrap();
+        gl::Uniform1f(gl::GetUniformLocation(self.id, cstr.as_ptr()), value as gl::types::GLfloat);
     }
 
     pub unsafe fn set_vector_3(&self, name: &str, value: &Vector3<f32>) {
-        gl::Uniform3fv(gl::GetUniformLocation(self.id, CString::new(name).unwrap().as_ptr()), 1, value.as_ptr());
+        let cstr = CString::new(name).unwrap();
+        gl::Uniform3fv(gl::GetUniformLocation(self.id, cstr.as_ptr()), 1, value.as_ptr());
     }
 
     pub unsafe fn set_vec3(&self, name: &str, x: f32, y: f32, z: f32) {
-        gl::Uniform3f(gl::GetUniformLocation(self.id, CString::new(name).unwrap().as_ptr()), x, y, z);
+        let cstr = CString::new(name).unwrap();
+        gl::Uniform3f(gl::GetUniformLocation(self.id, cstr.as_ptr()), x, y, z);
     }
 
     pub unsafe fn set_mat4(&self, name: &str, value: &Matrix4<f32>) {
-        gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, CString::new(name).unwrap().as_ptr()), 1, gl::FALSE, value.as_ptr());
+        let cstr = CString::new(name).unwrap();
+        gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, cstr.as_ptr()), 1, gl::FALSE, value.as_ptr());
     }
 }
