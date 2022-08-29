@@ -10,7 +10,6 @@ use std::{sync::mpsc::Receiver, vec};
 use camera::{Camera, CameraMovement};
 use shader_program::ShaderProgram;
 use std::path::Path;
-use std::ffi::CString;
 use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4, Vector3};
 
 fn main() {
@@ -272,13 +271,8 @@ fn main() {
         gl::GenerateMipmap(gl::TEXTURE_2D);
 
         shader_program.use_program();
-
-        let (texture1_cstr, texture2_cstr) = (
-            &CString::new("texture1").unwrap(),
-            &CString::new("texture2").unwrap()
-        );
-        shader_program.set_int(&texture1_cstr, 0);
-        shader_program.set_int(&texture2_cstr, 1);
+        shader_program.set_int("texture1", 0);
+        shader_program.set_int("texture2", 1);
 
         // bind textures on corresponding texture units
         gl::ActiveTexture(gl::TEXTURE0);
@@ -287,48 +281,6 @@ fn main() {
         gl::BindTexture(gl::TEXTURE_2D, texture2);
 
         (shader_program, light_shader_program, vao, light_vao, vbo)
-    };
-
-    let (
-        model_cstr,
-        view_cstr,
-        projection_cstr,
-        light_color_cstr,
-        light_pos_cstr,
-        view_pos_cstr
-    ) = (
-        &CString::new("model").unwrap(),
-        &CString::new("view").unwrap(),
-        &CString::new("projection").unwrap(),
-        &CString::new("lightColor").unwrap(),
-        &CString::new("lightPos").unwrap(),
-        &CString::new("viewPos").unwrap()
-    );
-
-    let (
-        model_location,
-        view_location,
-        projection_location,
-        light_color_location,
-        light_pos_location,
-        view_pos_location
-    ) = unsafe {
-        (
-            gl::GetUniformLocation(shader_program.id, model_cstr.as_ptr()),
-            gl::GetUniformLocation(shader_program.id, view_cstr.as_ptr()),
-            gl::GetUniformLocation(shader_program.id, projection_cstr.as_ptr()),
-            gl::GetUniformLocation(shader_program.id, light_color_cstr.as_ptr()),
-            gl::GetUniformLocation(shader_program.id, light_pos_cstr.as_ptr()),
-            gl::GetUniformLocation(shader_program.id, view_pos_cstr.as_ptr())
-        )
-    };
-
-    let (light_model_location, light_view_location, light_projection_location) = unsafe {
-        (
-            gl::GetUniformLocation(light_shader_program.id, model_cstr.as_ptr()),
-            gl::GetUniformLocation(light_shader_program.id, view_cstr.as_ptr()),
-            gl::GetUniformLocation(light_shader_program.id, projection_cstr.as_ptr())
-        )
     };
 
     let projection_transform = cgmath::perspective(
@@ -340,11 +292,11 @@ fn main() {
     unsafe {
         // Use needs to be called before setting these even if you have the location
         shader_program.use_program();
-        gl::UniformMatrix4fv(projection_location, 1, gl::FALSE, projection_transform.as_ptr());
-        gl::Uniform3f(light_color_location, 1.0, 1.0, 1.0);
+        shader_program.set_mat4("projection", &projection_transform);
+        shader_program.set_vec3("lightColor", 1.0, 1.0, 1.0);
         // gl::Uniform3fv(light_pos_location, 1, light_pos.as_ptr());
         light_shader_program.use_program();
-        gl::UniformMatrix4fv(light_projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+        light_shader_program.set_mat4("projection", &projection_transform);
     }
 
     // Render loop, each iteration is a "frame"
@@ -356,8 +308,6 @@ fn main() {
         process_events(
             &mut window,
             &events,
-            &projection_location,
-            &light_projection_location,
             &delta_time,
             &mut last_x,
             &mut last_y,
@@ -373,13 +323,12 @@ fn main() {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            shader_program.use_program();
-
             let view_transform = camera.get_view_matrix();
 
-            gl::UniformMatrix4fv(view_location, 1, gl::FALSE, view_transform.as_ptr());
-            gl::Uniform3fv(view_pos_location, 1, camera.position.as_ptr());
-            gl::Uniform3fv(light_pos_location, 1, light_pos.as_ptr());
+            shader_program.use_program();
+            shader_program.set_mat4("view", &view_transform);
+            shader_program.set_vector_3("viewPos", &camera.position.to_vec());
+            shader_program.set_vector_3("lightPos", &light_pos);
 
             gl::BindVertexArray(vao);
             for (i, position) in cube_positions.iter().enumerate() {
@@ -387,17 +336,17 @@ fn main() {
                 let angle = glfw.get_time() as f32 * i as f32;
                 model_transform = model_transform * cgmath::Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Rad(angle));
 
-                gl::UniformMatrix4fv(model_location, 1, gl::FALSE, model_transform.as_ptr());
+                shader_program.set_mat4("model", &model_transform);
 
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
             }
 
-            light_shader_program.use_program();
-            gl::UniformMatrix4fv(light_view_location, 1, gl::FALSE, view_transform.as_ptr());
-
             let mut model_transform = Matrix4::from_translation(light_pos);
             model_transform = model_transform * Matrix4::from_scale(0.2); // Smallify the cube
-            gl::UniformMatrix4fv(light_model_location, 1, gl::FALSE, model_transform.as_ptr());
+
+            light_shader_program.use_program();
+            light_shader_program.set_mat4("view", &view_transform);
+            light_shader_program.set_mat4("model", &model_transform);
 
             gl::BindVertexArray(light_vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
@@ -417,8 +366,6 @@ fn main() {
 fn process_events(
     window: &mut glfw::Window,
     events: &Receiver<(f64, glfw::WindowEvent)>,
-    projection_location: &i32,
-    light_projection_location: &i32,
     delta_time: &f32,
     last_x: &mut f32,
     last_y: &mut f32,
@@ -443,10 +390,12 @@ fn process_events(
                         0.1,
                         100.0
                     );
+                    
                     shader_program.use_program();
-                    gl::UniformMatrix4fv(*projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                    shader_program.set_mat4("projection", &projection_transform);
+
                     light_shader_program.use_program();
-                    gl::UniformMatrix4fv(*light_projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                    light_shader_program.set_mat4("projection", &projection_transform);
                 }
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
@@ -477,9 +426,10 @@ fn process_events(
 
                 unsafe {
                     shader_program.use_program();
-                    gl::UniformMatrix4fv(*projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                    shader_program.set_mat4("projection", &projection_transform);
+
                     light_shader_program.use_program();
-                    gl::UniformMatrix4fv(*light_projection_location, 1, gl::FALSE, projection_transform.as_ptr());
+                    light_shader_program.set_mat4("projection", &projection_transform);
                 }
             }
             _ => {}
