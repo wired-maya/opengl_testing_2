@@ -293,8 +293,16 @@ fn main() {
         // Use needs to be called before setting these even if you have the location
         shader_program.use_program();
         shader_program.set_mat4("projection", &projection_transform);
-        shader_program.set_vec3("lightColor", 1.0, 1.0, 1.0);
-        shader_program.set_vector_3("lightPos", &light_pos);
+
+        shader_program.set_vec3("material.ambient", 1.0, 0.5, 0.31);
+        shader_program.set_vec3("material.diffuse", 1.0, 0.5, 0.31);
+        shader_program.set_vec3("material.specular", 0.5, 0.5, 0.5);
+        shader_program.set_float("material.shininess", 32.0);
+
+        shader_program.set_vec3("light.ambient", 0.2, 0.2, 0.2);
+        shader_program.set_vec3("light.diffuse", 0.5, 0.5, 0.5);
+        shader_program.set_vec3("light.specular", 1.0, 1.0, 1.0);
+        shader_program.set_vector_3("light.position", &light_pos);
 
         light_shader_program.use_program();
         light_shader_program.set_mat4("projection", &projection_transform);
@@ -330,10 +338,23 @@ fn main() {
             shader_program.set_mat4("view", &view_transform);
             shader_program.set_vector_3("viewPos", &camera.position.to_vec());
 
+            let time = glfw.get_time() as f32;
+            let light_color = vec3(
+                (time * 2.0).sin(),
+                (time * 0.7).sin(),
+                (time * 1.3).sin(),
+            );
+
+            let diffuse_color = light_color * 0.5;
+            let ambient_color = diffuse_color * 0.2;
+
+            shader_program.set_vector_3("light.ambient", &ambient_color);
+            shader_program.set_vector_3("light.diffuse", &diffuse_color);
+
             gl::BindVertexArray(vao);
             for (i, position) in cube_positions.iter().enumerate() {
                 let mut model_transform = cgmath::Matrix4::from_translation(*position);
-                let angle = glfw.get_time() as f32 * i as f32;
+                let angle = time * i as f32;
                 model_transform = model_transform * cgmath::Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Rad(angle));
 
                 shader_program.set_mat4("model", &model_transform);

@@ -115,7 +115,7 @@ impl ShaderProgram {
         gl::Uniform1i(gl::GetUniformLocation(self.id, cstr.as_ptr()), value as gl::types::GLint);
     }
 
-    pub unsafe fn _set_float(&self, name: &str, value: f32) {
+    pub unsafe fn set_float(&self, name: &str, value: f32) {
         let cstr = CString::new(name).unwrap();
         gl::Uniform1f(gl::GetUniformLocation(self.id, cstr.as_ptr()), value as gl::types::GLfloat);
     }
