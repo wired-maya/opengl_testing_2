@@ -4,12 +4,12 @@ extern crate image;
 
 mod shader_program;
 mod camera;
+mod texture;
 
 use self::glfw::{Context, Key, Action};
 use std::{sync::mpsc::Receiver, vec};
 use camera::{Camera, CameraMovement};
 use shader_program::ShaderProgram;
-use std::path::Path;
 use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4, Vector3};
 
 fn main() {
@@ -219,66 +219,19 @@ fn main() {
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 
         // Load textures
-        let mut texture1 = 0;
-        gl::GenTextures(1, &mut texture1);
-        gl::BindTexture(gl::TEXTURE_2D, texture1);
-
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-
-        let img = image::open(&Path::new("assets/textures/container.jpg")).expect("Failed to load texture");
-        let data = img.as_bytes();
-
-        gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGB as i32,
-            img.width() as i32,
-            img.height() as i32,
-            0,
-            gl::RGB,
-            gl::UNSIGNED_BYTE,
-            data.as_ptr() as *const gl::types::GLvoid
-        );
-        gl::GenerateMipmap(gl::TEXTURE_2D);
-
-        let mut texture2 = 0;
-        gl::GenTextures(1, &mut texture2);
-        gl::BindTexture(gl::TEXTURE_2D, texture2);
-
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-
-        let img = image::open(&Path::new("assets/textures/awesomeface.png")).expect("Failed to load texture");
-        let img = img.flipv();
-        let data = img.as_bytes();
-
-        gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGB as i32,
-            img.width() as i32,
-            img.height() as i32,
-            0,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            data.as_ptr() as *const gl::types::GLvoid
-        );
-        gl::GenerateMipmap(gl::TEXTURE_2D);
+        let diffuse_map = texture::load_texture("assets/textures/container2.png");
+        let specular_map = texture::load_texture("assets/textures/container2_specular.png");
 
         shader_program.use_program();
-        shader_program.set_int("texture1", 0);
-        shader_program.set_int("texture2", 1);
+        shader_program.set_int("material.diffuse", 0);
+        shader_program.set_int("material.specular", 1);
 
-        // bind textures on corresponding texture units
+        // bind diffuse map
         gl::ActiveTexture(gl::TEXTURE0);
-        gl::BindTexture(gl::TEXTURE_2D, texture1);
+        gl::BindTexture(gl::TEXTURE_2D, diffuse_map);
+        // bind specular map
         gl::ActiveTexture(gl::TEXTURE1);
-        gl::BindTexture(gl::TEXTURE_2D, texture2);
+        gl::BindTexture(gl::TEXTURE_2D, specular_map);
 
         (shader_program, light_shader_program, vao, light_vao, vbo)
     };
@@ -293,10 +246,6 @@ fn main() {
         // Use needs to be called before setting these even if you have the location
         shader_program.use_program();
         shader_program.set_mat4("projection", &projection_transform);
-
-        shader_program.set_vec3("material.ambient", 1.0, 0.5, 0.31);
-        shader_program.set_vec3("material.diffuse", 1.0, 0.5, 0.31);
-        shader_program.set_vec3("material.specular", 0.5, 0.5, 0.5);
         shader_program.set_float("material.shininess", 32.0);
 
         shader_program.set_vec3("light.ambient", 0.2, 0.2, 0.2);
@@ -339,17 +288,6 @@ fn main() {
             shader_program.set_vector_3("viewPos", &camera.position.to_vec());
 
             let time = glfw.get_time() as f32;
-            let light_color = vec3(
-                (time * 2.0).sin(),
-                (time * 0.7).sin(),
-                (time * 1.3).sin(),
-            );
-
-            let diffuse_color = light_color * 0.5;
-            let ambient_color = diffuse_color * 0.2;
-
-            shader_program.set_vector_3("light.ambient", &ambient_color);
-            shader_program.set_vector_3("light.diffuse", &diffuse_color);
 
             gl::BindVertexArray(vao);
             for (i, position) in cube_positions.iter().enumerate() {
