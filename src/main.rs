@@ -28,8 +28,12 @@ fn main() {
     let mut camera = Camera::default();
     camera.position = Point3 { x: 0.0, y: 0.0, z: 3.0 };
 
-    let light_pos: Vector3<f32> = vec3(1.2, 1.0, 2.0);
-    // let light_pos = vec3(0.0, 0.0, 0.0);
+    let point_light_positions: [Vector3<f32>; 4] = [
+        vec3(0.7, 0.2, 2.0),
+        vec3(2.3, -3.3, -4.0),
+        vec3(-4.0, 2.0, -12.0),
+        vec3(0.0, 0.0, -3.0)
+    ];
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -251,10 +255,58 @@ fn main() {
         shader_program.set_vec3("light.ambient", 0.2, 0.2, 0.2);
         shader_program.set_vec3("light.diffuse", 0.5, 0.5, 0.5);
         shader_program.set_vec3("light.specular", 1.0, 1.0, 1.0);
-        shader_program.set_vector_3("light.position", &light_pos);
         shader_program.set_float("light.constant", 1.0);
         shader_program.set_float("light.linear", 0.09);
         shader_program.set_float("light.quadratic", 0.032);
+
+        // directional light
+        shader_program.set_vec3("dirLight.direction", -0.2, -1.0, -0.3);
+        shader_program.set_vec3("dirLight.ambient", 0.05, 0.05, 0.05);
+        shader_program.set_vec3("dirLight.diffuse", 0.4, 0.4, 0.4);
+        shader_program.set_vec3("dirLight.specular", 0.5, 0.5, 0.5);
+        // point light 1
+        shader_program.set_vector_3("pointLights[0].position", &point_light_positions[0]);
+        shader_program.set_vec3("pointLights[0].ambient", 0.05, 0.05, 0.05);
+        shader_program.set_vec3("pointLights[0].diffuse", 0.8, 0.8, 0.8);
+        shader_program.set_vec3("pointLights[0].specular", 1.0, 1.0, 1.0);
+        shader_program.set_float("pointLights[0].constant", 1.0);
+        shader_program.set_float("pointLights[0].linear", 0.09);
+        shader_program.set_float("pointLights[0].quadratic", 0.032);
+        // point light 2
+        shader_program.set_vector_3("pointLights[1].position", &point_light_positions[1]);
+        shader_program.set_vec3("pointLights[1].ambient", 0.05, 0.05, 0.05);
+        shader_program.set_vec3("pointLights[1].diffuse", 0.8, 0.8, 0.8);
+        shader_program.set_vec3("pointLights[1].specular", 1.0, 1.0, 1.0);
+        shader_program.set_float("pointLights[1].constant", 1.0);
+        shader_program.set_float("pointLights[1].linear", 0.09);
+        shader_program.set_float("pointLights[1].quadratic", 0.032);
+        // point light 3
+        shader_program.set_vector_3("pointLights[2].position", &point_light_positions[2]);
+        shader_program.set_vec3("pointLights[2].ambient", 0.05, 0.05, 0.05);
+        shader_program.set_vec3("pointLights[2].diffuse", 0.8, 0.8, 0.8);
+        shader_program.set_vec3("pointLights[2].specular", 1.0, 1.0, 1.0);
+        shader_program.set_float("pointLights[2].constant", 1.0);
+        shader_program.set_float("pointLights[2].linear", 0.09);
+        shader_program.set_float("pointLights[2].quadratic", 0.032);
+        // point light 4
+        shader_program.set_vector_3("pointLights[3].position", &point_light_positions[3]);
+        shader_program.set_vec3("pointLights[3].ambient", 0.05, 0.05, 0.05);
+        shader_program.set_vec3("pointLights[3].diffuse", 0.8, 0.8, 0.8);
+        shader_program.set_vec3("pointLights[3].specular", 1.0, 1.0, 1.0);
+        shader_program.set_float("pointLights[3].constant", 1.0);
+        shader_program.set_float("pointLights[3].linear", 0.09);
+        shader_program.set_float("pointLights[3].quadratic", 0.032);
+        // spotLight
+        shader_program.set_vector_3("spotLight.position", &camera.position.to_vec());
+        shader_program.set_vector_3("spotLight.direction", &camera.front);
+        shader_program.set_vec3("spotLight.ambient", 0.0, 0.0, 0.0);
+        shader_program.set_vec3("spotLight.diffuse", 1.0, 1.0, 1.0);
+        shader_program.set_vec3("spotLight.specular", 1.0, 1.0, 1.0);
+        shader_program.set_float("spotLight.constant", 1.0);
+        shader_program.set_float("spotLight.linear", 0.09);
+        shader_program.set_float("spotLight.quadratic", 0.032);
+        shader_program.set_float("spotLight.cutOff", 12.5f32.to_radians().cos());
+        shader_program.set_float("spotLight.outerCutOff", 15.0f32.to_radians().cos());
 
         light_shader_program.use_program();
         light_shader_program.set_mat4("projection", &projection_transform);
@@ -290,6 +342,9 @@ fn main() {
             shader_program.set_mat4("view", &view_transform);
             shader_program.set_vector_3("viewPos", &camera.position.to_vec());
 
+            shader_program.set_vector_3("spotLight.position", &camera.position.to_vec());
+            shader_program.set_vector_3("spotLight.direction", &camera.front);
+
             let time = glfw.get_time() as f32;
 
             gl::BindVertexArray(vao);
@@ -303,15 +358,17 @@ fn main() {
                 gl::DrawArrays(gl::TRIANGLES, 0, 36);
             }
 
-            let mut model_transform = Matrix4::from_translation(light_pos);
-            model_transform = model_transform * Matrix4::from_scale(0.2); // Smallify the cube
-
             light_shader_program.use_program();
             light_shader_program.set_mat4("view", &view_transform);
-            light_shader_program.set_mat4("model", &model_transform);
 
             gl::BindVertexArray(light_vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            for position in &point_light_positions {
+                let mut model_transform = Matrix4::from_translation(*position);
+                model_transform = model_transform * Matrix4::from_scale(0.2); // Smallify the cube
+                light_shader_program.set_mat4("model", &model_transform);
+
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
         }
 
         window.swap_buffers();
