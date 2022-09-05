@@ -5,6 +5,7 @@ extern crate image;
 mod shader_program;
 mod camera;
 mod texture;
+mod mesh;
 
 use self::glfw::{Context, Key, Action};
 use std::{sync::mpsc::Receiver, vec};
