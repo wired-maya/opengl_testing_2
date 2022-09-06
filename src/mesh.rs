@@ -1,4 +1,3 @@
-use std::ffi::CString;
 use cgmath::{Vector3, Vector2, Zero};
 use memoffset::offset_of;
 
@@ -24,7 +23,8 @@ impl Default for Vertex {
 #[derive(Clone)]
 pub struct Texture {
     pub id: u32,
-    pub type_: String
+    pub type_: String,
+    pub path: String
 }
 
 pub struct Mesh {

@@ -4,11 +4,11 @@ extern crate image;
 
 mod shader_program;
 mod camera;
-mod texture;
 mod mesh;
+mod model;
 
 use self::glfw::{Context, Key, Action};
-use std::{sync::mpsc::Receiver, vec};
+use std::sync::mpsc::Receiver;
 use camera::{Camera, CameraMovement};
 use shader_program::ShaderProgram;
 use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4, Vector3};
@@ -57,53 +57,8 @@ fn main() {
     window.set_cursor_mode(glfw::CursorMode::Disabled);
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-    
-    // Triangle
-    let vertices: Vec<f32> = vec![
-        -0.5, -0.5, -0.5,  0.0, 0.0, 0.0,  0.0, -1.0,
-        0.5, -0.5, -0.5,  1.0, 0.0, 0.0,  0.0, -1.0,
-        0.5,  0.5, -0.5,  1.0, 1.0, 0.0,  0.0, -1.0,
-        0.5,  0.5, -0.5,  1.0, 1.0, 0.0,  0.0, -1.0,
-        -0.5,  0.5, -0.5,  0.0, 1.0, 0.0,  0.0, -1.0,
-        -0.5, -0.5, -0.5,  0.0, 0.0, 0.0,  0.0, -1.0,
 
-        -0.5, -0.5,  0.5,  0.0, 0.0, 0.0,  0.0, 1.0,
-        0.5, -0.5,  0.5,  1.0, 0.0, 0.0,  0.0, 1.0,
-        0.5,  0.5,  0.5,  1.0, 1.0, 0.0,  0.0, 1.0,
-        0.5,  0.5,  0.5,  1.0, 1.0, 0.0,  0.0, 1.0,
-        -0.5,  0.5,  0.5,  0.0, 1.0, 0.0,  0.0, 1.0,
-        -0.5, -0.5,  0.5,  0.0, 0.0, 0.0,  0.0, 1.0,
-
-        -0.5,  0.5,  0.5,  1.0, 0.0, -1.0,  0.0,  0.0,
-        -0.5,  0.5, -0.5,  1.0, 1.0, -1.0,  0.0,  0.0,
-        -0.5, -0.5, -0.5,  0.0, 1.0, -1.0,  0.0,  0.0,
-        -0.5, -0.5, -0.5,  0.0, 1.0, -1.0,  0.0,  0.0,
-        -0.5, -0.5,  0.5,  0.0, 0.0, -1.0,  0.0,  0.0,
-        -0.5,  0.5,  0.5,  1.0, 0.0, -1.0,  0.0,  0.0,
-
-        0.5,  0.5,  0.5,  1.0, 0.0, 1.0,  0.0,  0.0,
-        0.5,  0.5, -0.5,  1.0, 1.0, 1.0,  0.0,  0.0,
-        0.5, -0.5, -0.5,  0.0, 1.0, 1.0,  0.0,  0.0,
-        0.5, -0.5, -0.5,  0.0, 1.0, 1.0,  0.0,  0.0,
-        0.5, -0.5,  0.5,  0.0, 0.0, 1.0,  0.0,  0.0,
-        0.5,  0.5,  0.5,  1.0, 0.0, 1.0,  0.0,  0.0,
-
-        -0.5, -0.5, -0.5,  0.0, 1.0, 0.0, -1.0,  0.0,
-        0.5, -0.5, -0.5,  1.0, 1.0, 0.0, -1.0,  0.0,
-        0.5, -0.5,  0.5,  1.0, 0.0, 0.0, -1.0,  0.0,
-        0.5, -0.5,  0.5,  1.0, 0.0, 0.0, -1.0,  0.0,
-        -0.5, -0.5,  0.5,  0.0, 0.0, 0.0, -1.0,  0.0,
-        -0.5, -0.5, -0.5,  0.0, 1.0, 0.0, -1.0,  0.0,
-
-        -0.5,  0.5, -0.5,  0.0, 1.0, 0.0,  1.0,  0.0,
-        0.5,  0.5, -0.5,  1.0, 1.0, 0.0,  1.0,  0.0,
-        0.5,  0.5,  0.5,  1.0, 0.0, 0.0,  1.0,  0.0,
-        0.5,  0.5,  0.5,  1.0, 0.0, 0.0,  1.0,  0.0,
-        -0.5,  0.5,  0.5,  0.0, 0.0, 0.0,  1.0,  0.0,
-        -0.5,  0.5, -0.5,  0.0, 1.0, 0.0,  1.0,  0.0,
-    ];
-
-    let cube_positions: [cgmath::Vector3<f32>; 10] = [
+    let model_positions: [cgmath::Vector3<f32>; 10] = [
         vec3(0.0, 0.0, 0.0),
         vec3(2.0, 5.0, -15.0),
         vec3(-1.5, -2.2, -2.5),
@@ -116,7 +71,9 @@ fn main() {
         vec3(-1.3, 1.0, -1.5)
     ];
 
-    let (shader_program, light_shader_program, vao, light_vao, vbo) = unsafe {
+    let (shader_program, light_shader_program, model) = unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
             "assets/shaders/shader.frag"
@@ -126,119 +83,12 @@ fn main() {
             "assets/shaders/light_source.frag"
         );
 
-        gl::Enable(gl::DEPTH_TEST);
+        let model = model::Model::new("assets/models/backpack/backpack.obj");
 
-        let (mut vao, mut vbo) = (0, 0);
-        gl::GenVertexArrays(1, &mut vao);
-        gl::GenBuffers(1, &mut vbo);
-
-        gl::BindVertexArray(vao);
-
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
-            vertices.as_ptr() as *const gl::types::GLvoid,
-            gl::STATIC_DRAW
-        );
-
-        let stride = (8 * std::mem::size_of::<f32>()) as gl::types::GLint;
-
-        // Vertex coords
-        gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            stride,
-            std::ptr::null()
-        );
-        gl::EnableVertexAttribArray(0);
-
-        // Texture coords
-        gl::VertexAttribPointer(
-            1,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            stride,
-            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
-        );
-        gl::EnableVertexAttribArray(1);
-
-        // Normal vectors (gosh it's getting crowded in here)
-        gl::VertexAttribPointer(
-            2,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            stride,
-            (5 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
-        );
-        gl::EnableVertexAttribArray(2);
-
-        // Light source VAO
-        let mut light_vao = 0;
-        gl::GenVertexArrays(1, &mut light_vao);
-        gl::BindVertexArray(light_vao);
-
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-
-        // Vertex coords
-        gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            stride,
-            std::ptr::null()
-        );
-        gl::EnableVertexAttribArray(0);
-
-        // Texture coords
-        // gl::VertexAttribPointer(
-        //     1,
-        //     2,
-        //     gl::FLOAT,
-        //     gl::FALSE,
-        //     stride,
-        //     (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
-        // );
-        // gl::EnableVertexAttribArray(1);
-
-        // // Normal vectors (gosh it's getting crowded in here)
-        // gl::VertexAttribPointer(
-        //     2,
-        //     3,
-        //     gl::FLOAT,
-        //     gl::FALSE,
-        //     stride,
-        //     (5 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
-        // );
-        // gl::EnableVertexAttribArray(2);
-
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl::BindVertexArray(0);
-
-        // Uncomment to enable wireframe mode
+        // Draw in wireframe
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 
-        // Load textures
-        let diffuse_map = texture::load_texture("assets/textures/container2.png");
-        let specular_map = texture::load_texture("assets/textures/container2_specular.png");
-
-        shader_program.use_program();
-        shader_program.set_int("material.diffuse", 0);
-        shader_program.set_int("material.specular", 1);
-
-        // bind diffuse map
-        gl::ActiveTexture(gl::TEXTURE0);
-        gl::BindTexture(gl::TEXTURE_2D, diffuse_map);
-        // bind specular map
-        gl::ActiveTexture(gl::TEXTURE1);
-        gl::BindTexture(gl::TEXTURE_2D, specular_map);
-
-        (shader_program, light_shader_program, vao, light_vao, vbo)
+        (shader_program, light_shader_program, model)
     };
 
     let projection_transform = cgmath::perspective(
@@ -346,29 +196,26 @@ fn main() {
             shader_program.set_vector_3("spotLight.position", &camera.position.to_vec());
             shader_program.set_vector_3("spotLight.direction", &camera.front);
 
-            let time = glfw.get_time() as f32;
-
-            gl::BindVertexArray(vao);
-            for (i, position) in cube_positions.iter().enumerate() {
+            for (i, position) in model_positions.iter().enumerate() {
                 let mut model_transform = cgmath::Matrix4::from_translation(*position);
-                let angle = time * i as f32;
+                let angle = current_frame * i as f32;
                 model_transform = model_transform * cgmath::Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Rad(angle));
+                model_transform = model_transform * Matrix4::from_scale(0.2); // Smallify
 
                 shader_program.set_mat4("model", &model_transform);
 
-                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+                model.draw(&shader_program);
             }
 
             light_shader_program.use_program();
             light_shader_program.set_mat4("view", &view_transform);
 
-            gl::BindVertexArray(light_vao);
             for position in &point_light_positions {
                 let mut model_transform = Matrix4::from_translation(*position);
-                model_transform = model_transform * Matrix4::from_scale(0.2); // Smallify the cube
+                model_transform = model_transform * Matrix4::from_scale(0.04); // Smallify but more
                 light_shader_program.set_mat4("model", &model_transform);
 
-                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+                model.draw(&light_shader_program);
             }
         }
 
@@ -376,11 +223,7 @@ fn main() {
         glfw.poll_events();
     }
 
-    // Delete GL objects
-    unsafe {
-        gl::DeleteVertexArrays(1, &vao);
-        gl::DeleteBuffers(1, &vbo);
-    }
+    // TODO: Delete GL objects when they exit scope
 }
 
 fn process_events(
