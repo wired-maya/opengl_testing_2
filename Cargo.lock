@@ -485,6 +485,7 @@ dependencies = [
  "gl",
  "glfw",
  "image",
+ "memoffset",
  "tobj",
 ]
 
