@@ -1,5 +1,4 @@
 use std::path::Path;
-use tobj::LoadOptions;
 use cgmath::{vec2, vec3};
 use crate::{mesh::{Mesh, Vertex, Texture}, shader_program::ShaderProgram};
 use image::DynamicImage::*;
@@ -28,11 +27,7 @@ impl Model {
         let path = Path::new(path);
         self.directory = path.parent().unwrap_or_else(|| Path::new("")).to_str().unwrap().into();
 
-        let load_options = LoadOptions {
-            triangulate: true,
-            ..Default::default()
-        };
-        let obj = tobj::load_obj(path, &load_options);
+        let obj = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS);
 
         let (models, materials) = obj.unwrap();
         let materials = materials.unwrap(); // Fix broken return type
@@ -45,9 +40,6 @@ impl Model {
             let indices: Vec<u32> = mesh.indices.clone();
 
             let (p, n, t) = (&mesh.positions, &mesh.normals, &mesh.texcoords);
-
-            println!("{}, {}, {}, {}", num_vertices * 3, p.len(), n.len(), t.len());
-            println!("{}, {}, {}", &mesh.indices.len(), &mesh.normal_indices.len(), &mesh.texcoord_indices.len());
 
             for i in 0..num_vertices {
                 vertices.push(
@@ -67,12 +59,12 @@ impl Model {
 
                 // Diffuse map
                 if !material.diffuse_texture.is_empty() {
-                    let texture = self.load_material_texture(&material.diffuse_texture, "texture_diffuse");
+                    let texture = self.load_material_texture(&material.diffuse_texture, "diffuse");
                     textures.push(texture);
                 }
                 // Specular map
-                if !material.diffuse_texture.is_empty() {
-                    let texture = self.load_material_texture(&material.specular_texture, "texture_specular");
+                if !material.specular_texture.is_empty() {
+                    let texture = self.load_material_texture(&material.specular_texture, "specular");
                     textures.push(texture);
                 }
             }
@@ -105,7 +97,7 @@ impl Model {
         gl::GenTextures(1, &mut texture_id);
 
         let img = image::open(&Path::new(&filename)).expect("Failed to load texture");
-        let img = img.flipv();
+        // let img = img.flipv();
         let data = img.as_bytes();
 
         let format = match img {

@@ -113,19 +113,21 @@ impl Mesh {
         for (i, texture) in self.textures.iter().enumerate() {
             gl::ActiveTexture(gl::TEXTURE0 + i as u32);
             let name = &texture.type_;
-            let number = match name.as_str() {
-                "texture_diffuse" => {
+            let _number = match name.as_str() {
+                "diffuse" => {
                     diffuse_num += 1;
                     diffuse_num
                 }
-                "texture_specular" => {
+                "specular" => {
                     specular_num += 1;
                     specular_num
                 }
                 _ => panic!("unknown texture type")
             };
 
-            shader_program.set_int(format!("material.{}{}", name, number).as_str(), i as i32);
+            // shader_program.set_int(format!("material.{}{}", name, number).as_str(), i as i32);
+            // Ignores numbers for now
+            shader_program.set_int(format!("material.{}", name).as_str(), i as i32);
             gl::BindTexture(gl::TEXTURE_2D, texture.id);
         }
 
