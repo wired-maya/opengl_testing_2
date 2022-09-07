@@ -72,6 +72,7 @@ void main() {
     }
     // result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
 
+    if(result.a < 0.1) discard;
     FragColor = result;
 }
 
