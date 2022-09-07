@@ -71,12 +71,20 @@ fn main() {
         vec3(-1.3, 1.0, -1.5)
     ];
 
-    let (shader_program, light_shader_program, model) = unsafe {
+    let (shader_program, stencil_shader_program, light_shader_program, model) = unsafe {
         gl::Enable(gl::DEPTH_TEST);
+        gl::DepthFunc(gl::LESS);
+        gl::Enable(gl::STENCIL_TEST);
+        gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
+        gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
 
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
             "assets/shaders/shader.frag"
+        );
+        let stencil_shader_program = ShaderProgram::new(
+            "assets/shaders/shader.vert",
+            "assets/shaders/stencil.frag"
         );
         let light_shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
@@ -88,7 +96,7 @@ fn main() {
         // Draw in wireframe
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 
-        (shader_program, light_shader_program, model)
+        (shader_program, stencil_shader_program, light_shader_program, model)
     };
 
     let projection_transform = cgmath::perspective(
@@ -100,7 +108,7 @@ fn main() {
     unsafe {
         // Use needs to be called before setting these even if you have the location
         shader_program.use_program();
-        shader_program.set_mat4("projection", &projection_transform);
+        shader_program.set_mat4("projection", &projection_transform);        
         shader_program.set_float("material.shininess", 32.0);
 
         shader_program.set_vec3("light.ambient", 0.2, 0.2, 0.2);
@@ -159,6 +167,11 @@ fn main() {
         shader_program.set_float("spotLight.cutOff", 12.5f32.to_radians().cos());
         shader_program.set_float("spotLight.outerCutOff", 15.0f32.to_radians().cos());
 
+        // Set uniforms for other programs
+
+        stencil_shader_program.use_program();
+        stencil_shader_program.set_mat4("projection", &projection_transform);
+
         light_shader_program.use_program();
         light_shader_program.set_mat4("projection", &projection_transform);
     }
@@ -180,12 +193,14 @@ fn main() {
             &mut width,
             &mut height,
             &shader_program,
+            &stencil_shader_program,
             &light_shader_program
         );
 
         unsafe {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+            gl::StencilMask(0xFF); // Ensure correct stencil mask is cleared
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
 
             let view_transform = camera.get_view_matrix();
 
@@ -196,16 +211,40 @@ fn main() {
             shader_program.set_vector_3("spotLight.position", &camera.position.to_vec());
             shader_program.set_vector_3("spotLight.direction", &camera.front);
 
+            stencil_shader_program.use_program();
+            stencil_shader_program.set_mat4("view", &view_transform);
+
             for (i, position) in model_positions.iter().enumerate() {
                 let mut model_transform = cgmath::Matrix4::from_translation(*position);
                 let angle = current_frame * i as f32;
                 model_transform = model_transform * cgmath::Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Rad(angle));
                 model_transform = model_transform * Matrix4::from_scale(0.2); // Smallify
 
+                shader_program.use_program();
                 shader_program.set_mat4("model", &model_transform);
 
+                gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
+                gl::StencilMask(0xFF);
+                gl::Enable(gl::DEPTH_TEST);
+                
                 model.draw(&shader_program);
+
+                model_transform = model_transform * Matrix4::from_scale(1.2); // Make slightly bigger for outline
+
+                stencil_shader_program.use_program();
+                stencil_shader_program.set_mat4("model", &model_transform);
+
+                gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
+                gl::StencilMask(0x00); // Disable writing to stencil buffer
+                gl::Disable(gl::DEPTH_TEST);
+                
+                model.draw(&stencil_shader_program);
             }
+
+            // Ensure drawing lights is possible
+            gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
+            gl::StencilMask(0x00); // Disable writing to stencil buffer
+            gl::Enable(gl::DEPTH_TEST);
 
             light_shader_program.use_program();
             light_shader_program.set_mat4("view", &view_transform);
@@ -237,6 +276,7 @@ fn process_events(
     width: &mut u32,
     height: &mut u32,
     shader_program: &ShaderProgram,
+    stencil_shader_program: &ShaderProgram,
     light_shader_program: &ShaderProgram
 ) {
     for (_, event) in glfw::flush_messages(events) {
@@ -256,6 +296,9 @@ fn process_events(
                     
                     shader_program.use_program();
                     shader_program.set_mat4("projection", &projection_transform);
+
+                    stencil_shader_program.use_program();
+                    stencil_shader_program.set_mat4("projection", &projection_transform);
 
                     light_shader_program.use_program();
                     light_shader_program.set_mat4("projection", &projection_transform);
@@ -290,6 +333,9 @@ fn process_events(
                 unsafe {
                     shader_program.use_program();
                     shader_program.set_mat4("projection", &projection_transform);
+
+                    stencil_shader_program.use_program();
+                    stencil_shader_program.set_mat4("projection", &projection_transform);
 
                     light_shader_program.use_program();
                     light_shader_program.set_mat4("projection", &projection_transform);
