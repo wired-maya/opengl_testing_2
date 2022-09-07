@@ -82,7 +82,7 @@ impl Model {
         }
 
         let texture = Texture {
-            id: unsafe { self.texture_from_file(path, &self.directory) },
+            id: unsafe { Model::texture_from_file(path, &self.directory) },
             type_: type_.into(),
             path: path.into()
         };
@@ -90,7 +90,7 @@ impl Model {
         texture
     }
 
-    unsafe fn texture_from_file(&self, path: &str, directory: &str) -> u32 {
+    pub unsafe fn texture_from_file(path: &str, directory: &str) -> u32 {
         let filename = format!("{}/{}", directory, path);
         
         let mut texture_id = 0;
