@@ -36,14 +36,6 @@ fn main() {
         vec3(0.0, 0.0, -3.0)
     ];
 
-    let vegetation_position: [Vector3<f32>; 5] = [
-        vec3(-1.5,  0.0, -0.48),
-        vec3( 1.5,  0.0,  0.51),
-        vec3( 0.0,  0.0,  0.7),
-        vec3(-0.3,  0.0, -2.3),
-        vec3( 0.5,  0.0, -0.6),  
-    ];
-
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
@@ -84,6 +76,8 @@ fn main() {
         gl::Enable(gl::STENCIL_TEST);
         gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
         gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
+        gl::Enable(gl::BLEND);
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
@@ -243,7 +237,7 @@ fn main() {
 
                 gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
                 gl::StencilMask(0x00); // Disable writing to stencil buffer
-                gl::Disable(gl::DEPTH_TEST);
+                // gl::Disable(gl::DEPTH_TEST);
                 
                 model.draw(&stencil_shader_program);
             }
