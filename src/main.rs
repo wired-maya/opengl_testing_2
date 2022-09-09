@@ -12,6 +12,7 @@ use self::glfw::{Context, Key, Action};
 use std::sync::mpsc::Receiver;
 use camera::{Camera, CameraMovement};
 use shader_program::ShaderProgram;
+use framebuffer::Framebuffer;
 use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4, Vector3};
 
 fn main() {
@@ -71,7 +72,39 @@ fn main() {
         vec3(-1.3, 1.0, -1.5)
     ];
 
-    let (shader_program, stencil_shader_program, light_shader_program, model) = unsafe {
+    let (
+        shader_program,
+        stencil_shader_program,
+        light_shader_program,
+        framebuffer_shader_program,
+        framebuffer,
+        model
+    ) = unsafe {
+        let shader_program = ShaderProgram::new(
+            "assets/shaders/shader.vert",
+            "assets/shaders/shader.frag"
+        );
+        let stencil_shader_program = ShaderProgram::new(
+            "assets/shaders/shader.vert",
+            "assets/shaders/stencil.frag"
+        );
+        let light_shader_program = ShaderProgram::new(
+            "assets/shaders/shader.vert",
+            "assets/shaders/light_source.frag"
+        );
+        let framebuffer_shader_program = ShaderProgram::new(
+            "assets/shaders/framebuffer.vert",
+            "assets/shaders/framebuffer.frag"
+        );
+
+        let framebuffer = Framebuffer::new(
+            width,
+            height
+        );
+
+        // Set this as the rendered framebuffer, it then handles switching
+        framebuffer.bind_buffer();
+
         // Depth testing
         gl::Enable(gl::DEPTH_TEST);
         gl::DepthFunc(gl::LESS);
@@ -88,25 +121,19 @@ fn main() {
         // Face culling
         gl::Enable(gl::CULL_FACE);
 
-        let shader_program = ShaderProgram::new(
-            "assets/shaders/shader.vert",
-            "assets/shaders/shader.frag"
-        );
-        let stencil_shader_program = ShaderProgram::new(
-            "assets/shaders/shader.vert",
-            "assets/shaders/stencil.frag"
-        );
-        let light_shader_program = ShaderProgram::new(
-            "assets/shaders/shader.vert",
-            "assets/shaders/light_source.frag"
-        );
-
         let model = model::Model::new("assets/models/backpack/backpack.obj");
 
         // Draw in wireframe
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 
-        (shader_program, stencil_shader_program, light_shader_program, model)
+        (
+            shader_program,
+            stencil_shader_program,
+            light_shader_program,
+            framebuffer_shader_program,
+            framebuffer,
+            model
+        )
     };
 
     let projection_transform = cgmath::perspective(
@@ -266,6 +293,9 @@ fn main() {
 
                 model.draw(&light_shader_program);
             }
+
+            // Draw framebuffer
+            framebuffer.draw(&framebuffer_shader_program);
         }
 
         window.swap_buffers();
