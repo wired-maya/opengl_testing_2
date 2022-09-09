@@ -140,20 +140,15 @@ impl Framebuffer {
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
 
         // Clear necessary buffers
-        gl::ClearColor(1.0, 1.0, 1.0, 1.0);
+        gl::ClearColor(1.0, 0.0, 1.0, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT);
 
         // Set neccesary values
         gl::Disable(gl::DEPTH_TEST);
 
         // Draw the quad mesh
+        shader_program.use_program();
         self.mesh.draw(shader_program);
-
-        // Bind to new framebuffer so future draw calls draw to it
-        gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo);
-
-        // Set neccasary values
-        gl::Enable(gl::DEPTH_TEST);
     }
 
     // pub unsafe fn resize(&mut self, width: u32, height: u32) {

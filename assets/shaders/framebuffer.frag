@@ -4,9 +4,15 @@ out vec4 FragColor;
   
 in vec2 TexCoords;
 
-uniform sampler2D screenTexture;
+struct Material {
+    sampler2D diffuse;
+    sampler2D specular;
+    float shininess;
+};
+
+uniform Material material;
 
 void main()
 { 
-    FragColor = texture(screenTexture, TexCoords);
+    FragColor = texture(material.diffuse, TexCoords);
 }
