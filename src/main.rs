@@ -235,7 +235,7 @@ fn main() {
         );
 
         unsafe {
-            framebuffer.bind_buffer();
+            framebuffer.bind_buffer(); // Buffer is set to default later so it can be rendered
 
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::StencilMask(0xFF); // Ensure correct stencil mask is cleared

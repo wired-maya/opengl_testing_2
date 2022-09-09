@@ -157,9 +157,9 @@ impl Framebuffer {
         gl::Enable(gl::DEPTH_TEST);
     }
 
-    // pub unsafe fn resize(&mut self, width: u32, height: u32) {
-    //     // TODO: delete old objects and texture
-    //     // TODO: change self width and height
-    //     // TODO: run setupbuffer again
-    // }
+    pub unsafe fn resize(&mut self, width: u32, height: u32) {
+        // TODO: delete old objects and texture
+        // TODO: change self width and height
+        // TODO: run setupbuffer again
+    }
 }
