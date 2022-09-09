@@ -100,6 +100,7 @@ impl Model {
         // let img = img.flipv();
         let data = img.as_bytes();
 
+        // TODO: if there is an alpha, mark mesh as transparent
         let format = match img {
             ImageLuma8(_) => gl::RED,
             ImageLumaA8(_) => gl::RG,

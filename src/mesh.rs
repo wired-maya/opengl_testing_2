@@ -3,6 +3,9 @@ use memoffset::offset_of;
 
 use crate::shader_program::ShaderProgram;
 
+// TODO: sort any meshes with alpha values and render them farthest to closest w/o depth buffer
+// TODO: make sure to move vertex and texture structs to their own files
+
 #[repr(C, packed)]
 pub struct Vertex {
     pub position: Vector3<f32>,

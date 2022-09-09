@@ -6,6 +6,7 @@ mod shader_program;
 mod camera;
 mod mesh;
 mod model;
+mod framebuffer;
 
 use self::glfw::{Context, Key, Action};
 use std::sync::mpsc::Receiver;
@@ -71,13 +72,21 @@ fn main() {
     ];
 
     let (shader_program, stencil_shader_program, light_shader_program, model) = unsafe {
+        // Depth testing
         gl::Enable(gl::DEPTH_TEST);
         gl::DepthFunc(gl::LESS);
+
+        // Stencil buffer
         gl::Enable(gl::STENCIL_TEST);
         gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
         gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
+
+        // Blending
         gl::Enable(gl::BLEND);
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+
+        // Face culling
+        gl::Enable(gl::CULL_FACE);
 
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
@@ -239,7 +248,7 @@ fn main() {
                 gl::StencilMask(0x00); // Disable writing to stencil buffer
                 // gl::Disable(gl::DEPTH_TEST);
                 
-                model.draw(&stencil_shader_program);
+                // model.draw(&stencil_shader_program);
             }
 
             // Ensure drawing lights is possible
