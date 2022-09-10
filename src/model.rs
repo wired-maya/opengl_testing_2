@@ -39,6 +39,8 @@ impl Model {
             let mut vertices: Vec<Vertex> = Vec::with_capacity(num_vertices);
             let indices: Vec<u32> = mesh.indices.clone();
 
+            // TODO: with https://learnopengl.com/Advanced-OpenGL/Advanced-Data,
+            // TODO: it could be possible to store less data on the gpu using uneaven data and verteces, as is default
             let (p, n, t) = (&mesh.positions, &mesh.normals, &mesh.texcoords);
 
             for i in 0..num_vertices {

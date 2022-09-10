@@ -69,16 +69,16 @@ void main() {
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - fragPos);
 
-    // vec4 result = CalcDirLight(dirLight, norm, viewDir);
-    // for (int i = 0; i < NR_POINT_LIGHTS; i++) {
-    //     result += CalcPointLight(pointLights[i], norm, fragPos, viewDir);
-    // }
-    // // result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
+    vec4 result = CalcDirLight(dirLight, norm, viewDir);
+    for (int i = 0; i < NR_POINT_LIGHTS; i++) {
+        result += CalcPointLight(pointLights[i], norm, fragPos, viewDir);
+    }
+    // result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
 
-    // FragColor = result;
+    FragColor = result;
 
     // FragColor = CalcReflection(norm, fragPos, viewPos);
-    FragColor = CalcRefraction(norm, fragPos, viewPos, 1.00 / 1.33); // Refraction ratio for glass
+    // FragColor = CalcRefraction(norm, fragPos, viewPos, 1.00 / 1.33); // Refraction ratio for water
 }
 
 vec4 CalcReflection(vec3 normal, vec3 fragPos, vec3 viewPos) {
