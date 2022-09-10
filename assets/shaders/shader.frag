@@ -54,10 +54,13 @@ uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform SpotLight spotLight;
 
 uniform vec3 viewPos;
+uniform samplerCube skybox;
 
 vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
 vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec4 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
+vec4 CalcReflection(vec3 normal, vec3 fragPos, vec3 viewPos);
+vec4 CalcRefraction(vec3 normal, vec3 fragPos, vec3 viewPos, float ratio);
 
 // LOTS of room for optimization:
 //   There are lot of duplicated calculations in this approach spread out over the light type functions (e.g. calculating the reflect vector, diffuse and specular terms, and sampling the material textures) so there's room for optimization here. 
@@ -66,13 +69,28 @@ void main() {
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - fragPos);
 
-    vec4 result = CalcDirLight(dirLight, norm, viewDir);
-    for (int i = 0; i < NR_POINT_LIGHTS; i++) {
-        result += CalcPointLight(pointLights[i], norm, fragPos, viewDir);
-    }
-    // result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
+    // vec4 result = CalcDirLight(dirLight, norm, viewDir);
+    // for (int i = 0; i < NR_POINT_LIGHTS; i++) {
+    //     result += CalcPointLight(pointLights[i], norm, fragPos, viewDir);
+    // }
+    // // result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
 
-    FragColor = result;
+    // FragColor = result;
+
+    // FragColor = CalcReflection(norm, fragPos, viewPos);
+    FragColor = CalcRefraction(norm, fragPos, viewPos, 1.00 / 1.33); // Refraction ratio for glass
+}
+
+vec4 CalcReflection(vec3 normal, vec3 fragPos, vec3 viewPos) {
+    vec3 I = normalize(fragPos - viewPos);
+    vec3 R = reflect(I, normal);
+    return vec4(texture(skybox, R).rgb, 1.0);
+}
+
+vec4 CalcRefraction(vec3 normal, vec3 fragPos, vec3 viewPos, float ratio) {
+    vec3 I = normalize(fragPos - viewPos);
+    vec3 R = refract(I, normal, ratio);
+    return vec4(texture(skybox, R).rgb, 1.0);
 }
 
 vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir) {

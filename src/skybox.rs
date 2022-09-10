@@ -5,7 +5,7 @@ use image::DynamicImage::*;
 use crate::{mesh::{Texture, Mesh, Vertex}, shader_program::ShaderProgram};
 
 pub struct Skybox {
-    mesh: Mesh,
+    pub mesh: Mesh,
     faces: Vec<String>
 }
 

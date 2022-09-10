@@ -276,6 +276,9 @@ fn main() {
             shader_program.set_vector_3("spotLight.position", &camera.position.to_vec());
             shader_program.set_vector_3("spotLight.direction", &camera.front);
 
+            // Bind cubemap to object shader to simulate reflections
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, skybox.mesh.textures[0].id);
+
             stencil_shader_program.use_program();
             stencil_shader_program.set_mat4("view", &view_transform);
 
