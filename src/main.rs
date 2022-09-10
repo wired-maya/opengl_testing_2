@@ -7,6 +7,7 @@ mod camera;
 mod mesh;
 mod model;
 mod framebuffer;
+mod skybox;
 
 use self::glfw::{Context, Key, Action};
 use std::sync::mpsc::Receiver;
@@ -14,6 +15,7 @@ use camera::{Camera, CameraMovement};
 use shader_program::ShaderProgram;
 use framebuffer::Framebuffer;
 use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4, Vector3};
+use skybox::Skybox;
 
 fn main() {
     let mut width = 800;
@@ -77,8 +79,10 @@ fn main() {
         stencil_shader_program,
         light_shader_program,
         framebuffer_shader_program,
+        skybox_shader_program,
         mut framebuffer,
-        model
+        model,
+        skybox
     ) = unsafe {
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
@@ -95,6 +99,10 @@ fn main() {
         let framebuffer_shader_program = ShaderProgram::new(
             "assets/shaders/framebuffer.vert",
             "assets/shaders/framebuffer.frag"
+        );
+        let skybox_shader_program = ShaderProgram::new(
+            "assets/shaders/skybox.vert",
+            "assets/shaders/skybox.frag"
         );
 
         let framebuffer = Framebuffer::new(
@@ -123,6 +131,15 @@ fn main() {
 
         let model = model::Model::new("assets/models/backpack/backpack.obj");
 
+        let skybox = Skybox::new(vec![
+            "assets/textures/skybox/right.jpg".to_owned(),
+            "assets/textures/skybox/left.jpg".to_owned(),
+            "assets/textures/skybox/top.jpg".to_owned(),
+            "assets/textures/skybox/bottom.jpg".to_owned(),
+            "assets/textures/skybox/front.jpg".to_owned(),
+            "assets/textures/skybox/back.jpg".to_owned()
+        ]);
+
         // Draw in wireframe
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 
@@ -131,8 +148,10 @@ fn main() {
             stencil_shader_program,
             light_shader_program,
             framebuffer_shader_program,
+            skybox_shader_program,
             framebuffer,
-            model
+            model,
+            skybox
         )
     };
 
@@ -211,6 +230,9 @@ fn main() {
 
         light_shader_program.use_program();
         light_shader_program.set_mat4("projection", &projection_transform);
+
+        skybox_shader_program.use_program();
+        skybox_shader_program.set_mat4("projection", &projection_transform);
     }
 
     // Render loop, each iteration is a "frame"
@@ -232,6 +254,7 @@ fn main() {
             &shader_program,
             &stencil_shader_program,
             &light_shader_program,
+            &skybox_shader_program,
             &mut framebuffer
         );
 
@@ -240,6 +263,8 @@ fn main() {
 
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::StencilMask(0xFF); // Ensure correct stencil mask is cleared
+            // TODO: Colour buffer might not need to be cleared when rendering a full scene w/ skybox and everything,
+            // TODO: figure out if it is really needed and if not remove to save on processing
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
 
             let view_transform = camera.get_view_matrix();
@@ -253,6 +278,12 @@ fn main() {
 
             stencil_shader_program.use_program();
             stencil_shader_program.set_mat4("view", &view_transform);
+
+            // Multiple uses, unoptimized but it's just for testing
+            skybox_shader_program.use_program();
+            skybox_shader_program.set_mat4("view", &view_transform);
+
+            skybox.draw(&skybox_shader_program);
 
             for (i, position) in model_positions.iter().enumerate() {
                 let mut model_transform = cgmath::Matrix4::from_translation(*position);
@@ -321,6 +352,7 @@ fn process_events(
     shader_program: &ShaderProgram,
     stencil_shader_program: &ShaderProgram,
     light_shader_program: &ShaderProgram,
+    skybox_shader_program: &ShaderProgram,
     framebuffer: &mut Framebuffer
 ) {
     for (_, event) in glfw::flush_messages(events) {
@@ -346,6 +378,9 @@ fn process_events(
 
                     light_shader_program.use_program();
                     light_shader_program.set_mat4("projection", &projection_transform);
+
+                    skybox_shader_program.use_program();
+                    skybox_shader_program.set_mat4("projection", &projection_transform);
 
                     framebuffer.resize(*width, *height);
                 }
@@ -385,6 +420,9 @@ fn process_events(
 
                     light_shader_program.use_program();
                     light_shader_program.set_mat4("projection", &projection_transform);
+
+                    skybox_shader_program.use_program();
+                    skybox_shader_program.set_mat4("projection", &projection_transform);
                 }
             }
             _ => {}
