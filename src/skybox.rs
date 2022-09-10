@@ -124,12 +124,12 @@ impl Skybox {
     }
 
     pub unsafe fn draw(&self, shader_program: &ShaderProgram) {
-        // Don't write over depth buffer so when drawn first, is always in the background
-        gl::DepthMask(gl::FALSE);
+        // Change depth func so test values pass when they are equal to the buffer's content
+        gl::DepthFunc(gl::LEQUAL);
 
         shader_program.use_program();
         self.mesh.draw(shader_program);
 
-        gl::DepthMask(gl::TRUE);
+        gl::DepthFunc(gl::LESS);
     }
 }

@@ -279,11 +279,16 @@ fn main() {
             stencil_shader_program.use_program();
             stencil_shader_program.set_mat4("view", &view_transform);
 
-            // Multiple uses, unoptimized but it's just for testing
+            // Multiple shader program use commands, unoptimized but it's just for testing
             skybox_shader_program.use_program();
-            skybox_shader_program.set_mat4("view", &view_transform);
+            let mut rotation_view = camera.get_view_matrix();
 
-            skybox.draw(&skybox_shader_program);
+            // Remove translation from view matrix so skybox is always drawn around you
+            rotation_view.w[0] = 0.0;
+            rotation_view.w[1] = 0.0;
+            rotation_view.w[2] = 0.0;
+
+            skybox_shader_program.set_mat4("view", &rotation_view);
 
             for (i, position) in model_positions.iter().enumerate() {
                 let mut model_transform = cgmath::Matrix4::from_translation(*position);
@@ -327,6 +332,9 @@ fn main() {
 
                 model.draw(&light_shader_program);
             }
+
+            // Drawn last so it only is drawn over unused pixels, improving performance
+            skybox.draw(&skybox_shader_program);
 
             // Draw framebuffer
             framebuffer.draw(&framebuffer_shader_program);
