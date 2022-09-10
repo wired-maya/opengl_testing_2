@@ -158,8 +158,15 @@ impl Framebuffer {
     }
 
     pub unsafe fn resize(&mut self, width: u32, height: u32) {
-        // TODO: delete old objects and texture
-        // TODO: change self width and height
-        // TODO: run setupbuffer again
+        // Delete old objects and texture
+        gl::DeleteFramebuffers(1, &mut self.fbo);
+        gl::DeleteRenderbuffers(1, &mut self.rbo);
+
+        // Change self width and height
+        self.width = width;
+        self.height = height;
+
+        // Run setupbuffer again
+        self.setup_buffer()
     }
 }

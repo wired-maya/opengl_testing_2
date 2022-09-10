@@ -77,7 +77,7 @@ fn main() {
         stencil_shader_program,
         light_shader_program,
         framebuffer_shader_program,
-        framebuffer,
+        mut framebuffer,
         model
     ) = unsafe {
         let shader_program = ShaderProgram::new(
@@ -231,7 +231,8 @@ fn main() {
             &mut height,
             &shader_program,
             &stencil_shader_program,
-            &light_shader_program
+            &light_shader_program,
+            &mut framebuffer
         );
 
         unsafe {
@@ -319,7 +320,8 @@ fn process_events(
     height: &mut u32,
     shader_program: &ShaderProgram,
     stencil_shader_program: &ShaderProgram,
-    light_shader_program: &ShaderProgram
+    light_shader_program: &ShaderProgram,
+    framebuffer: &mut Framebuffer
 ) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
@@ -344,6 +346,8 @@ fn process_events(
 
                     light_shader_program.use_program();
                     light_shader_program.set_mat4("projection", &projection_transform);
+
+                    framebuffer.resize(*width, *height);
                 }
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
