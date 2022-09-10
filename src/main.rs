@@ -8,6 +8,7 @@ mod mesh;
 mod model;
 mod framebuffer;
 mod skybox;
+mod uniform_buffer;
 
 use self::glfw::{Context, Key, Action};
 use std::sync::mpsc::Receiver;
@@ -16,6 +17,7 @@ use shader_program::ShaderProgram;
 use framebuffer::Framebuffer;
 use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4, Vector3};
 use skybox::Skybox;
+use uniform_buffer::UniformBuffer;
 
 fn main() {
     let mut width = 800;
@@ -82,7 +84,8 @@ fn main() {
         skybox_shader_program,
         mut framebuffer,
         model,
-        skybox
+        skybox,
+        uniform_buffer
     ) = unsafe {
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
@@ -140,6 +143,12 @@ fn main() {
             "assets/textures/skybox/back.jpg".to_owned()
         ]);
 
+        let uniform_buffer = UniformBuffer::new(
+            &[&shader_program, &stencil_shader_program, &light_shader_program, &skybox_shader_program],
+            "Matrices",
+            2 * std::mem::size_of::<Matrix4<f32>>() as u32
+        );
+
         // Draw in wireframe
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 
@@ -151,7 +160,8 @@ fn main() {
             skybox_shader_program,
             framebuffer,
             model,
-            skybox
+            skybox,
+            uniform_buffer
         )
     };
 
@@ -164,7 +174,6 @@ fn main() {
     unsafe {
         // Use needs to be called before setting these even if you have the location
         shader_program.use_program();
-        shader_program.set_mat4("projection", &projection_transform);        
         shader_program.set_float("material.shininess", 32.0);
 
         shader_program.set_vec3("light.ambient", 0.2, 0.2, 0.2);
@@ -223,16 +232,8 @@ fn main() {
         shader_program.set_float("spotLight.cutOff", 12.5f32.to_radians().cos());
         shader_program.set_float("spotLight.outerCutOff", 15.0f32.to_radians().cos());
 
-        // Set uniforms for other programs
-
-        stencil_shader_program.use_program();
-        stencil_shader_program.set_mat4("projection", &projection_transform);
-
-        light_shader_program.use_program();
-        light_shader_program.set_mat4("projection", &projection_transform);
-
-        skybox_shader_program.use_program();
-        skybox_shader_program.set_mat4("projection", &projection_transform);
+        // Set projection for all shaders that require it
+        uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
     }
 
     // Render loop, each iteration is a "frame"
@@ -251,11 +252,8 @@ fn main() {
             &mut camera,
             &mut width,
             &mut height,
-            &shader_program,
-            &stencil_shader_program,
-            &light_shader_program,
-            &skybox_shader_program,
-            &mut framebuffer
+            &mut framebuffer,
+            &uniform_buffer
         );
 
         unsafe {
@@ -269,8 +267,12 @@ fn main() {
 
             let view_transform = camera.get_view_matrix();
 
+            uniform_buffer.write_data::<Matrix4<f32>>(
+                view_transform.as_ptr() as *const gl::types::GLvoid,
+                std::mem::size_of::<Matrix4<f32>>() as u32
+            );
+
             shader_program.use_program();
-            shader_program.set_mat4("view", &view_transform);
             shader_program.set_vector_3("viewPos", &camera.position.to_vec());
 
             shader_program.set_vector_3("spotLight.position", &camera.position.to_vec());
@@ -278,20 +280,6 @@ fn main() {
 
             // Bind cubemap to object shader to simulate reflections
             gl::BindTexture(gl::TEXTURE_CUBE_MAP, skybox.mesh.textures[0].id);
-
-            stencil_shader_program.use_program();
-            stencil_shader_program.set_mat4("view", &view_transform);
-
-            // Multiple shader program use commands, unoptimized but it's just for testing
-            skybox_shader_program.use_program();
-            let mut rotation_view = camera.get_view_matrix();
-
-            // Remove translation from view matrix so skybox is always drawn around you
-            rotation_view.w[0] = 0.0;
-            rotation_view.w[1] = 0.0;
-            rotation_view.w[2] = 0.0;
-
-            skybox_shader_program.set_mat4("view", &rotation_view);
 
             for (i, position) in model_positions.iter().enumerate() {
                 let mut model_transform = cgmath::Matrix4::from_translation(*position);
@@ -360,11 +348,8 @@ fn process_events(
     camera: &mut Camera,
     width: &mut u32,
     height: &mut u32,
-    shader_program: &ShaderProgram,
-    stencil_shader_program: &ShaderProgram,
-    light_shader_program: &ShaderProgram,
-    skybox_shader_program: &ShaderProgram,
-    framebuffer: &mut Framebuffer
+    framebuffer: &mut Framebuffer,
+    uniform_buffer: &UniformBuffer
 ) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
@@ -381,17 +366,7 @@ fn process_events(
                         100.0
                     );
                     
-                    shader_program.use_program();
-                    shader_program.set_mat4("projection", &projection_transform);
-
-                    stencil_shader_program.use_program();
-                    stencil_shader_program.set_mat4("projection", &projection_transform);
-
-                    light_shader_program.use_program();
-                    light_shader_program.set_mat4("projection", &projection_transform);
-
-                    skybox_shader_program.use_program();
-                    skybox_shader_program.set_mat4("projection", &projection_transform);
+                    uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
 
                     framebuffer.resize(*width, *height);
                 }
@@ -423,17 +398,7 @@ fn process_events(
                 );
 
                 unsafe {
-                    shader_program.use_program();
-                    shader_program.set_mat4("projection", &projection_transform);
-
-                    stencil_shader_program.use_program();
-                    stencil_shader_program.set_mat4("projection", &projection_transform);
-
-                    light_shader_program.use_program();
-                    light_shader_program.set_mat4("projection", &projection_transform);
-
-                    skybox_shader_program.use_program();
-                    skybox_shader_program.set_mat4("projection", &projection_transform);
+                    uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
                 }
             }
             _ => {}
