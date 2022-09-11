@@ -8,16 +8,18 @@ layout (std140) uniform Matrices {
     mat4 view;
 };
 
-out vec3 ourColor;
-out vec2 texCoord;
-out vec3 Normal;
-out vec3 fragPos;
+out VS_OUT {
+    vec2 texCoord;
+    vec3 Normal;
+    vec3 fragPos;
+} vs_out;
 
 uniform mat4 model;
 
 void main() {
     gl_Position = projection * view * model * vec4(aPos, 1.0);
-    texCoord = aTexCoord;
-    Normal = mat3(transpose(inverse(model))) * aNormal;
-    fragPos = vec3(model * vec4(aPos, 1.0));
+    
+    vs_out.texCoord = aTexCoord;
+    vs_out.Normal = mat3(transpose(inverse(model))) * aNormal;
+    vs_out.fragPos = vec3(model * vec4(aPos, 1.0));
 }

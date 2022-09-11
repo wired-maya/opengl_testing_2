@@ -10,49 +10,61 @@ pub struct ShaderProgram {
 }
 
 impl ShaderProgram {
-    pub fn new(vertex_path: &str, fragment_path: &str) -> ShaderProgram {
+    pub fn new(vertex_path: &str, fragment_path: &str, maybe_geometry_path: Option<&str>) -> ShaderProgram {
         let mut shader_program = ShaderProgram { id: 0 };
-        let mut vert_shader_file = File::open(vertex_path)
-            .unwrap_or_else(|_| panic!("Failed to open {}", vertex_path));
-        let mut frag_shader_file = File::open(fragment_path)
-            .unwrap_or_else(|_| panic!("Failed to open {}", fragment_path));
-
-        let mut vert_shader_code = String::new();
-        let mut frag_shader_code = String::new();
-
-        vert_shader_file
-            .read_to_string(&mut vert_shader_code)
-            .expect("Failed to read vertex shader");
-        frag_shader_file
-            .read_to_string(&mut frag_shader_code)
-            .expect("Failed to read fragment shader");
-
-        let vert_shader_code = CString::new(vert_shader_code.as_bytes()).unwrap();
-        let frag_shader_code = CString::new(frag_shader_code.as_bytes()).unwrap();
 
         unsafe {
-            let vert_shader = gl::CreateShader(gl::VERTEX_SHADER);
-            gl::ShaderSource(vert_shader, 1, &vert_shader_code.as_ptr(), ptr::null());
-            gl::CompileShader(vert_shader);
-            ShaderProgram::check_compile_errors(vert_shader, "VERTEX");
+            let vert_shader = ShaderProgram::compile_shader(vertex_path, "VERTEX");
+            let frag_shader = ShaderProgram::compile_shader(fragment_path, "FRAGMENT");
 
-            let frag_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
-            gl::ShaderSource(frag_shader, 1, &frag_shader_code.as_ptr(), ptr::null());
-            gl::CompileShader(frag_shader);
-            ShaderProgram::check_compile_errors(frag_shader, "FRAGMENT");
+            // Geometry shader is the only one that is optional
+            let geom_shader = if let Some(geometry_path) = maybe_geometry_path {
+                ShaderProgram::compile_shader(geometry_path, "GEOMETRY")
+            } else {
+                0
+            };
 
             let shader_program_id = gl::CreateProgram();
+
             gl::AttachShader(shader_program_id, vert_shader);
             gl::AttachShader(shader_program_id, frag_shader);
+            if geom_shader != 0 { gl::AttachShader(shader_program_id, geom_shader); }
+
             gl::LinkProgram(shader_program_id);
             ShaderProgram::check_compile_errors(shader_program_id, "PROGRAM");
+
             gl::DeleteShader(vert_shader);
             gl::DeleteShader(frag_shader);
+            if geom_shader != 0 { gl::DeleteShader(geom_shader); }
 
             shader_program.id = shader_program_id;
         }
 
         shader_program
+    }
+
+    unsafe fn compile_shader(path: &str, type_: &str) -> u32 {
+        let mut shader_file = File::open(path)
+            .unwrap_or_else(|_| panic!("Failed to open {}", path));
+        let mut shader_code = String::new();
+
+        shader_file
+            .read_to_string(&mut shader_code)
+            .unwrap_or_else(|_| panic!("Failed to read {} shader", type_.to_lowercase()));
+
+        let shader_code = CString::new(shader_code.as_bytes()).unwrap();
+        let shader = gl::CreateShader(match type_ {
+            "VERTEX" => gl::VERTEX_SHADER,
+            "GEOMETRY" => gl::GEOMETRY_SHADER,
+            "FRAGMENT" => gl::FRAGMENT_SHADER,
+            _ => gl::VERTEX_SHADER // Default to vertex shader just in case
+        });
+
+        gl::ShaderSource(shader, 1, &shader_code.as_ptr(), ptr::null());
+        gl::CompileShader(shader);
+        ShaderProgram::check_compile_errors(shader, type_);
+
+        shader
     }
 
     unsafe fn check_compile_errors(id: u32, type_: &str) {

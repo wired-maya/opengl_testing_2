@@ -89,23 +89,28 @@ fn main() {
     ) = unsafe {
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
-            "assets/shaders/shader.frag"
+            "assets/shaders/shader.frag",
+            Some("assets/shaders/shader.geom")
         );
         let stencil_shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
-            "assets/shaders/stencil.frag"
+            "assets/shaders/stencil.frag",
+            None
         );
         let light_shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
-            "assets/shaders/light_source.frag"
+            "assets/shaders/light_source.frag",
+            None
         );
         let framebuffer_shader_program = ShaderProgram::new(
             "assets/shaders/framebuffer.vert",
-            "assets/shaders/framebuffer.frag"
+            "assets/shaders/framebuffer.frag",
+            None
         );
         let skybox_shader_program = ShaderProgram::new(
             "assets/shaders/skybox.vert",
-            "assets/shaders/skybox.frag"
+            "assets/shaders/skybox.frag",
+            None
         );
 
         let framebuffer = Framebuffer::new(
@@ -259,11 +264,11 @@ fn main() {
         unsafe {
             framebuffer.bind_buffer(); // Buffer is set to default later so it can be rendered
 
-            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::StencilMask(0xFF); // Ensure correct stencil mask is cleared
-            // TODO: Colour buffer might not need to be cleared when rendering a full scene w/ skybox and everything,
-            // TODO: figure out if it is really needed and if not remove to save on processing
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
+            // Colour buffer does not need to be cleared when skybox is active
+            // gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+            // gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
+            gl::Clear(gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
 
             let view_transform = camera.get_view_matrix();
 
@@ -277,6 +282,9 @@ fn main() {
 
             shader_program.set_vector_3("spotLight.position", &camera.position.to_vec());
             shader_program.set_vector_3("spotLight.direction", &camera.front);
+
+            // For the exploding animation
+            // shader_program.set_float("time", current_frame);
 
             // Bind cubemap to object shader to simulate reflections
             gl::BindTexture(gl::TEXTURE_CUBE_MAP, skybox.mesh.textures[0].id);
