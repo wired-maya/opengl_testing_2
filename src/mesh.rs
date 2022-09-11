@@ -142,4 +142,44 @@ impl Mesh {
         // Set back to defaults once configured
         gl::ActiveTexture(gl::TEXTURE0);
     }
+
+    pub unsafe fn draw_instanced(&self, shader_program: &ShaderProgram, instancecount: i32) {
+        let mut diffuse_num: u32 = 0;
+        let mut specular_num: u32 = 0;
+
+        for (i, texture) in self.textures.iter().enumerate() {
+            gl::ActiveTexture(gl::TEXTURE0 + i as u32);
+            let name = &texture.type_;
+            let _number = match name.as_str() {
+                "diffuse" => {
+                    diffuse_num += 1;
+                    diffuse_num
+                }
+                "specular" => {
+                    specular_num += 1;
+                    specular_num
+                }
+                _ => panic!("unknown texture type")
+            };
+
+            // shader_program.set_int(format!("material.{}{}", name, number).as_str(), i as i32);
+            // Ignores numbers for now
+            shader_program.set_int(format!("material.{}", name).as_str(), i as i32);
+            gl::BindTexture(gl::TEXTURE_2D, texture.id);
+        }
+
+        // Draw mesh
+        gl::BindVertexArray(self.vao);
+        gl::DrawElementsInstanced(
+            gl::TRIANGLES,
+            self.indices.len() as i32,
+            gl::UNSIGNED_INT,
+            std::ptr::null(),
+            instancecount
+        );
+        gl::BindVertexArray(0);
+
+        // Set back to defaults once configured
+        gl::ActiveTexture(gl::TEXTURE0);
+    }
 }

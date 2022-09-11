@@ -296,20 +296,24 @@ fn main() {
             // Bind cubemap to object shader to simulate reflections
             gl::BindTexture(gl::TEXTURE_CUBE_MAP, skybox.mesh.textures[0].id);
 
+            let mut model_transforms: Vec<Matrix4<f32>> = vec![];
+
             for (i, position) in model_positions.iter().enumerate() {
                 let mut model_transform = cgmath::Matrix4::from_translation(*position);
                 let angle = current_frame * i as f32;
                 model_transform = model_transform * cgmath::Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Rad(angle));
                 model_transform = model_transform * Matrix4::from_scale(0.2); // Smallify
 
+                model_transforms.push(model_transform);
+
                 shader_program.use_program();
-                shader_program.set_mat4("model", &model_transform);
+                shader_program.set_mat4(format!("models[{}]", i).as_str(), &model_transform);
 
                 // gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
                 // gl::StencilMask(0xFF);
                 // gl::Enable(gl::DEPTH_TEST);
                 
-                model.draw(&shader_program);
+                // model.draw(&shader_program);
 
                 // model_transform = model_transform * Matrix4::from_scale(1.2); // Make slightly bigger for outline
 
@@ -327,6 +331,8 @@ fn main() {
                 // normal_vec_shader_program.set_mat4("model", &model_transform);
                 // model.draw(&normal_vec_shader_program);
             }
+
+            model.draw_instanced(&shader_program, model_transforms.len() as i32);
 
             // Ensure drawing lights is possible
             gl::StencilFunc(gl::ALWAYS, 1, 0xFF);

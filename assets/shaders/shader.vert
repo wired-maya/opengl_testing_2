@@ -14,9 +14,11 @@ out VS_OUT {
     vec3 fragPos;
 } vs_out;
 
-uniform mat4 model;
+uniform mat4 models[10];
 
 void main() {
+    mat4 model = models[gl_InstanceID];
+
     gl_Position = projection * view * model * vec4(aPos, 1.0);
     
     mat3 normalMatrix = mat3(transpose(inverse(view * model)));

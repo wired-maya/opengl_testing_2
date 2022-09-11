@@ -23,6 +23,12 @@ impl Model {
         }
     }
 
+    pub fn draw_instanced(&self, shader_program: &ShaderProgram, instancecount: i32) {
+        for mesh in &self.meshes {
+            unsafe { mesh.draw_instanced(shader_program, instancecount) }
+        }
+    }
+
     fn load_model(&mut self, path: &str) {
         let path = Path::new(path);
         self.directory = path.parent().unwrap_or_else(|| Path::new("")).to_str().unwrap().into();
