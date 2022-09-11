@@ -78,10 +78,11 @@ fn main() {
 
     let (
         shader_program,
-        stencil_shader_program,
+        _stencil_shader_program,
         light_shader_program,
         framebuffer_shader_program,
         skybox_shader_program,
+        _normal_vec_shader_program,
         mut framebuffer,
         model,
         skybox,
@@ -111,6 +112,11 @@ fn main() {
             "assets/shaders/skybox.vert",
             "assets/shaders/skybox.frag",
             None
+        );
+        let normal_vec_shader_program = ShaderProgram::new(
+            "assets/shaders/shader.vert",
+            "assets/shaders/normal_vec.frag",
+            Some("assets/shaders/normal_vec.geom")
         );
 
         let framebuffer = Framebuffer::new(
@@ -149,7 +155,7 @@ fn main() {
         ]);
 
         let uniform_buffer = UniformBuffer::new(
-            &[&shader_program, &stencil_shader_program, &light_shader_program, &skybox_shader_program],
+            &[&shader_program, &stencil_shader_program, &light_shader_program, &skybox_shader_program, &normal_vec_shader_program],
             "Matrices",
             2 * std::mem::size_of::<Matrix4<f32>>() as u32
         );
@@ -163,6 +169,7 @@ fn main() {
             light_shader_program,
             framebuffer_shader_program,
             skybox_shader_program,
+            normal_vec_shader_program,
             framebuffer,
             model,
             skybox,
@@ -298,22 +305,27 @@ fn main() {
                 shader_program.use_program();
                 shader_program.set_mat4("model", &model_transform);
 
-                gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
-                gl::StencilMask(0xFF);
-                gl::Enable(gl::DEPTH_TEST);
+                // gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
+                // gl::StencilMask(0xFF);
+                // gl::Enable(gl::DEPTH_TEST);
                 
                 model.draw(&shader_program);
 
-                model_transform = model_transform * Matrix4::from_scale(1.2); // Make slightly bigger for outline
+                // model_transform = model_transform * Matrix4::from_scale(1.2); // Make slightly bigger for outline
 
-                stencil_shader_program.use_program();
-                stencil_shader_program.set_mat4("model", &model_transform);
+                // stencil_shader_program.use_program();
+                // stencil_shader_program.set_mat4("model", &model_transform);
 
-                gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
-                gl::StencilMask(0x00); // Disable writing to stencil buffer
+                // gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
+                // gl::StencilMask(0x00); // Disable writing to stencil buffer
                 // gl::Disable(gl::DEPTH_TEST);
                 
                 // model.draw(&stencil_shader_program);
+
+                // Draw vertex normals
+                // normal_vec_shader_program.use_program();
+                // normal_vec_shader_program.set_mat4("model", &model_transform);
+                // model.draw(&normal_vec_shader_program);
             }
 
             // Ensure drawing lights is possible

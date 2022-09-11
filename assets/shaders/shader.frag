@@ -68,12 +68,12 @@ vec4 CalcRefraction(vec3 normal, vec3 fragPos, vec3 viewPos, float ratio);
 //   There are lot of duplicated calculations in this approach spread out over the light type functions (e.g. calculating the reflect vector, diffuse and specular terms, and sampling the material textures) so there's room for optimization here. 
 void main() {
     // Properties
-    vec3 norm = normalize(fg_in.Normal);
+    // vec3 norm = normalize(fg_in.Normal);
     vec3 viewDir = normalize(viewPos - fg_in.fragPos);
 
-    vec4 result = CalcDirLight(dirLight, norm, viewDir);
+    vec4 result = CalcDirLight(dirLight, fg_in.Normal, viewDir);
     for (int i = 0; i < NR_POINT_LIGHTS; i++) {
-        result += CalcPointLight(pointLights[i], norm, fg_in.fragPos, viewDir);
+        result += CalcPointLight(pointLights[i], fg_in.Normal, fg_in.fragPos, viewDir);
     }
     // result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
 

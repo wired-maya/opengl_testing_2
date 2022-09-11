@@ -36,7 +36,7 @@ void main() {
    // vec3 normal = GetNormal();
 
    for (int i = 0; i < 3; i++) {
-      // gl_Position = explode(gl_in[i].gl_Position, normal);
+      // gl_Position = explode(gl_in[i].gl_Position, gs_in[i].Normal);
       gl_Position = gl_in[i].gl_Position;
 
       gs_out.texCoord = gs_in[i].texCoord;
