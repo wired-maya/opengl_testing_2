@@ -15,7 +15,7 @@ use std::sync::mpsc::Receiver;
 use camera::{Camera, CameraMovement};
 use shader_program::ShaderProgram;
 use framebuffer::Framebuffer;
-use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4, Vector3};
+use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4};
 use skybox::Skybox;
 use uniform_buffer::UniformBuffer;
 
@@ -34,13 +34,6 @@ fn main() {
 
     let mut camera = Camera::default();
     camera.position = Point3 { x: 0.0, y: 0.0, z: 3.0 };
-
-    let point_light_positions: [Vector3<f32>; 4] = [
-        vec3(0.7, 0.2, 2.0),
-        vec3(2.3, -3.3, -4.0),
-        vec3(-4.0, 2.0, -12.0),
-        vec3(0.0, 0.0, -3.0)
-    ];
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -78,11 +71,8 @@ fn main() {
 
     let (
         shader_program,
-        _stencil_shader_program,
-        light_shader_program,
         framebuffer_shader_program,
         skybox_shader_program,
-        _normal_vec_shader_program,
         mut framebuffer,
         model,
         skybox,
@@ -93,16 +83,6 @@ fn main() {
             "assets/shaders/shader.frag",
             Some("assets/shaders/shader.geom")
         );
-        let stencil_shader_program = ShaderProgram::new(
-            "assets/shaders/shader.vert",
-            "assets/shaders/stencil.frag",
-            None
-        );
-        let light_shader_program = ShaderProgram::new(
-            "assets/shaders/shader.vert",
-            "assets/shaders/light_source.frag",
-            None
-        );
         let framebuffer_shader_program = ShaderProgram::new(
             "assets/shaders/framebuffer.vert",
             "assets/shaders/framebuffer.frag",
@@ -112,11 +92,6 @@ fn main() {
             "assets/shaders/skybox.vert",
             "assets/shaders/skybox.frag",
             None
-        );
-        let normal_vec_shader_program = ShaderProgram::new(
-            "assets/shaders/shader.vert",
-            "assets/shaders/normal_vec.frag",
-            Some("assets/shaders/normal_vec.geom")
         );
 
         let framebuffer = Framebuffer::new(
@@ -130,11 +105,6 @@ fn main() {
         // Depth testing
         gl::Enable(gl::DEPTH_TEST);
         gl::DepthFunc(gl::LESS);
-
-        // Stencil buffer
-        gl::Enable(gl::STENCIL_TEST);
-        gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
-        gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
 
         // Blending
         gl::Enable(gl::BLEND);
@@ -155,7 +125,7 @@ fn main() {
         ]);
 
         let uniform_buffer = UniformBuffer::new(
-            &[&shader_program, &stencil_shader_program, &light_shader_program, &skybox_shader_program, &normal_vec_shader_program],
+            &[&shader_program, &skybox_shader_program],
             "Matrices",
             2 * std::mem::size_of::<Matrix4<f32>>() as u32
         );
@@ -165,11 +135,8 @@ fn main() {
 
         (
             shader_program,
-            stencil_shader_program,
-            light_shader_program,
             framebuffer_shader_program,
             skybox_shader_program,
-            normal_vec_shader_program,
             framebuffer,
             model,
             skybox,
@@ -188,61 +155,11 @@ fn main() {
         shader_program.use_program();
         shader_program.set_float("material.shininess", 32.0);
 
-        shader_program.set_vec3("light.ambient", 0.2, 0.2, 0.2);
-        shader_program.set_vec3("light.diffuse", 0.5, 0.5, 0.5);
-        shader_program.set_vec3("light.specular", 1.0, 1.0, 1.0);
-        shader_program.set_float("light.constant", 1.0);
-        shader_program.set_float("light.linear", 0.09);
-        shader_program.set_float("light.quadratic", 0.032);
-
         // directional light
         shader_program.set_vec3("dirLight.direction", -0.2, -1.0, -0.3);
         shader_program.set_vec3("dirLight.ambient", 0.05, 0.05, 0.05);
         shader_program.set_vec3("dirLight.diffuse", 0.4, 0.4, 0.4);
         shader_program.set_vec3("dirLight.specular", 0.5, 0.5, 0.5);
-        // point light 1
-        shader_program.set_vector_3("pointLights[0].position", &point_light_positions[0]);
-        shader_program.set_vec3("pointLights[0].ambient", 0.05, 0.05, 0.05);
-        shader_program.set_vec3("pointLights[0].diffuse", 0.8, 0.8, 0.8);
-        shader_program.set_vec3("pointLights[0].specular", 1.0, 1.0, 1.0);
-        shader_program.set_float("pointLights[0].constant", 1.0);
-        shader_program.set_float("pointLights[0].linear", 0.09);
-        shader_program.set_float("pointLights[0].quadratic", 0.032);
-        // point light 2
-        shader_program.set_vector_3("pointLights[1].position", &point_light_positions[1]);
-        shader_program.set_vec3("pointLights[1].ambient", 0.05, 0.05, 0.05);
-        shader_program.set_vec3("pointLights[1].diffuse", 0.8, 0.8, 0.8);
-        shader_program.set_vec3("pointLights[1].specular", 1.0, 1.0, 1.0);
-        shader_program.set_float("pointLights[1].constant", 1.0);
-        shader_program.set_float("pointLights[1].linear", 0.09);
-        shader_program.set_float("pointLights[1].quadratic", 0.032);
-        // point light 3
-        shader_program.set_vector_3("pointLights[2].position", &point_light_positions[2]);
-        shader_program.set_vec3("pointLights[2].ambient", 0.05, 0.05, 0.05);
-        shader_program.set_vec3("pointLights[2].diffuse", 0.8, 0.8, 0.8);
-        shader_program.set_vec3("pointLights[2].specular", 1.0, 1.0, 1.0);
-        shader_program.set_float("pointLights[2].constant", 1.0);
-        shader_program.set_float("pointLights[2].linear", 0.09);
-        shader_program.set_float("pointLights[2].quadratic", 0.032);
-        // point light 4
-        shader_program.set_vector_3("pointLights[3].position", &point_light_positions[3]);
-        shader_program.set_vec3("pointLights[3].ambient", 0.05, 0.05, 0.05);
-        shader_program.set_vec3("pointLights[3].diffuse", 0.8, 0.8, 0.8);
-        shader_program.set_vec3("pointLights[3].specular", 1.0, 1.0, 1.0);
-        shader_program.set_float("pointLights[3].constant", 1.0);
-        shader_program.set_float("pointLights[3].linear", 0.09);
-        shader_program.set_float("pointLights[3].quadratic", 0.032);
-        // spotLight
-        shader_program.set_vector_3("spotLight.position", &camera.position.to_vec());
-        shader_program.set_vector_3("spotLight.direction", &camera.front);
-        shader_program.set_vec3("spotLight.ambient", 0.0, 0.0, 0.0);
-        shader_program.set_vec3("spotLight.diffuse", 1.0, 1.0, 1.0);
-        shader_program.set_vec3("spotLight.specular", 1.0, 1.0, 1.0);
-        shader_program.set_float("spotLight.constant", 1.0);
-        shader_program.set_float("spotLight.linear", 0.09);
-        shader_program.set_float("spotLight.quadratic", 0.032);
-        shader_program.set_float("spotLight.cutOff", 12.5f32.to_radians().cos());
-        shader_program.set_float("spotLight.outerCutOff", 15.0f32.to_radians().cos());
 
         // Set projection for all shaders that require it
         uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
@@ -271,11 +188,8 @@ fn main() {
         unsafe {
             framebuffer.bind_buffer(); // Buffer is set to default later so it can be rendered
 
-            gl::StencilMask(0xFF); // Ensure correct stencil mask is cleared
             // Colour buffer does not need to be cleared when skybox is active
-            // gl::ClearColor(0.1, 0.1, 0.1, 1.0);
-            // gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
-            gl::Clear(gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
+            gl::Clear(gl::DEPTH_BUFFER_BIT);
 
             let view_transform = camera.get_view_matrix();
 
@@ -286,15 +200,6 @@ fn main() {
 
             shader_program.use_program();
             shader_program.set_vector_3("viewPos", &camera.position.to_vec());
-
-            shader_program.set_vector_3("spotLight.position", &camera.position.to_vec());
-            shader_program.set_vector_3("spotLight.direction", &camera.front);
-
-            // For the exploding animation
-            // shader_program.set_float("time", current_frame);
-
-            // Bind cubemap to object shader to simulate reflections
-            gl::BindTexture(gl::TEXTURE_CUBE_MAP, skybox.mesh.textures[0].id);
 
             let mut model_transforms: Vec<Matrix4<f32>> = vec![];
 
@@ -308,47 +213,9 @@ fn main() {
 
                 shader_program.use_program();
                 shader_program.set_mat4(format!("models[{}]", i).as_str(), &model_transform);
-
-                // gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
-                // gl::StencilMask(0xFF);
-                // gl::Enable(gl::DEPTH_TEST);
-                
-                // model.draw(&shader_program);
-
-                // model_transform = model_transform * Matrix4::from_scale(1.2); // Make slightly bigger for outline
-
-                // stencil_shader_program.use_program();
-                // stencil_shader_program.set_mat4("model", &model_transform);
-
-                // gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
-                // gl::StencilMask(0x00); // Disable writing to stencil buffer
-                // gl::Disable(gl::DEPTH_TEST);
-                
-                // model.draw(&stencil_shader_program);
-
-                // Draw vertex normals
-                // normal_vec_shader_program.use_program();
-                // normal_vec_shader_program.set_mat4("model", &model_transform);
-                // model.draw(&normal_vec_shader_program);
             }
 
             model.draw_instanced(&shader_program, model_transforms.len() as i32);
-
-            // Ensure drawing lights is possible
-            gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
-            gl::StencilMask(0x00); // Disable writing to stencil buffer
-            gl::Enable(gl::DEPTH_TEST);
-
-            light_shader_program.use_program();
-            light_shader_program.set_mat4("view", &view_transform);
-
-            for position in &point_light_positions {
-                let mut model_transform = Matrix4::from_translation(*position);
-                model_transform = model_transform * Matrix4::from_scale(0.04); // Smallify but more
-                light_shader_program.set_mat4("model", &model_transform);
-
-                model.draw(&light_shader_program);
-            }
 
             // Drawn last so it only is drawn over unused pixels, improving performance
             skybox.draw(&skybox_shader_program);

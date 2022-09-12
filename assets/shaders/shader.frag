@@ -72,9 +72,9 @@ void main() {
     vec3 viewDir = normalize(viewPos - fg_in.fragPos);
 
     vec4 result = CalcDirLight(dirLight, fg_in.Normal, viewDir);
-    for (int i = 0; i < NR_POINT_LIGHTS; i++) {
-        result += CalcPointLight(pointLights[i], fg_in.Normal, fg_in.fragPos, viewDir);
-    }
+    // for (int i = 0; i < NR_POINT_LIGHTS; i++) {
+    //     result += CalcPointLight(pointLights[i], fg_in.Normal, fg_in.fragPos, viewDir);
+    // }
     // result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
 
     FragColor = result;
@@ -105,7 +105,7 @@ vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
     // Combine results
     vec4 ambient = vec4(light.ambient, 1.0) * texture(material.diffuse, fg_in.texCoord);
     vec4 diffuse = vec4(light.diffuse, 1.0) * diff * texture(material.diffuse, fg_in.texCoord);
-    vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.diffuse, fg_in.texCoord);
+    vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.specular, fg_in.texCoord);
     return (ambient + diffuse + specular);
 }
 
@@ -123,7 +123,7 @@ vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     // combine results
     vec4 ambient = vec4(light.ambient, 1.0) * texture(material.diffuse, fg_in.texCoord);
     vec4 diffuse = vec4(light.diffuse, 1.0) * diff * texture(material.diffuse, fg_in.texCoord);
-    vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.diffuse, fg_in.texCoord);
+    vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.specular, fg_in.texCoord);
     ambient *= attenuation;
     diffuse *= attenuation;
     specular *= attenuation;
@@ -147,7 +147,7 @@ vec4 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     // combine results
     vec4 ambient = vec4(light.ambient, 1.0) * texture(material.diffuse, fg_in.texCoord);
     vec4 diffuse = vec4(light.diffuse, 1.0) * diff * texture(material.diffuse, fg_in.texCoord);
-    vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.diffuse, fg_in.texCoord);
+    vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.specular, fg_in.texCoord);
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
     specular *= attenuation * intensity;
