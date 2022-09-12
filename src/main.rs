@@ -21,6 +21,8 @@ use skybox::Skybox;
 use uniform_buffer::UniformBuffer;
 use self::rand::Rng;
 
+const MSAA: u32 = 4;
+
 fn main() {
     let mut width = 800;
     let mut height = 600;
@@ -40,6 +42,7 @@ fn main() {
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
+    // glfw.window_hint(glfw::WindowHint::Samples(Some(MSAA))); // Useless since using custom framebuffer
     #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
     
     let (mut window, events) = glfw.create_window(
@@ -71,7 +74,7 @@ fn main() {
         // Get transforms for all the asteroids and the planet
         let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
         let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
-        let amount: u32 = 100_000;
+        let amount: u32 = 1_000;
         let mut rng = rand::thread_rng();
         let radius: f32 = 30.0;
         let offset: f32 = 5.0;
@@ -117,7 +120,8 @@ fn main() {
 
         let framebuffer = Framebuffer::new(
             width,
-            height
+            height,
+            MSAA
         );
 
         // Set this as the rendered framebuffer, it then handles switching
@@ -133,6 +137,9 @@ fn main() {
 
         // Face culling
         gl::Enable(gl::CULL_FACE);
+
+        // Enable multisampling
+        // gl::Enable(gl::MULTISAMPLE);
 
         let planet_model = model::Model::new(
             "assets/models/planet/planet.obj",
