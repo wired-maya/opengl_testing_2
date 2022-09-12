@@ -125,7 +125,7 @@ impl Skybox {
         gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
     }
 
-    pub unsafe fn draw(&self, shader_program: &ShaderProgram) {
+    pub unsafe fn _draw(&self, shader_program: &ShaderProgram) {
         // Change depth func so test values pass when they are equal to the buffer's content
         gl::DepthFunc(gl::LEQUAL);
 

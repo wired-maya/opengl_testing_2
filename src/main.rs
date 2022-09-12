@@ -64,22 +64,28 @@ fn main() {
     let (
         shader_program,
         framebuffer_shader_program,
-        skybox_shader_program,
+        _skybox_shader_program,
         mut framebuffer,
         planet_model,
         rock_model,
-        skybox,
+        backpack_model,
+        _skybox,
         uniform_buffer
     ) = unsafe {
         // Get transforms for all the asteroids and the planet
         let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
         let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
+        let mut backpack_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 10.0, 57.0));
+        let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 9.5, 60.0));
         let amount: u32 = 1_000;
         let mut rng = rand::thread_rng();
         let radius: f32 = 30.0;
         let offset: f32 = 5.0;
 
         planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
+        backpack_model_transform = backpack_model_transform * Matrix4::from_scale(0.2);
+        floor_model_transform = floor_model_transform * Matrix4::from_nonuniform_scale(6.0, 0.01, 6.0);
+        floor_model_transform = floor_model_transform * Matrix4::from_angle_x(Deg(90.0));
         
         for i in 0..amount {
             let angle = i as f32 / amount as f32 * 360.0;
@@ -149,6 +155,10 @@ fn main() {
             "assets/models/rock/rock.obj",
             rock_model_transforms
         );
+        let backpack_model = model::Model::new(
+            "assets/models/backpack/backpack.obj",
+            vec![backpack_model_transform, floor_model_transform]
+        );
 
         let skybox = Skybox::new(vec![
             "assets/textures/skybox/right.jpg".to_owned(),
@@ -175,6 +185,7 @@ fn main() {
             framebuffer,
             planet_model,
             rock_model,
+            backpack_model,
             skybox,
             uniform_buffer
         )
@@ -197,6 +208,14 @@ fn main() {
         shader_program.set_vec3("dirLight.ambient", 0.05, 0.05, 0.05);
         shader_program.set_vec3("dirLight.diffuse", 1.0, 1.0, 1.0);
         shader_program.set_vec3("dirLight.specular", 0.5, 0.5, 0.5);
+        // point light 1 (position relative to bag is the same as originally)
+        shader_program.set_vector_3("pointLights[0].position", &vec3(0.7, 10.2, 59.0));
+        shader_program.set_vec3("pointLights[0].ambient", 0.05, 0.05, 0.05);
+        shader_program.set_vec3("pointLights[0].diffuse", 0.8, 0.8, 0.8);
+        shader_program.set_vec3("pointLights[0].specular", 1.0, 1.0, 1.0);
+        shader_program.set_float("pointLights[0].constant", 1.0);
+        shader_program.set_float("pointLights[0].linear", 0.09);
+        shader_program.set_float("pointLights[0].quadratic", 0.032);
 
         // Set projection for all shaders that require it
         uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
@@ -247,10 +266,13 @@ fn main() {
             // Draw the rocks
             rock_model.draw(&shader_program);
 
+            // Draw backpack for light testing
+            backpack_model.draw(&shader_program);
+
             // END - DRAW MODELS HERE
 
             // Drawn last so it only is drawn over unused pixels, improving performance
-            skybox.draw(&skybox_shader_program);
+            // skybox.draw(&skybox_shader_program);
 
             // Draw framebuffer
             framebuffer.draw(&framebuffer_shader_program);

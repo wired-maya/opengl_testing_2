@@ -71,7 +71,8 @@ void main() {
     // vec3 norm = normalize(fg_in.Normal);
     vec3 viewDir = normalize(viewPos - fg_in.fragPos);
 
-    vec4 result = CalcDirLight(dirLight, fg_in.Normal, viewDir);
+    // vec4 result = CalcDirLight(dirLight, fg_in.Normal, viewDir);
+    vec4 result = CalcPointLight(pointLights[0], fg_in.Normal, fg_in.fragPos, viewDir);
     // for (int i = 0; i < NR_POINT_LIGHTS; i++) {
     //     result += CalcPointLight(pointLights[i], fg_in.Normal, fg_in.fragPos, viewDir);
     // }

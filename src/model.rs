@@ -26,7 +26,7 @@ impl Model {
     fn load_model(&mut self, path: &str, model_transforms: Vec<Matrix4<f32>>) {
         let path = Path::new(path);
         self.directory = path.parent().unwrap_or_else(|| Path::new("")).to_str().unwrap().into();
-
+        
         let obj = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS);
 
         let (models, materials) = obj.unwrap();
