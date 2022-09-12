@@ -64,12 +64,12 @@ fn main() {
     let (
         shader_program,
         framebuffer_shader_program,
-        _skybox_shader_program,
+        skybox_shader_program,
         mut framebuffer,
         planet_model,
         rock_model,
         backpack_model,
-        _skybox,
+        skybox,
         uniform_buffer
     ) = unsafe {
         // Get transforms for all the asteroids and the planet
@@ -210,7 +210,7 @@ fn main() {
         shader_program.set_vec3("dirLight.specular", 0.5, 0.5, 0.5);
         // point light 1 (position relative to bag is the same as originally)
         shader_program.set_vector_3("pointLights[0].position", &vec3(0.7, 10.2, 59.0));
-        shader_program.set_vec3("pointLights[0].ambient", 0.05, 0.05, 0.05);
+        shader_program.set_vec3("pointLights[0].ambient", 0.00, 0.00, 0.00);
         shader_program.set_vec3("pointLights[0].diffuse", 0.8, 0.8, 0.8);
         shader_program.set_vec3("pointLights[0].specular", 1.0, 1.0, 1.0);
         shader_program.set_float("pointLights[0].constant", 1.0);
@@ -245,7 +245,7 @@ fn main() {
             framebuffer.bind_buffer(); // Buffer is set to default later so it can be rendered
 
             // Colour buffer does not need to be cleared when skybox is active
-            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             let view_transform = camera.get_view_matrix();
@@ -272,7 +272,7 @@ fn main() {
             // END - DRAW MODELS HERE
 
             // Drawn last so it only is drawn over unused pixels, improving performance
-            // skybox.draw(&skybox_shader_program);
+            skybox.draw(&skybox_shader_program);
 
             // Draw framebuffer
             framebuffer.draw(&framebuffer_shader_program);

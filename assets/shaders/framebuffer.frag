@@ -13,7 +13,6 @@ struct Material {
 uniform Material material;
 
 const float offset = 1.0 / 300.0;
-const float gamma = 2.2;
 
 void main()
 { 
@@ -61,6 +60,6 @@ void main()
     
     // FragColor = vec4(col, 1.0);
 
-    // Gamma correction (ALWAYS RUN LAST!)
-    FragColor.rgb = pow(FragColor.rgb, vec3(1.0 / gamma));
+    // Figure out how to run gamma correction only on framebuffer instead of in
+    // model and skybox shaders
 }

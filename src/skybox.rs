@@ -97,22 +97,22 @@ impl Skybox {
             let img = image::open(&Path::new(face)).expect("Failed to load cubemap texture");
             let data = img.as_bytes();
 
-            let format = match img {
-                ImageLuma8(_) => gl::RED,
-                ImageLumaA8(_) => gl::RG,
-                ImageRgb8(_) => gl::RGB,
-                ImageRgba8(_) => gl::RGBA,
-                _ => todo!()
+            let (internal_format, data_format) = match img {
+                ImageLuma8(_) => (gl::RED, gl::RED),
+                ImageLumaA8(_) => (gl::RG, gl::RG),
+                ImageRgb8(_) => (gl::SRGB, gl::RGB),
+                ImageRgba8(_) => (gl::SRGB_ALPHA, gl::RGBA),
+                _ => (gl::SRGB, gl::RGB) // If nothing else, try default
             };
 
             gl::TexImage2D(
                 gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32,
                 0,
-                format as i32,
+                internal_format as i32,
                 img.width() as i32,
                 img.height() as i32,
                 0,
-                format,
+                data_format,
                 gl::UNSIGNED_BYTE,
                 data.as_ptr() as *const gl::types::GLvoid
             );
@@ -125,7 +125,7 @@ impl Skybox {
         gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
     }
 
-    pub unsafe fn _draw(&self, shader_program: &ShaderProgram) {
+    pub unsafe fn draw(&self, shader_program: &ShaderProgram) {
         // Change depth func so test values pass when they are equal to the buffer's content
         gl::DepthFunc(gl::LEQUAL);
 

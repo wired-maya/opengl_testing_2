@@ -103,23 +103,24 @@ impl Model {
         let data = img.as_bytes();
 
         // TODO: if there is an alpha, mark mesh as transparent
-        let format = match img {
-            ImageLuma8(_) => gl::RED,
-            ImageLumaA8(_) => gl::RG,
-            ImageRgb8(_) => gl::RGB,
-            ImageRgba8(_) => gl::RGBA,
-            _ => todo!()
+        let (internal_format, data_format) = match img {
+            ImageLuma8(_) => (gl::RED, gl::RED),
+            ImageLumaA8(_) => (gl::RG, gl::RG),
+            ImageRgb8(_) => (gl::SRGB, gl::RGB),
+            ImageRgba8(_) => (gl::SRGB_ALPHA, gl::RGBA),
+            _ => (gl::SRGB, gl::RGB) // If nothing else, try default
         };
+    
 
         gl::BindTexture(gl::TEXTURE_2D, texture_id);
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            format as i32,
+            internal_format as i32,
             img.width() as i32,
             img.height() as i32,
             0,
-            format,
+            data_format,
             gl::UNSIGNED_BYTE,
             data.as_ptr() as *const gl::types::GLvoid
         );

@@ -1,5 +1,7 @@
 #version 330 core
 
+const float gamma = 2.2;
+
 struct Material {
     sampler2D diffuse;
     sampler2D specular;
@@ -79,6 +81,8 @@ void main() {
     // result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
 
     FragColor = result;
+    // Gamma correction
+    FragColor.rgb = pow(FragColor.rgb, vec3(1.0 / gamma));
 
     // FragColor = CalcReflection(norm, fragPos, viewPos);
     // FragColor = CalcRefraction(norm, fragPos, viewPos, 1.00 / 1.33); // Refraction ratio for water
