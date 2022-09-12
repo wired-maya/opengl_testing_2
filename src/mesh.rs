@@ -143,7 +143,7 @@ impl Mesh {
         gl::ActiveTexture(gl::TEXTURE0);
     }
 
-    pub unsafe fn draw_instanced(&self, shader_program: &ShaderProgram, instancecount: i32) {
+    pub unsafe fn _draw_instanced(&self, shader_program: &ShaderProgram, instancecount: i32) {
         let mut diffuse_num: u32 = 0;
         let mut specular_num: u32 = 0;
 

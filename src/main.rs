@@ -1,6 +1,7 @@
 extern crate gl;
 extern crate glfw;
 extern crate image;
+extern crate rand;
 
 mod shader_program;
 mod camera;
@@ -15,9 +16,10 @@ use std::sync::mpsc::Receiver;
 use camera::{Camera, CameraMovement};
 use shader_program::ShaderProgram;
 use framebuffer::Framebuffer;
-use cgmath::{prelude::*, vec3,  Rad, Deg, Point3, Matrix4};
+use cgmath::{prelude::*, vec3,  Deg, Point3, Matrix4};
 use skybox::Skybox;
 use uniform_buffer::UniformBuffer;
+use self::rand::Rng;
 
 fn main() {
     let mut width = 800;
@@ -33,7 +35,7 @@ fn main() {
     let mut first_mouse = true;
 
     let mut camera = Camera::default();
-    camera.position = Point3 { x: 0.0, y: 0.0, z: 3.0 };
+    camera.position = Point3 { x: 0.0, y: 30.0, z: 100.0 };
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -56,26 +58,14 @@ fn main() {
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
-    let model_positions: [cgmath::Vector3<f32>; 10] = [
-        vec3(0.0, 0.0, 0.0),
-        vec3(2.0, 5.0, -15.0),
-        vec3(-1.5, -2.2, -2.5),
-        vec3(-3.8, -2.0, -12.3),
-        vec3(2.4, -0.4, -3.5),
-        vec3(-1.7, 3.0, -7.5),
-        vec3(1.3, -2.0, -2.5),
-        vec3(1.5, 2.0, -2.5),
-        vec3(1.5, 0.2, -1.5),
-        vec3(-1.3, 1.0, -1.5)
-    ];
-
     let (
         shader_program,
         framebuffer_shader_program,
-        skybox_shader_program,
+        _skybox_shader_program,
         mut framebuffer,
-        model,
-        skybox,
+        planet_model,
+        rock_model,
+        _skybox,
         uniform_buffer
     ) = unsafe {
         let shader_program = ShaderProgram::new(
@@ -113,7 +103,8 @@ fn main() {
         // Face culling
         gl::Enable(gl::CULL_FACE);
 
-        let model = model::Model::new("assets/models/backpack/backpack.obj");
+        let planet_model = model::Model::new("assets/models/planet/planet.obj");
+        let rock_model = model::Model::new("assets/models/rock/rock.obj");
 
         let skybox = Skybox::new(vec![
             "assets/textures/skybox/right.jpg".to_owned(),
@@ -138,7 +129,8 @@ fn main() {
             framebuffer_shader_program,
             skybox_shader_program,
             framebuffer,
-            model,
+            planet_model,
+            rock_model,
             skybox,
             uniform_buffer
         )
@@ -150,6 +142,7 @@ fn main() {
         0.1,
         100.0
     );
+
     unsafe {
         // Use needs to be called before setting these even if you have the location
         shader_program.use_program();
@@ -158,12 +151,44 @@ fn main() {
         // directional light
         shader_program.set_vec3("dirLight.direction", -0.2, -1.0, -0.3);
         shader_program.set_vec3("dirLight.ambient", 0.05, 0.05, 0.05);
-        shader_program.set_vec3("dirLight.diffuse", 0.4, 0.4, 0.4);
+        shader_program.set_vec3("dirLight.diffuse", 1.0, 1.0, 1.0);
         shader_program.set_vec3("dirLight.specular", 0.5, 0.5, 0.5);
 
         // Set projection for all shaders that require it
         uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
     }
+
+    // Get transforms for all the asteroids and the planet
+    let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
+    let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, -3.0, 0.0));
+    let amount: u32 = 1000;
+    let mut rng = rand::thread_rng();
+    let radius: f32 = 50.0;
+    let offset: f32 = 2.5;
+
+    planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
+    
+    for i in 0..amount {
+        let angle = i as f32 / amount as f32 * 360.0;
+        let mut displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
+        let x = angle.sin() * radius + displacement;
+        displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
+        let y = displacement * 0.4; // Keep height of asteroid field smaller compared to width of x and z
+        displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
+        let z = angle.cos() * radius + displacement;
+        let mut model_transform = Matrix4::<f32>::from_translation(vec3(x, y, z));
+
+        // Scale between 0.05 and 0.25
+        let scale = (rng.gen::<i32>() % 20) as f32 / 100.0 + 0.05;
+        model_transform = model_transform * Matrix4::from_scale(scale);
+
+        // Add random rotation around a semi randomly picked rotation axis vector
+        let rot_angle = (rng.gen::<i32>() % 360) as f32;
+        model_transform = model_transform * Matrix4::from_axis_angle(vec3(0.4, 0.6, 0.8).normalize(), Deg(rot_angle));
+
+        rock_model_transforms.push(model_transform);
+    }
+
 
     // Render loop, each iteration is a "frame"
     while !window.should_close() {
@@ -189,7 +214,8 @@ fn main() {
             framebuffer.bind_buffer(); // Buffer is set to default later so it can be rendered
 
             // Colour buffer does not need to be cleared when skybox is active
-            gl::Clear(gl::DEPTH_BUFFER_BIT);
+            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             let view_transform = camera.get_view_matrix();
 
@@ -201,24 +227,22 @@ fn main() {
             shader_program.use_program();
             shader_program.set_vector_3("viewPos", &camera.position.to_vec());
 
-            let mut model_transforms: Vec<Matrix4<f32>> = vec![];
+            // START - DRAW MODELS HERE
 
-            for (i, position) in model_positions.iter().enumerate() {
-                let mut model_transform = cgmath::Matrix4::from_translation(*position);
-                let angle = current_frame * i as f32;
-                model_transform = model_transform * cgmath::Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Rad(angle));
-                model_transform = model_transform * Matrix4::from_scale(0.2); // Smallify
+            // Draw planet model
+            shader_program.set_mat4("model", &planet_model_transform);
+            planet_model.draw(&shader_program);
 
-                model_transforms.push(model_transform);
-
-                shader_program.use_program();
-                shader_program.set_mat4(format!("models[{}]", i).as_str(), &model_transform);
+            // Draw the rocks
+            for model_transform in &rock_model_transforms {
+                shader_program.set_mat4("model", model_transform);
+                rock_model.draw(&shader_program);
             }
 
-            model.draw_instanced(&shader_program, model_transforms.len() as i32);
+            // END - DRAW MODELS HERE
 
             // Drawn last so it only is drawn over unused pixels, improving performance
-            skybox.draw(&skybox_shader_program);
+            // skybox.draw(&skybox_shader_program);
 
             // Draw framebuffer
             framebuffer.draw(&framebuffer_shader_program);

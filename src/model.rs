@@ -17,15 +17,15 @@ impl Model {
         model
     }
 
-    pub fn _draw(&self, shader_program: &ShaderProgram) {
+    pub fn draw(&self, shader_program: &ShaderProgram) {
         for mesh in &self.meshes {
             unsafe { mesh.draw(shader_program) }
         }
     }
 
-    pub fn draw_instanced(&self, shader_program: &ShaderProgram, instancecount: i32) {
+    pub fn _draw_instanced(&self, shader_program: &ShaderProgram, instancecount: i32) {
         for mesh in &self.meshes {
-            unsafe { mesh.draw_instanced(shader_program, instancecount) }
+            unsafe { mesh._draw_instanced(shader_program, instancecount) }
         }
     }
 
