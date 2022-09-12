@@ -142,7 +142,7 @@ impl ShaderProgram {
         gl::Uniform3f(gl::GetUniformLocation(self.id, cstr.as_ptr()), x, y, z);
     }
 
-    pub unsafe fn set_mat4(&self, name: &str, value: &Matrix4<f32>) {
+    pub unsafe fn _set_mat4(&self, name: &str, value: &Matrix4<f32>) {
         let cstr = CString::new(name).unwrap();
         gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, cstr.as_ptr()), 1, gl::FALSE, value.as_ptr());
     }

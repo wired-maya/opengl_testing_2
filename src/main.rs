@@ -35,7 +35,7 @@ fn main() {
     let mut first_mouse = true;
 
     let mut camera = Camera::default();
-    camera.position = Point3 { x: 0.0, y: 30.0, z: 100.0 };
+    camera.position = Point3 { x: 0.0, y: 10.0, z: 60.0 };
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -61,13 +61,44 @@ fn main() {
     let (
         shader_program,
         framebuffer_shader_program,
-        _skybox_shader_program,
+        skybox_shader_program,
         mut framebuffer,
         planet_model,
         rock_model,
-        _skybox,
+        skybox,
         uniform_buffer
     ) = unsafe {
+        // Get transforms for all the asteroids and the planet
+        let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
+        let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
+        let amount: u32 = 100_000;
+        let mut rng = rand::thread_rng();
+        let radius: f32 = 30.0;
+        let offset: f32 = 5.0;
+
+        planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
+        
+        for i in 0..amount {
+            let angle = i as f32 / amount as f32 * 360.0;
+            let mut displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
+            let x = angle.sin() * radius + displacement;
+            displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
+            let y = displacement * 0.4; // Keep height of asteroid field smaller compared to width of x and z
+            displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
+            let z = angle.cos() * radius + displacement;
+            let mut model_transform = Matrix4::<f32>::from_translation(vec3(x, y, z));
+
+            // Scale between 0.05 and 0.25
+            let scale = (rng.gen::<i32>() % 20) as f32 / 100.0 + 0.05;
+            model_transform = model_transform * Matrix4::from_scale(scale);
+
+            // Add random rotation around a semi randomly picked rotation axis vector
+            let rot_angle = (rng.gen::<i32>() % 360) as f32;
+            model_transform = model_transform * Matrix4::from_axis_angle(vec3(0.4, 0.6, 0.8).normalize(), Deg(rot_angle));
+
+            rock_model_transforms.push(model_transform);
+        }
+
         let shader_program = ShaderProgram::new(
             "assets/shaders/shader.vert",
             "assets/shaders/shader.frag",
@@ -103,8 +134,14 @@ fn main() {
         // Face culling
         gl::Enable(gl::CULL_FACE);
 
-        let planet_model = model::Model::new("assets/models/planet/planet.obj");
-        let rock_model = model::Model::new("assets/models/rock/rock.obj");
+        let planet_model = model::Model::new(
+            "assets/models/planet/planet.obj",
+            vec![planet_model_transform]
+        );
+        let rock_model = model::Model::new(
+            "assets/models/rock/rock.obj",
+            rock_model_transforms
+        );
 
         let skybox = Skybox::new(vec![
             "assets/textures/skybox/right.jpg".to_owned(),
@@ -158,38 +195,6 @@ fn main() {
         uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
     }
 
-    // Get transforms for all the asteroids and the planet
-    let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
-    let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, -3.0, 0.0));
-    let amount: u32 = 1000;
-    let mut rng = rand::thread_rng();
-    let radius: f32 = 50.0;
-    let offset: f32 = 2.5;
-
-    planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
-    
-    for i in 0..amount {
-        let angle = i as f32 / amount as f32 * 360.0;
-        let mut displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
-        let x = angle.sin() * radius + displacement;
-        displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
-        let y = displacement * 0.4; // Keep height of asteroid field smaller compared to width of x and z
-        displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
-        let z = angle.cos() * radius + displacement;
-        let mut model_transform = Matrix4::<f32>::from_translation(vec3(x, y, z));
-
-        // Scale between 0.05 and 0.25
-        let scale = (rng.gen::<i32>() % 20) as f32 / 100.0 + 0.05;
-        model_transform = model_transform * Matrix4::from_scale(scale);
-
-        // Add random rotation around a semi randomly picked rotation axis vector
-        let rot_angle = (rng.gen::<i32>() % 360) as f32;
-        model_transform = model_transform * Matrix4::from_axis_angle(vec3(0.4, 0.6, 0.8).normalize(), Deg(rot_angle));
-
-        rock_model_transforms.push(model_transform);
-    }
-
-
     // Render loop, each iteration is a "frame"
     while !window.should_close() {
         let current_frame = glfw.get_time() as f32;
@@ -230,19 +235,15 @@ fn main() {
             // START - DRAW MODELS HERE
 
             // Draw planet model
-            shader_program.set_mat4("model", &planet_model_transform);
             planet_model.draw(&shader_program);
 
             // Draw the rocks
-            for model_transform in &rock_model_transforms {
-                shader_program.set_mat4("model", model_transform);
-                rock_model.draw(&shader_program);
-            }
+            rock_model.draw(&shader_program);
 
             // END - DRAW MODELS HERE
 
             // Drawn last so it only is drawn over unused pixels, improving performance
-            // skybox.draw(&skybox_shader_program);
+            skybox.draw(&skybox_shader_program);
 
             // Draw framebuffer
             framebuffer.draw(&framebuffer_shader_program);

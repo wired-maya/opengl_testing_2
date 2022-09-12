@@ -1,4 +1,4 @@
-use cgmath::{Vector3, Vector2};
+use cgmath::{Vector3, Vector2, Matrix4, vec3};
 
 use crate::{shader_program::{ShaderProgram}, mesh::{Texture, Mesh, Vertex}};
 
@@ -52,7 +52,9 @@ impl Framebuffer {
             texture
         ];
 
-        let mesh = Mesh::new(vertices, indices, textures);
+        let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
+
+        let mesh = Mesh::new(vertices, indices, textures, model_transforms);
 
         let mut framebuffer = Framebuffer {
             fbo: 0,

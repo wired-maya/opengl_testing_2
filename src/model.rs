@@ -1,5 +1,5 @@
 use std::path::Path;
-use cgmath::{vec2, vec3};
+use cgmath::{vec2, vec3, Matrix4};
 use crate::{mesh::{Mesh, Vertex, Texture}, shader_program::ShaderProgram};
 use image::DynamicImage::*;
 
@@ -11,9 +11,9 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(path: &str) -> Model {
+    pub fn new(path: &str, model_transforms: Vec<Matrix4<f32>>) -> Model {
         let mut model = Model::default();
-        model.load_model(path);
+        model.load_model(path, model_transforms);
         model
     }
 
@@ -23,13 +23,7 @@ impl Model {
         }
     }
 
-    pub fn _draw_instanced(&self, shader_program: &ShaderProgram, instancecount: i32) {
-        for mesh in &self.meshes {
-            unsafe { mesh._draw_instanced(shader_program, instancecount) }
-        }
-    }
-
-    fn load_model(&mut self, path: &str) {
+    fn load_model(&mut self, path: &str, model_transforms: Vec<Matrix4<f32>>) {
         let path = Path::new(path);
         self.directory = path.parent().unwrap_or_else(|| Path::new("")).to_str().unwrap().into();
 
@@ -77,7 +71,7 @@ impl Model {
                 }
             }
 
-            self.meshes.push(Mesh::new(vertices, indices, textures));
+            self.meshes.push(Mesh::new(vertices, indices, textures, model_transforms.to_vec()));
         }
 
         // TODO: maybe clear up memory by clearing textures loaded?

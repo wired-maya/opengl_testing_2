@@ -1,4 +1,4 @@
-use cgmath::{Vector3, Vector2, Zero};
+use cgmath::{Vector3, Vector2, Zero, Matrix4, Vector4};
 use memoffset::offset_of;
 
 use crate::shader_program::ShaderProgram;
@@ -34,19 +34,24 @@ pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
     pub textures: Vec<Texture>,
+    pub model_transforms: Vec<Matrix4<f32>>,
     vao: u32,
     vbo: u32,
-    ebo: u32
+    ebo: u32,
+    tbo: u32
 }
 
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>, textures: Vec<Texture>) -> Mesh {
+    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>, textures: Vec<Texture>, model_transforms: Vec<Matrix4<f32>>) -> Mesh {
         let mut mesh = Mesh {
-            vertices, indices, textures,
-            vao: 0, vbo: 0, ebo: 0
+            vertices, indices, textures, model_transforms,
+            vao: 0, vbo: 0, ebo: 0, tbo: 0
         };
 
-        unsafe { mesh.setup_mesh() }
+        unsafe { 
+            mesh.setup_mesh();
+            mesh.setup_transform_attribute();
+        }
         mesh
     }
 
@@ -109,41 +114,40 @@ impl Mesh {
         gl::BindVertexArray(0);
     }
 
-    pub unsafe fn draw(&self, shader_program: &ShaderProgram) {
-        let mut diffuse_num: u32 = 0;
-        let mut specular_num: u32 = 0;
+    unsafe fn setup_transform_attribute(&mut self) {
+        let size_mat4 = std::mem::size_of::<Matrix4<f32>>() as i32;
+        let size_vec4 = std::mem::size_of::<Vector4<f32>>() as i32;
 
-        for (i, texture) in self.textures.iter().enumerate() {
-            gl::ActiveTexture(gl::TEXTURE0 + i as u32);
-            let name = &texture.type_;
-            let _number = match name.as_str() {
-                "diffuse" => {
-                    diffuse_num += 1;
-                    diffuse_num
-                }
-                "specular" => {
-                    specular_num += 1;
-                    specular_num
-                }
-                _ => panic!("unknown texture type")
-            };
+        // Bind transforms so they are sent to the shader program
+        gl::GenBuffers(1, &mut self.tbo);
+        gl::BindBuffer(gl::ARRAY_BUFFER, self.tbo);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            (self.model_transforms.len() as i32 * size_mat4) as isize,
+            self.model_transforms.as_ptr() as *const gl::types::GLvoid,
+            gl::STATIC_DRAW
+        );
 
-            // shader_program.set_int(format!("material.{}{}", name, number).as_str(), i as i32);
-            // Ignores numbers for now
-            shader_program.set_int(format!("material.{}", name).as_str(), i as i32);
-            gl::BindTexture(gl::TEXTURE_2D, texture.id);
+        gl::BindVertexArray(self.vao);
+
+        // Max data size is vec4, so send mat4 as 4 vec4s
+        for i in 0..4 {
+            gl::EnableVertexAttribArray(3 + i);
+            gl::VertexAttribPointer(
+                3 + i,
+                4,
+                gl::FLOAT,
+                gl::FALSE,
+                size_mat4,
+                (i as i32 * size_vec4) as *const gl::types::GLvoid
+            );
+            gl::VertexAttribDivisor(3 + i, 1);
         }
 
-        // Draw mesh
-        gl::BindVertexArray(self.vao);
-        gl::DrawElements(gl::TRIANGLES, self.indices.len() as i32, gl::UNSIGNED_INT, std::ptr::null());
         gl::BindVertexArray(0);
-
-        // Set back to defaults once configured
-        gl::ActiveTexture(gl::TEXTURE0);
     }
 
-    pub unsafe fn _draw_instanced(&self, shader_program: &ShaderProgram, instancecount: i32) {
+    pub unsafe fn draw(&self, shader_program: &ShaderProgram) {
         let mut diffuse_num: u32 = 0;
         let mut specular_num: u32 = 0;
 
@@ -175,7 +179,7 @@ impl Mesh {
             self.indices.len() as i32,
             gl::UNSIGNED_INT,
             std::ptr::null(),
-            instancecount
+            self.model_transforms.len() as i32
         );
         gl::BindVertexArray(0);
 

@@ -1,5 +1,5 @@
 use std::path::Path;
-use cgmath::{Vector3, Vector2};
+use cgmath::{Vector3, Vector2, Matrix4, vec3};
 use image::DynamicImage::*;
 
 use crate::{mesh::{Texture, Mesh, Vertex}, shader_program::ShaderProgram};
@@ -75,7 +75,9 @@ impl Skybox {
             texture
         ];
 
-        let mesh = Mesh::new(vertices, indices, textures);
+        let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
+
+        let mesh = Mesh::new(vertices, indices, textures, model_transforms);
 
         let mut skybox = Skybox {
             mesh,
