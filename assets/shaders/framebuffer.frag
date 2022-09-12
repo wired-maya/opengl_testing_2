@@ -13,10 +13,13 @@ struct Material {
 uniform Material material;
 
 const float offset = 1.0 / 300.0;
+const float gamma = 2.2;
 
 void main()
 { 
     // Post processing effects are done here
+
+    // No effect
     FragColor = texture(material.diffuse, TexCoords);
 
     // Inversion
@@ -57,4 +60,7 @@ void main()
     //     col += sampleTex[i] * kernel[i];
     
     // FragColor = vec4(col, 1.0);
+
+    // Gamma correction (ALWAYS RUN LAST!)
+    FragColor.rgb = pow(FragColor.rgb, vec3(1.0 / gamma));
 }

@@ -186,6 +186,7 @@ impl Framebuffer {
 
         // Set neccesary values
         gl::Disable(gl::DEPTH_TEST);
+        // gl::Enable(gl::FRAMEBUFFER_SRGB);
 
         // Draw the quad mesh
         shader_program.use_program();
@@ -193,6 +194,7 @@ impl Framebuffer {
 
         // Set neccasary values
         gl::Enable(gl::DEPTH_TEST);
+        // gl::Disable(gl::FRAMEBUFFER_SRGB);
     }
 
     pub unsafe fn resize(&mut self, width: u32, height: u32) {

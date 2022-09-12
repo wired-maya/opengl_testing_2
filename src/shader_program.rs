@@ -44,6 +44,7 @@ impl ShaderProgram {
     }
 
     unsafe fn compile_shader(path: &str, type_: &str) -> u32 {
+        // TODO: add println!()s for fragment shader compilations just to make sure everything works
         let mut shader_file = File::open(path)
             .unwrap_or_else(|_| panic!("Failed to open {}", path));
         let mut shader_code = String::new();
