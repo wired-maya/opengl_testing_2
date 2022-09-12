@@ -73,8 +73,8 @@ void main() {
     // vec3 norm = normalize(fg_in.Normal);
     vec3 viewDir = normalize(viewPos - fg_in.fragPos);
 
-    // vec4 result = CalcDirLight(dirLight, fg_in.Normal, viewDir);
-    vec4 result = CalcPointLight(pointLights[0], fg_in.Normal, fg_in.fragPos, viewDir);
+    vec4 result = CalcDirLight(dirLight, fg_in.Normal, viewDir);
+    // vec4 result = CalcPointLight(pointLights[0], fg_in.Normal, fg_in.fragPos, viewDir);
     // for (int i = 0; i < NR_POINT_LIGHTS; i++) {
     //     result += CalcPointLight(pointLights[i], fg_in.Normal, fg_in.fragPos, viewDir);
     // }
@@ -127,8 +127,7 @@ vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
     // attenuation
     float distance = length(light.position - fragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + 
-  			     light.quadratic * (distance * distance));    
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
     // combine results
     vec4 ambient = vec4(light.ambient, 1.0) * texture(material.diffuse, fg_in.texCoord);
     vec4 diffuse = vec4(light.diffuse, 1.0) * diff * texture(material.diffuse, fg_in.texCoord);

@@ -10,6 +10,7 @@ mod model;
 mod framebuffer;
 mod skybox;
 mod uniform_buffer;
+mod light;
 
 use self::glfw::{Context, Key, Action};
 use std::sync::mpsc::Receiver;
