@@ -26,12 +26,18 @@ impl ShaderProgram {
 
             let shader_program_id = gl::CreateProgram();
 
+            println!("DEBUG::SHADER::PROGRAM::ATTACHING_SHADERS");
+
             gl::AttachShader(shader_program_id, vert_shader);
             gl::AttachShader(shader_program_id, frag_shader);
             if geom_shader != 0 { gl::AttachShader(shader_program_id, geom_shader); }
 
+            println!("DEBUG::SHADER::PROGRAM::COMPILING_PROGRAM");
+
             gl::LinkProgram(shader_program_id);
             ShaderProgram::check_compile_errors(shader_program_id, "PROGRAM");
+
+            println!("DEBUG::SHADER::PROGRAM::COMPILATION_COMPLETE");
 
             gl::DeleteShader(vert_shader);
             gl::DeleteShader(frag_shader);
@@ -49,6 +55,8 @@ impl ShaderProgram {
             .unwrap_or_else(|_| panic!("Failed to open {}", path));
         let mut shader_code = String::new();
 
+        println!("DEBUG::SHADER::{}::READING_FILE: {}", type_, path);
+
         shader_file
             .read_to_string(&mut shader_code)
             .unwrap_or_else(|_| panic!("Failed to read {} shader", type_.to_lowercase()));
@@ -62,8 +70,13 @@ impl ShaderProgram {
         });
 
         gl::ShaderSource(shader, 1, &shader_code.as_ptr(), ptr::null());
+
+        println!("DEBUG::SHADER::{}::COMPILING_SHADER", type_);
+
         gl::CompileShader(shader);
         ShaderProgram::check_compile_errors(shader, type_);
+
+        println!("DEBUG::SHADER::{}::COMPILATION_COMPLETE", type_);
 
         shader
     }
