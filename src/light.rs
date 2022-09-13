@@ -45,13 +45,3 @@ pub struct SpotLight {
     diffuse: Vector3<f32>,
     specular: Vector3<f32>,
 }
-
-pub enum LightType {
-    DIRECTIONAL(DirLight),
-    POINT(PointLight),
-    SPOT(SpotLight)
-}
-
-pub struct Light {
-    type_: LightType
-}
