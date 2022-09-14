@@ -31,6 +31,7 @@ struct PointLight {
 struct SpotLight {
     vec3 position;
     vec3 direction;
+    
     float cutOff;
     float outerCutOff;
 
@@ -53,7 +54,7 @@ in GS_OUT {
 
 uniform Material material;
 uniform DirLight dirLight;
-#define NR_POINT_LIGHTS 4
+#define NR_POINT_LIGHTS 256
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform SpotLight spotLight;
 

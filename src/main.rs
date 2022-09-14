@@ -15,6 +15,7 @@ mod light;
 use self::glfw::{Context, Key, Action};
 use std::sync::mpsc::Receiver;
 use camera::{Camera, CameraMovement};
+use light::{DirLight, PointLight};
 use shader_program::ShaderProgram;
 use framebuffer::Framebuffer;
 use cgmath::{prelude::*, vec3,  Deg, Point3, Matrix4};
@@ -199,24 +200,31 @@ fn main() {
         100.0
     );
 
+    let dir_light = DirLight {
+        direction: vec3(-0.2, -1.0, -0.3),
+        ambient: vec3(0.05, 0.05, 0.05),
+        diffuse: vec3(1.0, 1.0, 1.0),
+        specular: vec3(0.5, 0.5, 0.5)
+    };
+    let point_light = PointLight {
+        position: vec3(0.7, 10.2, 59.0),
+        ambient: vec3(0.00, 0.00, 0.00),
+        diffuse: vec3(0.8, 0.8, 0.8),
+        specular: vec3(1.0, 1.0, 1.0),
+        constant: 1.0,
+        linear: 0.09,
+        quadratic: 0.032,
+        array_position: 0
+    };
+
     unsafe {
         // Use needs to be called before setting these even if you have the location
         shader_program.use_program();
         shader_program.set_float("material.shininess", 32.0);
 
-        // directional light
-        shader_program.set_vec3("dirLight.direction", -0.2, -1.0, -0.3);
-        shader_program.set_vec3("dirLight.ambient", 0.05, 0.05, 0.05);
-        shader_program.set_vec3("dirLight.diffuse", 1.0, 1.0, 1.0);
-        shader_program.set_vec3("dirLight.specular", 0.5, 0.5, 0.5);
-        // point light 1 (position relative to bag is the same as originally)
-        shader_program.set_vector_3("pointLights[0].position", &vec3(0.7, 10.2, 59.0));
-        shader_program.set_vec3("pointLights[0].ambient", 0.00, 0.00, 0.00);
-        shader_program.set_vec3("pointLights[0].diffuse", 0.8, 0.8, 0.8);
-        shader_program.set_vec3("pointLights[0].specular", 1.0, 1.0, 1.0);
-        shader_program.set_float("pointLights[0].constant", 1.0);
-        shader_program.set_float("pointLights[0].linear", 0.09);
-        shader_program.set_float("pointLights[0].quadratic", 0.032);
+        // Send light data to shader
+        dir_light.send_data(&shader_program);
+        point_light.send_data(&shader_program);
 
         // Set projection for all shaders that require it
         uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);

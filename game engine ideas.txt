@@ -1,0 +1,94 @@
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    GAME ENGINE V1 IDEAS:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Has a handful of widgets:
+ - 3D environment window(? possibly)
+ - Background (branch into separate scripting later, so you can have
+   it act as a visualizer)
+ - Image
+ - Nametag (nametag for person with custom coords, e.g. if the image
+   has someone's whole body in it, you can focus on just their face)
+ - Portrait (Image + Nametag combined)
+ - Text (Fixed width and height, in monospaced characters width-wise
+   and lines heigh-wise, wrapping by word and characters over the limit
+   are cropped)
+ - Close widget (closes the widget provided)
+ - Background sound widget (plays audio on loop until close)
+ - Play sound widget (plays audio and closes when it completes)
+
+General syntax for scripting (NOT FINAL!):
+
+[<widget name> <widget id>]
+(param1 = foo, param 2 = bar)
+<text, if applicable>
+
+Example text widget:
+
+[Text sample_text]
+(width = 20, height = 1, x = 0, y = 0, depth = 0)
+Hello, how are you?	
+wonderful weather we are having, huh
+[Close sample_text]
+
+Text notes:
+ - Text is the only widget that has the strings following declaration
+ - Text starts always on the first line, after it has animated in
+ - Remains on last text until closed
+ - Will need to find a way to tag text blocks, e.g. sample_text="hello",
+   or sample_text=[], etc
+ - Force multi-line text blocks would be written surrounded with "" (
+   This would override word wrapping on >1 height text widgets)
+ - Options to change wrapping?
+ - Let user define sound that plays when letter is drawn, or if it is one sound that plays
+   while the text is drawing, etc. (probably a V1.5 feature)
+ - Add support for seperate sounds and separate times, e.g. different sound
+   when newline, different sound when block of text is completed, etc
+ - Basic support for a span-like element where you can bold, italicize, change the color, etc
+   of specific text to achieve desired effects
+
+Other notes:
+ - Might need to change to a more C like syntax?
+ - Depth parameter, if not specified a new widget gets put to the top
+ - You can do multiple things at one press with a {} block, e.g:
+   {
+	[Close sample_1]
+	[Close sample_2]
+   }
+ - Styling on windows is hard coded in V1, will switch out later
+ - {} blocks need parameters to set how they behave, e.g. whether they
+   all animate in at the same time, or with x delay in order of
+   declaration, or after eachother, etc
+ - Game engine name is some synonym of film window, obviously
+ - For V1, just declare window size in header
+ - use .glsl for shaders
+ - V1 is a proof of concept, past that you would need to introduce a graphical editor
+   that uses "frames" and adds a lot more graphical customization to keep it under
+   the "evan principle"
+ - Evan Principle = "the engine should be easy to use for someone reasonably
+   comfortable with computers, but who cannot program in the slightest, enabling fast
+   and efficient creation of visual novels that mimics a movie script"
+ - Later add extensibility through custom modules and stuff
+ - Make the engine so good you secretly make more film window silver case-eque games,
+   meaning more shit to play!
+ - 3D rendering scenes are rendered to a different frame buffer and bind it to a texture
+   that is then drawn like a mirror
+ - Eventually you might even be able to add post processing effects to the 3D-windows
+ - Maybe have an option where you can use legacy script writing or lua for more control
+ - Picture widgets can change pictures without being re-animated in, simulate flipping
+   slides or changing expressions in a sprite
+ - Be sure to encapsulate all opengl functions to make everything less ew
+ - Try out pure rust alternative to GLFW: https://github.com/rust-windowing/glutin
+ - Make sure to find the best libraries from here: https://arewegameyet.rs/#ecosystem
+ - Most sensible way to do more advanced things might be to make the "engine" be its own crate
+   that you can import so you can use rust in a unity-like way to interface with the engine
+   (e.g. engine.render_loop variable can be bound a function where everything is abstracted
+   except transformations and the like, similar to unity)
+ - Could bypass the entire markdown format by having an option to just code a similar thing
+   but in rust and taking advantage of its quirks to implement the functions
+ - The markdown replacement could be in its own function, then all that happens in the main
+   loop is binding the function to a thing in the library/engine
+ - This way you can have both the possibility for markdown style declaration of events and
+   native and intuitive support for extremely advanced features right out of the box, with
+   no inclusion of LUA or other abstracting libraries, allowing for an extremely performant
+   with no sacrifices on usability for less experienced game devs
