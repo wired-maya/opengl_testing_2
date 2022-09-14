@@ -1,4 +1,4 @@
-use cgmath::Vector3;
+use cgmath::{Vector3, Matrix4, vec3, point3};
 
 use crate::shader_program::ShaderProgram;
 
@@ -7,10 +7,36 @@ pub struct DirLight {
 
     pub ambient: Vector3<f32>,
     pub diffuse: Vector3<f32>,
-    pub specular: Vector3<f32>
+    pub specular: Vector3<f32>,
+
+    depth_fbo: u32,
+    depth_map: u32,
+    shadow_res: u32
 }
 
 impl DirLight {
+    pub fn new(
+        direction: Vector3<f32>,
+        ambient: Vector3<f32>,
+        diffuse: Vector3<f32>,
+        specular: Vector3<f32>,
+        shadow_res: u32
+    ) -> DirLight {
+        let mut dir_light = DirLight {
+            direction,
+            ambient,
+            diffuse,
+            specular,
+            depth_fbo: 0,
+            depth_map: 0,
+            shadow_res
+        };
+
+        unsafe { dir_light.gen_depth_map(); }
+
+        dir_light
+    }
+
     pub unsafe fn send_data(&self, shader_program: &ShaderProgram) {
         shader_program.use_program();
         
@@ -19,6 +45,75 @@ impl DirLight {
         shader_program.set_vector_3("dirLight.ambient", &self.ambient);
         shader_program.set_vector_3("dirLight.diffuse", &self.diffuse);
         shader_program.set_vector_3("dirLight.specular", &self.specular);
+    }
+
+    unsafe fn gen_depth_map(&mut self) {
+        gl::GenFramebuffers(1, &mut self.depth_fbo);
+
+        gl::BindTexture(gl::TEXTURE_2D, self.depth_map);
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            gl::DEPTH_COMPONENT as i32,
+            self.shadow_res as i32,
+            self.shadow_res as i32,
+            0,
+            gl::DEPTH_COMPONENT,
+            gl::FLOAT,
+            std::ptr::null()
+        );
+
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+
+        gl::BindFramebuffer(gl::FRAMEBUFFER, self.depth_fbo);
+        gl::FramebufferTexture2D(
+            gl::FRAMEBUFFER,
+            gl::DEPTH_ATTACHMENT,
+            gl::TEXTURE_2D,
+            self.depth_map,
+            0
+        );
+
+        // Tell OpenGL that we aren't drawing anything with this buffer
+        gl::DrawBuffer(gl::NONE);
+        gl::ReadBuffer(gl::NONE);
+
+        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+    }
+
+    pub unsafe fn draw(&self, screen_width: u32, screen_height: u32) {
+        gl::Viewport(0, 0, self.shadow_res as i32, self.shadow_res as i32);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, self.depth_fbo);
+        gl::Clear(gl::DEPTH_BUFFER_BIT);
+
+        self.configure_shader_and_matrices();
+        // TODO: render scene
+    }
+
+    unsafe fn configure_shader_and_matrices(&self) {
+        let (near_plane, far_plane) = (1.0, 7.5);
+        let light_projection: Matrix4<f32> = cgmath::ortho(
+            -10.0,
+            10.0,
+            -10.0,
+            10.0,
+            near_plane,
+            far_plane
+        );
+
+        let light_view = Matrix4::<f32>::look_to_rh(
+            point3(self.direction.x, self.direction.y, self.direction.z),
+            vec3(0.0, 0.0, 0.0),
+            vec3(0.0, 1.0, 0.0)
+        );
+
+        // TODO: send to shader
+        // TODO: only run this when lighting position changes
+
+        let light_space_matrix = light_projection * light_view;
     }
 }
 

@@ -24,6 +24,7 @@ use uniform_buffer::UniformBuffer;
 use self::rand::Rng;
 
 const MSAA: u32 = 4;
+const SHADOW_RES: u32 = 1024;
 
 fn main() {
     let mut width = 800;
@@ -200,12 +201,13 @@ fn main() {
         100.0
     );
 
-    let dir_light = DirLight {
-        direction: vec3(-0.2, -1.0, -0.3),
-        ambient: vec3(0.05, 0.05, 0.05),
-        diffuse: vec3(1.0, 1.0, 1.0),
-        specular: vec3(0.5, 0.5, 0.5)
-    };
+    let dir_light = DirLight::new(
+        vec3(-0.2, -1.0, -0.3),
+        vec3(0.05, 0.05, 0.05),
+        vec3(1.0, 1.0, 1.0),
+        vec3(0.5, 0.5, 0.5),
+        SHADOW_RES
+    );
     let point_light = PointLight {
         position: vec3(0.7, 10.2, 59.0),
         ambient: vec3(0.00, 0.00, 0.00),

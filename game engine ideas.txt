@@ -92,3 +92,6 @@ Other notes:
    native and intuitive support for extremely advanced features right out of the box, with
    no inclusion of LUA or other abstracting libraries, allowing for an extremely performant
    with no sacrifices on usability for less experienced game devs
+ - While loading screens are custom, have a variable that keeps getting changed that says what
+   is currently being loaded, so you could have loading screens that say "creating depth maps"
+   for example
