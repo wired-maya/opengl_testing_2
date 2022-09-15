@@ -23,12 +23,14 @@ use skybox::Skybox;
 use uniform_buffer::UniformBuffer;
 use self::rand::Rng;
 
+const WIDTH: u32 = 800;
+const HEIGHT: u32 = 600;
 const MSAA: u32 = 4;
 const SHADOW_RES: u32 = 1024;
 
 fn main() {
-    let mut width = 800;
-    let mut height = 600;
+    let mut width = WIDTH;
+    let mut height = HEIGHT;
 
     // Timing
     let mut delta_time: f32; // Time between current frame and last frame
@@ -64,135 +66,96 @@ fn main() {
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
-    let (
-        shader_program,
-        framebuffer_shader_program,
-        skybox_shader_program,
-        mut framebuffer,
-        planet_model,
-        rock_model,
-        backpack_model,
-        skybox,
-        uniform_buffer
-    ) = unsafe {
-        // Get transforms for all the asteroids and the planet
-        let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
-        let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
-        let mut backpack_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 10.0, 57.0));
-        let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 9.5, 60.0));
-        let amount: u32 = 1_000;
-        let mut rng = rand::thread_rng();
-        let radius: f32 = 30.0;
-        let offset: f32 = 5.0;
+    // Get transforms for all the asteroids and the planet
+    let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
+    let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
+    let mut backpack_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 10.0, 57.0));
+    let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 9.5, 60.0));
+    let amount: u32 = 1_000;
+    let mut rng = rand::thread_rng();
+    let radius: f32 = 30.0;
+    let offset: f32 = 5.0;
 
-        planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
-        backpack_model_transform = backpack_model_transform * Matrix4::from_scale(0.2);
-        floor_model_transform = floor_model_transform * Matrix4::from_nonuniform_scale(6.0, 0.01, 6.0);
-        floor_model_transform = floor_model_transform * Matrix4::from_angle_x(Deg(90.0));
-        
-        for i in 0..amount {
-            let angle = i as f32 / amount as f32 * 360.0;
-            let mut displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
-            let x = angle.sin() * radius + displacement;
-            displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
-            let y = displacement * 0.4; // Keep height of asteroid field smaller compared to width of x and z
-            displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
-            let z = angle.cos() * radius + displacement;
-            let mut model_transform = Matrix4::<f32>::from_translation(vec3(x, y, z));
+    planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
+    backpack_model_transform = backpack_model_transform * Matrix4::from_scale(0.2);
+    floor_model_transform = floor_model_transform * Matrix4::from_nonuniform_scale(6.0, 0.01, 6.0);
+    floor_model_transform = floor_model_transform * Matrix4::from_angle_x(Deg(90.0));
+    
+    for i in 0..amount {
+        let angle = i as f32 / amount as f32 * 360.0;
+        let mut displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
+        let x = angle.sin() * radius + displacement;
+        displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
+        let y = displacement * 0.4; // Keep height of asteroid field smaller compared to width of x and z
+        displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
+        let z = angle.cos() * radius + displacement;
+        let mut model_transform = Matrix4::<f32>::from_translation(vec3(x, y, z));
 
-            // Scale between 0.05 and 0.25
-            let scale = (rng.gen::<i32>() % 20) as f32 / 100.0 + 0.05;
-            model_transform = model_transform * Matrix4::from_scale(scale);
+        // Scale between 0.05 and 0.25
+        let scale = (rng.gen::<i32>() % 20) as f32 / 100.0 + 0.05;
+        model_transform = model_transform * Matrix4::from_scale(scale);
 
-            // Add random rotation around a semi randomly picked rotation axis vector
-            let rot_angle = (rng.gen::<i32>() % 360) as f32;
-            model_transform = model_transform * Matrix4::from_axis_angle(vec3(0.4, 0.6, 0.8).normalize(), Deg(rot_angle));
+        // Add random rotation around a semi randomly picked rotation axis vector
+        let rot_angle = (rng.gen::<i32>() % 360) as f32;
+        model_transform = model_transform * Matrix4::from_axis_angle(vec3(0.4, 0.6, 0.8).normalize(), Deg(rot_angle));
 
-            rock_model_transforms.push(model_transform);
-        }
+        rock_model_transforms.push(model_transform);
+    }
 
-        let shader_program = ShaderProgram::new(
-            "assets/shaders/shader.vert",
-            "assets/shaders/shader.frag",
-            Some("assets/shaders/shader.geom")
-        );
-        let framebuffer_shader_program = ShaderProgram::new(
-            "assets/shaders/framebuffer.vert",
-            "assets/shaders/framebuffer.frag",
-            None
-        );
-        let skybox_shader_program = ShaderProgram::new(
-            "assets/shaders/skybox.vert",
-            "assets/shaders/skybox.frag",
-            None
-        );
+    let shader_program = ShaderProgram::new(
+        "assets/shaders/shader.vert",
+        "assets/shaders/shader.frag",
+        Some("assets/shaders/shader.geom")
+    );
+    let framebuffer_shader_program = ShaderProgram::new(
+        "assets/shaders/framebuffer.vert",
+        "assets/shaders/framebuffer.frag",
+        None
+    );
+    let skybox_shader_program = ShaderProgram::new(
+        "assets/shaders/skybox.vert",
+        "assets/shaders/skybox.frag",
+        None
+    );
+    let depth_shader_program = ShaderProgram::new(
+        "assets/shaders/depth.vert",
+        "assets/shaders/depth.frag",
+        None
+    );
 
-        let framebuffer = Framebuffer::new(
-            width,
-            height,
-            MSAA
-        );
+    let mut framebuffer = Framebuffer::new(
+        width,
+        height,
+        MSAA
+    );
 
-        // Set this as the rendered framebuffer, it then handles switching
-        framebuffer.bind_buffer();
+    let planet_model = model::Model::new(
+        "assets/models/planet/planet.obj",
+        vec![planet_model_transform]
+    );
+    let rock_model = model::Model::new(
+        "assets/models/rock/rock.obj",
+        rock_model_transforms
+    );
+    let backpack_model = model::Model::new(
+        "assets/models/backpack/backpack.obj",
+        vec![backpack_model_transform, floor_model_transform]
+    );
 
-        // Depth testing
-        gl::Enable(gl::DEPTH_TEST);
-        gl::DepthFunc(gl::LESS);
+    let skybox = Skybox::new(vec![
+        "assets/textures/skybox/right.jpg".to_owned(),
+        "assets/textures/skybox/left.jpg".to_owned(),
+        "assets/textures/skybox/top.jpg".to_owned(),
+        "assets/textures/skybox/bottom.jpg".to_owned(),
+        "assets/textures/skybox/front.jpg".to_owned(),
+        "assets/textures/skybox/back.jpg".to_owned()
+    ]);
 
-        // Blending
-        gl::Enable(gl::BLEND);
-        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-
-        // Face culling
-        gl::Enable(gl::CULL_FACE);
-
-        // Enable multisampling
-        // gl::Enable(gl::MULTISAMPLE);
-
-        let planet_model = model::Model::new(
-            "assets/models/planet/planet.obj",
-            vec![planet_model_transform]
-        );
-        let rock_model = model::Model::new(
-            "assets/models/rock/rock.obj",
-            rock_model_transforms
-        );
-        let backpack_model = model::Model::new(
-            "assets/models/backpack/backpack.obj",
-            vec![backpack_model_transform, floor_model_transform]
-        );
-
-        let skybox = Skybox::new(vec![
-            "assets/textures/skybox/right.jpg".to_owned(),
-            "assets/textures/skybox/left.jpg".to_owned(),
-            "assets/textures/skybox/top.jpg".to_owned(),
-            "assets/textures/skybox/bottom.jpg".to_owned(),
-            "assets/textures/skybox/front.jpg".to_owned(),
-            "assets/textures/skybox/back.jpg".to_owned()
-        ]);
-
-        let uniform_buffer = UniformBuffer::new(
-            &[&shader_program, &skybox_shader_program],
-            "Matrices",
-            2 * std::mem::size_of::<Matrix4<f32>>() as u32
-        );
-
-        // Draw in wireframe
-        // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-
-        (
-            shader_program,
-            framebuffer_shader_program,
-            skybox_shader_program,
-            framebuffer,
-            planet_model,
-            rock_model,
-            backpack_model,
-            skybox,
-            uniform_buffer
-        )
-    };
+    let uniform_buffer = UniformBuffer::new(
+        &[&shader_program, &skybox_shader_program],
+        "Matrices",
+        2 * std::mem::size_of::<Matrix4<f32>>() as u32
+    );
 
     let projection_transform = cgmath::perspective(
         Deg(45.0),
@@ -202,7 +165,7 @@ fn main() {
     );
 
     let dir_light = DirLight::new(
-        vec3(-0.2, -1.0, -0.3),
+        vec3(0.0, 15.0, 60.0),
         vec3(0.05, 0.05, 0.05),
         vec3(1.0, 1.0, 1.0),
         vec3(0.5, 0.5, 0.5),
@@ -220,13 +183,41 @@ fn main() {
     };
 
     unsafe {
+        // Set this as the rendered framebuffer, it then handles switching
+        framebuffer.bind_buffer();
+
+        // Depth testing
+        gl::Enable(gl::DEPTH_TEST);
+        gl::DepthFunc(gl::LESS);
+
+        // Blending
+        gl::Enable(gl::BLEND);
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+
+        // Face culling
+        gl::Enable(gl::CULL_FACE);
+
+        // Enable multisampling
+        // gl::Enable(gl::MULTISAMPLE);
+
+        // Draw in wireframe
+        // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+
         // Use needs to be called before setting these even if you have the location
         shader_program.use_program();
         shader_program.set_float("material.shininess", 32.0);
 
         // Send light data to shader
-        dir_light.send_data(&shader_program);
+        dir_light.send_lighting_data(&shader_program);
         point_light.send_data(&shader_program);
+
+        // Already has a use program
+        // TODO: simple rule should be to call use program before you pass it anywhere,
+        // TODO: therefore to reduce calls to it, remove it from struct functions and
+        // TODO: make it manual
+        // TODO: Also make this a uniform buffer to reduce calls
+        dir_light.configure_shader_and_matrices(&depth_shader_program);
+        dir_light.configure_shader_and_matrices(&shader_program);
 
         // Set projection for all shaders that require it
         uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
@@ -253,12 +244,6 @@ fn main() {
         );
 
         unsafe {
-            framebuffer.bind_buffer(); // Buffer is set to default later so it can be rendered
-
-            // Colour buffer does not need to be cleared when skybox is active
-            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
             let view_transform = camera.get_view_matrix();
 
             uniform_buffer.write_data::<Matrix4<f32>>(
@@ -266,18 +251,24 @@ fn main() {
                 std::mem::size_of::<Matrix4<f32>>() as u32
             );
 
-            shader_program.use_program();
-            shader_program.set_vector_3("viewPos", &camera.position.to_vec());
-
             // START - DRAW MODELS HERE
 
-            // Draw planet model
+            // Draw to depth buffer for lighting
+            dir_light.bind_buffer();
+
+            depth_shader_program.use_program();
+            planet_model.draw(&depth_shader_program);
+            rock_model.draw(&depth_shader_program);
+            backpack_model.draw(&depth_shader_program);
+
+            // Draw to regular framebuffer for an actual scene
+            framebuffer.bind_buffer();
+
+            shader_program.use_program();
+            shader_program.set_vector_3("viewPos", &camera.position.to_vec());
+            dir_light.bind_shadow_map(&shader_program);
             planet_model.draw(&shader_program);
-
-            // Draw the rocks
             rock_model.draw(&shader_program);
-
-            // Draw backpack for light testing
             backpack_model.draw(&shader_program);
 
             // END - DRAW MODELS HERE

@@ -50,6 +50,7 @@ in GS_OUT {
    vec2 texCoord;
    vec3 Normal;
    vec3 fragPos;
+   vec4 FragPosLightSpace;
 } fg_in;
 
 uniform Material material;
@@ -60,12 +61,14 @@ uniform SpotLight spotLight;
 
 uniform vec3 viewPos;
 uniform samplerCube skybox;
+uniform sampler2D shadowMap;
 
 vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
 vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec4 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec4 CalcReflection(vec3 normal, vec3 fragPos, vec3 viewPos);
 vec4 CalcRefraction(vec3 normal, vec3 fragPos, vec3 viewPos, float ratio);
+float ShadowCalculation(vec4 fragPosLightSpace);
 
 // LOTS of room for optimization:
 //   There are lot of duplicated calculations in this approach spread out over the light type functions (e.g. calculating the reflect vector, diffuse and specular terms, and sampling the material textures) so there's room for optimization here. 
@@ -89,6 +92,20 @@ void main() {
     // FragColor = CalcRefraction(norm, fragPos, viewPos, 1.00 / 1.33); // Refraction ratio for water
 }
 
+float ShadowCalculation(vec4 fragPosLightSpace) {
+    // Perform persepective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // Transform to range [0,1] like the depth map
+    projCoords = (projCoords * 0.5) + 0.5;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+
+    return shadow;
+    // return closestDepth;
+}
+
 vec4 CalcReflection(vec3 normal, vec3 fragPos, vec3 viewPos) {
     vec3 I = normalize(fragPos - viewPos);
     vec3 R = reflect(I, normal);
@@ -102,7 +119,8 @@ vec4 CalcRefraction(vec3 normal, vec3 fragPos, vec3 viewPos, float ratio) {
 }
 
 vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
-    vec3 lightDir = normalize(-light.direction);
+    // vec3 lightDir = normalize(-light.direction);
+    vec3 lightDir = normalize(light.direction - fg_in.fragPos);
     // Diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
     // Specular shading
@@ -114,7 +132,12 @@ vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
     vec4 ambient = vec4(light.ambient, 1.0) * texture(material.diffuse, fg_in.texCoord);
     vec4 diffuse = vec4(light.diffuse, 1.0) * diff * texture(material.diffuse, fg_in.texCoord);
     vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.specular, fg_in.texCoord);
-    return (ambient + diffuse + specular);
+
+    // Calculate shadows
+    float shadow = ShadowCalculation(fg_in.FragPosLightSpace);
+
+    return (ambient + ((1.0 - shadow) * (diffuse + specular)));
+    // return vec4(shadow);
 }
 
 vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {

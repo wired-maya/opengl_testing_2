@@ -164,7 +164,12 @@ impl Framebuffer {
     }
 
     pub unsafe fn bind_buffer(&self) {
+        gl::Viewport(0, 0, self.width as i32, self.height as i32);
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo);
+        
+        // Colour buffer does not need to be cleared when skybox is active
+        gl::ClearColor(0.0, 0.0, 0.0, 1.0);
+        gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
 
     pub unsafe fn draw(&self, shader_program: &ShaderProgram) {

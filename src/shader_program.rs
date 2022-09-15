@@ -151,7 +151,7 @@ impl ShaderProgram {
         gl::Uniform3fv(gl::GetUniformLocation(self.id, cstr.as_ptr()), 1, value.as_ptr());
     }
 
-    pub unsafe fn set_vec3(&self, name: &str, x: f32, y: f32, z: f32) {
+    pub unsafe fn _set_vec3(&self, name: &str, x: f32, y: f32, z: f32) {
         let cstr = CString::new(name).unwrap();
         gl::Uniform3f(gl::GetUniformLocation(self.id, cstr.as_ptr()), x, y, z);
     }

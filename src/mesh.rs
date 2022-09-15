@@ -167,7 +167,7 @@ impl Mesh {
             };
 
             // shader_program.set_int(format!("material.{}{}", name, number).as_str(), i as i32);
-            // Ignores numbers for now
+            // TODO: make this a texture array ig? Ignores numbers for now
             shader_program.set_int(format!("material.{}", name).as_str(), i as i32);
             gl::BindTexture(gl::TEXTURE_2D, texture.id);
         }

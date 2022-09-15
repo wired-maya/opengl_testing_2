@@ -8,12 +8,14 @@ in VS_OUT {
    vec2 texCoord;
    vec3 Normal;
    vec3 fragPos;
+   vec4 FragPosLightSpace;
 } gs_in[PRIMITIVE_LENGTH];
 
 out GS_OUT {
    vec2 texCoord;
    vec3 Normal;
    vec3 fragPos;
+   vec4 FragPosLightSpace;
 } gs_out;
 
 uniform float time;

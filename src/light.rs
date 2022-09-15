@@ -32,12 +32,14 @@ impl DirLight {
             shadow_res
         };
 
-        unsafe { dir_light.gen_depth_map(); }
+        unsafe {
+            dir_light.gen_depth_map();
+        }
 
         dir_light
     }
 
-    pub unsafe fn send_data(&self, shader_program: &ShaderProgram) {
+    pub unsafe fn send_lighting_data(&self, shader_program: &ShaderProgram) {
         shader_program.use_program();
         
         shader_program.set_vector_3("dirLight.direction", &self.direction);
@@ -49,6 +51,7 @@ impl DirLight {
 
     unsafe fn gen_depth_map(&mut self) {
         gl::GenFramebuffers(1, &mut self.depth_fbo);
+        gl::GenTextures(1, &mut self.depth_map);
 
         gl::BindTexture(gl::TEXTURE_2D, self.depth_map);
         gl::TexImage2D(
@@ -84,17 +87,25 @@ impl DirLight {
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
     }
 
-    pub unsafe fn draw(&self, shader_program: &ShaderProgram, screen_width: u32, screen_height: u32) {
-        self.configure_shader_and_matrices(shader_program);
-
+    pub unsafe fn bind_buffer(&self) {
         gl::Viewport(0, 0, self.shadow_res as i32, self.shadow_res as i32);
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.depth_fbo);
         gl::Clear(gl::DEPTH_BUFFER_BIT);
-
-        // TODO: render scene
     }
 
-    unsafe fn configure_shader_and_matrices(&self, shader_program: &ShaderProgram) {
+    pub unsafe fn bind_shadow_map(&self, shader_program: &ShaderProgram) {
+        // Texture is 15 to ensure this doesn't interfere with meshes unless they implement
+        // an absurd amount of textures
+        let shadow_map: i32 = 15;
+
+        gl::ActiveTexture(gl::TEXTURE0 + shadow_map as u32);
+
+        shader_program.set_int("shadowMap", shadow_map);
+
+        gl::BindTexture(gl::TEXTURE_2D, self.depth_map);
+    }
+
+    pub unsafe fn configure_shader_and_matrices(&self, shader_program: &ShaderProgram) {
         let (near_plane, far_plane) = (1.0, 7.5);
         let light_projection: Matrix4<f32> = cgmath::ortho(
             -10.0,
@@ -118,7 +129,6 @@ impl DirLight {
         shader_program.set_mat4("lightSpaceMatrix", &light_space_matrix);
 
         // TODO: only run this when lighting position changes
-
     }
 }
 
