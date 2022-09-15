@@ -84,16 +84,17 @@ impl DirLight {
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
     }
 
-    pub unsafe fn draw(&self, screen_width: u32, screen_height: u32) {
+    pub unsafe fn draw(&self, shader_program: &ShaderProgram, screen_width: u32, screen_height: u32) {
+        self.configure_shader_and_matrices(shader_program);
+
         gl::Viewport(0, 0, self.shadow_res as i32, self.shadow_res as i32);
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.depth_fbo);
         gl::Clear(gl::DEPTH_BUFFER_BIT);
 
-        self.configure_shader_and_matrices();
         // TODO: render scene
     }
 
-    unsafe fn configure_shader_and_matrices(&self) {
+    unsafe fn configure_shader_and_matrices(&self, shader_program: &ShaderProgram) {
         let (near_plane, far_plane) = (1.0, 7.5);
         let light_projection: Matrix4<f32> = cgmath::ortho(
             -10.0,
@@ -110,10 +111,14 @@ impl DirLight {
             vec3(0.0, 1.0, 0.0)
         );
 
-        // TODO: send to shader
+        let light_space_matrix = light_projection * light_view;
+
+        // Send to shader
+        shader_program.use_program();
+        shader_program.set_mat4("lightSpaceMatrix", &light_space_matrix);
+
         // TODO: only run this when lighting position changes
 
-        let light_space_matrix = light_projection * light_view;
     }
 }
 
