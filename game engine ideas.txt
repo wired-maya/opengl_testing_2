@@ -95,3 +95,6 @@ Other notes:
  - While loading screens are custom, have a variable that keeps getting changed that says what
    is currently being loaded, so you could have loading screens that say "creating depth maps"
    for example
+ - Document code automatically with rust generator thing, put comments
+   above functions and the like and see if you can make it generate
+   docs based on that

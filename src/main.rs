@@ -13,7 +13,7 @@ mod uniform_buffer;
 mod light;
 
 use self::glfw::{Context, Key, Action};
-use std::sync::mpsc::Receiver;
+use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice};
 use camera::{Camera, CameraMovement};
 use light::{DirLight, PointLight};
 use shader_program::ShaderProgram;
@@ -197,6 +197,13 @@ fn main() {
         // Face culling
         gl::Enable(gl::CULL_FACE);
 
+        // Enable debug with callback for simple error printing
+        gl::Enable(gl::DEBUG_OUTPUT);
+        gl::DebugMessageCallback(
+            Some(debug_message_callback),
+            std::ptr::null()
+        );
+
         // Enable multisampling
         // gl::Enable(gl::MULTISAMPLE);
 
@@ -254,19 +261,19 @@ fn main() {
             // START - DRAW MODELS HERE
 
             // Draw to depth buffer for lighting
-            dir_light.bind_buffer();
+            // dir_light.bind_buffer();
 
-            depth_shader_program.use_program();
-            planet_model.draw(&depth_shader_program);
-            rock_model.draw(&depth_shader_program);
-            backpack_model.draw(&depth_shader_program);
+            // depth_shader_program.use_program();
+            // planet_model.draw(&depth_shader_program);
+            // rock_model.draw(&depth_shader_program);
+            // backpack_model.draw(&depth_shader_program);
 
             // Draw to regular framebuffer for an actual scene
             framebuffer.bind_buffer();
 
             shader_program.use_program();
             shader_program.set_vector_3("viewPos", &camera.position.to_vec());
-            dir_light.bind_shadow_map(&shader_program);
+            // dir_light.bind_shadow_map(&shader_program);
             planet_model.draw(&shader_program);
             rock_model.draw(&shader_program);
             backpack_model.draw(&shader_program);
@@ -285,6 +292,52 @@ fn main() {
     }
 
     // TODO: Delete GL objects when they exit scope
+}
+
+// Callback function intended to be called from C
+extern "system" fn debug_message_callback(
+    source: u32,
+    type_: u32,
+    _id: u32,
+    severity: u32,
+    length: i32,
+    message: *const i8,
+    _user_param: *mut c_void
+) {
+    let type_str = match type_ {
+        gl::DEBUG_TYPE_ERROR => "ERROR",
+        gl::DEBUG_TYPE_DEPRECATED_BEHAVIOR => "DEPRECATED_BEHAVIOR",
+        gl::DEBUG_TYPE_UNDEFINED_BEHAVIOR => "UNDEFINED_BEHAVIOR",
+        gl::DEBUG_TYPE_PORTABILITY => "PORTABILITY",
+        gl::DEBUG_TYPE_PERFORMANCE => "PERFORMANCE",
+        gl::DEBUG_TYPE_MARKER => "MARKER",
+        gl::DEBUG_TYPE_PUSH_GROUP => "PUSH_GROUP",
+        gl::DEBUG_TYPE_POP_GROUP => "POP_GROUP",
+        gl::DEBUG_TYPE_OTHER => "OTHER",
+        _ => "OTHER"
+    };
+    let source_str = match source {
+        gl::DEBUG_SOURCE_API => "API",
+        gl::DEBUG_SOURCE_WINDOW_SYSTEM => "WINDOW_SYSTEM",
+        gl::DEBUG_SOURCE_SHADER_COMPILER => "SHADER_COMPILER",
+        gl::DEBUG_SOURCE_THIRD_PARTY => "THIRD_PARTY",
+        gl::DEBUG_SOURCE_APPLICATION => "APPLICATION",
+        gl::DEBUG_SOURCE_OTHER => "OTHER",
+        _ => "OTHER"
+    };
+    let severity_str = match severity {
+        gl::DEBUG_SEVERITY_HIGH => "HIGH_SEVERITY",
+        gl::DEBUG_SEVERITY_MEDIUM => "MEDIUM_SEVERITY",
+        gl::DEBUG_SEVERITY_LOW => "LOW_SEVERITY",
+        gl::DEBUG_SEVERITY_NOTIFICATION => "NOTIFICATION",
+        _ => "UNKNOWN_SEVERITY"
+    };
+    let message_cstr = unsafe {
+        let buffer = slice::from_raw_parts(message as *const u8, length as usize);
+        CString::from_vec_unchecked(buffer.to_vec())
+    };
+
+    println!("{}::{}::{}::{}", type_str, source_str, severity_str, message_cstr.to_str().unwrap());
 }
 
 fn process_events(

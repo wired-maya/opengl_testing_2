@@ -18,8 +18,8 @@ impl Framebuffer {
         // Create quad that will display framebuffer
         let texture = Texture {
             id: 0,
-            type_: "diffuse".to_owned(),
-            path: "".to_owned()
+            type_: "diffuse".into(),
+            path: "".into()
         };
 
         // Flat panel definition
@@ -195,6 +195,8 @@ impl Framebuffer {
 
         // Draw the quad mesh
         shader_program.use_program();
+        // !ERROR: gl::INVALID_OPERATION generated here
+        // https://www.khronos.org/opengl/wiki/Common_Mistakes
         self.mesh.draw(shader_program);
 
         // Set neccasary values

@@ -94,9 +94,9 @@ impl DirLight {
     }
 
     pub unsafe fn bind_shadow_map(&self, shader_program: &ShaderProgram) {
-        // Texture is 15 to ensure this doesn't interfere with meshes unless they implement
+        // Texture is 31 to ensure this doesn't interfere with meshes unless they implement
         // an absurd amount of textures
-        let shadow_map: i32 = 15;
+        let shadow_map: i32 = 31;
 
         gl::ActiveTexture(gl::TEXTURE0 + shadow_map as u32);
 
