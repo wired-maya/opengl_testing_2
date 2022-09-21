@@ -130,7 +130,26 @@ impl Skybox {
         gl::DepthFunc(gl::LEQUAL);
 
         shader_program.use_program();
-        self.mesh.draw(shader_program);
+        shader_program.set_int("material.diffuse", 0);
+        // self.mesh.draw(shader_program);
+
+        let texture = &self.mesh.textures[0];
+
+        // Use separate draw function only for cubemaps
+        gl::ActiveTexture(gl::TEXTURE0);
+
+        gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture.id);
+        gl::BindVertexArray(self.mesh.vao);
+        gl::DrawElementsInstanced(
+            gl::TRIANGLES,
+            self.mesh.indices.len() as i32,
+            gl::UNSIGNED_INT,
+            std::ptr::null(),
+            self.mesh.model_transforms.len() as i32
+        );
+        gl::BindVertexArray(0);
+
+        gl::ActiveTexture(gl::TEXTURE0);
 
         gl::DepthFunc(gl::LESS);
     }

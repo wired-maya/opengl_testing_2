@@ -44,6 +44,7 @@ void main() {
       gs_out.texCoord = gs_in[i].texCoord;
       gs_out.Normal = gs_in[i].Normal;
       gs_out.fragPos = gs_in[i].fragPos;
+      gs_out.FragPosLightSpace = gs_in[i].FragPosLightSpace;
       
       EmitVertex();
    }

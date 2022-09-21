@@ -153,6 +153,13 @@ impl Framebuffer {
             self.mesh.textures[0].id,
             0
         );
+        // TODO: should use this instead
+        // gl::FramebufferTexture(
+        //     gl::FRAMEBUFFER,
+        //     gl::COLOR_ATTACHMENT0,
+        //     self.mesh.textures[0].id,
+        //     0
+        // );
 
         // Throw error if buffer is incomplete
         if gl::CheckFramebufferStatus(gl::FRAMEBUFFER) != gl::FRAMEBUFFER_COMPLETE {
@@ -195,8 +202,6 @@ impl Framebuffer {
 
         // Draw the quad mesh
         shader_program.use_program();
-        // !ERROR: gl::INVALID_OPERATION generated here
-        // https://www.khronos.org/opengl/wiki/Common_Mistakes
         self.mesh.draw(shader_program);
 
         // Set neccasary values

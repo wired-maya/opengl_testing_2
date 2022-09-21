@@ -42,7 +42,7 @@ fn main() {
     let mut first_mouse = true;
 
     let mut camera = Camera::default();
-    camera.position = Point3 { x: 0.0, y: 10.0, z: 60.0 };
+    camera.position = Point3 { x: 0.0, y: 00.0, z: 30.0 };
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -69,16 +69,16 @@ fn main() {
     // Get transforms for all the asteroids and the planet
     let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
     let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
-    let mut backpack_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 10.0, 57.0));
-    let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 9.5, 60.0));
+    // let mut backpack_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 10.0, 57.0));
+    let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, -25.0, 0.0));
     let amount: u32 = 1_000;
     let mut rng = rand::thread_rng();
     let radius: f32 = 30.0;
     let offset: f32 = 5.0;
 
     planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
-    backpack_model_transform = backpack_model_transform * Matrix4::from_scale(0.2);
-    floor_model_transform = floor_model_transform * Matrix4::from_nonuniform_scale(6.0, 0.01, 6.0);
+    // backpack_model_transform = backpack_model_transform * Matrix4::from_scale(0.2);
+    floor_model_transform = floor_model_transform * Matrix4::from_nonuniform_scale(36.0, 1.0, 36.0);
     floor_model_transform = floor_model_transform * Matrix4::from_angle_x(Deg(90.0));
     
     for i in 0..amount {
@@ -139,7 +139,7 @@ fn main() {
     );
     let backpack_model = model::Model::new(
         "assets/models/backpack/backpack.obj",
-        vec![backpack_model_transform, floor_model_transform]
+        vec![/*backpack_model_transform,*/ floor_model_transform]
     );
 
     let skybox = Skybox::new(vec![
@@ -161,12 +161,12 @@ fn main() {
         Deg(45.0),
         width as f32 / height as f32,
         0.1,
-        100.0
+        500.0
     );
 
     let dir_light = DirLight::new(
-        vec3(0.0, 15.0, 60.0),
-        vec3(0.05, 0.05, 0.05),
+        vec3(0.0, 40.0, 40.0),
+        vec3(0.00, 0.00, 0.00),
         vec3(1.0, 1.0, 1.0),
         vec3(0.5, 0.5, 0.5),
         SHADOW_RES
@@ -260,20 +260,28 @@ fn main() {
 
             // START - DRAW MODELS HERE
 
-            // Draw to depth buffer for lighting
-            // dir_light.bind_buffer();
+            // Fix peter panning
+            gl::CullFace(gl::FRONT);
 
-            // depth_shader_program.use_program();
-            // planet_model.draw(&depth_shader_program);
-            // rock_model.draw(&depth_shader_program);
-            // backpack_model.draw(&depth_shader_program);
+            // Draw to depth buffer for lighting
+            dir_light.bind_buffer();
+
+            depth_shader_program.use_program();
+            planet_model.draw(&depth_shader_program);
+            rock_model.draw(&depth_shader_program);
+
+            // Reset
+            gl::CullFace(gl::BACK);
+
+            // Floor, doesn't cast shadows so don't cull front faces
+            backpack_model.draw(&depth_shader_program);
 
             // Draw to regular framebuffer for an actual scene
             framebuffer.bind_buffer();
 
             shader_program.use_program();
             shader_program.set_vector_3("viewPos", &camera.position.to_vec());
-            // dir_light.bind_shadow_map(&shader_program);
+            dir_light.bind_shadow_map(&shader_program);
             planet_model.draw(&shader_program);
             rock_model.draw(&shader_program);
             backpack_model.draw(&shader_program);

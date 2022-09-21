@@ -35,7 +35,7 @@ pub struct Mesh {
     pub indices: Vec<u32>,
     pub textures: Vec<Texture>,
     pub model_transforms: Vec<Matrix4<f32>>,
-    vao: u32,
+    pub vao: u32,
     vbo: u32,
     ebo: u32,
     tbo: u32

@@ -68,8 +68,10 @@ impl DirLight {
 
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_BORDER as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_BORDER as i32);
+        let border_color: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+        gl::TexParameterfv(gl::TEXTURE_2D, gl::TEXTURE_BORDER_COLOR, border_color.as_ptr());
 
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.depth_fbo);
         gl::FramebufferTexture2D(
@@ -106,7 +108,8 @@ impl DirLight {
     }
 
     pub unsafe fn configure_shader_and_matrices(&self, shader_program: &ShaderProgram) {
-        let (near_plane, far_plane) = (1.0, 7.5);
+        // let (near_plane, far_plane) = (1.0, 7.5);
+        let (near_plane, far_plane) = (0.1, 200.0);
         let light_projection: Matrix4<f32> = cgmath::ortho(
             -10.0,
             10.0,

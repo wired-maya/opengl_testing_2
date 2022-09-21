@@ -98,3 +98,8 @@ Other notes:
  - Document code automatically with rust generator thing, put comments
    above functions and the like and see if you can make it generate
    docs based on that
+ - Use models to generate array of texture ids, might be faster then doing it
+   every mesh, same with textures (basically consolidate as many OpenGL calls
+   as you can)
+ - Read this (https://www.khronos.org/opengl/wiki/Common_Mistakes) VERY thoroughly
+ - https://stackoverflow.com/questions/17092075/what-is-the-point-of-the-textarget-parameter-for-glframebuffertexture
