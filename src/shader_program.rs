@@ -131,7 +131,7 @@ impl ShaderProgram {
         gl::UseProgram(self.id);
     }
 
-    pub unsafe fn _set_bool(&self, name: &str, value: bool) {
+    pub unsafe fn set_bool(&self, name: &str, value: bool) {
         let cstr = CString::new(name).unwrap();
         gl::Uniform1i(gl::GetUniformLocation(self.id, cstr.as_ptr()), value as gl::types::GLint);
     }

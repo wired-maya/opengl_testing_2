@@ -3,7 +3,9 @@
 const float gamma = 2.2;
 
 struct Material {
+    bool has_diffuse;
     sampler2D diffuse;
+    bool has_specular;
     sampler2D specular;
     float shininess;
 };
@@ -87,7 +89,7 @@ void main() {
     //     result += CalcPointLight(pointLights[i], fg_in.Normal, fg_in.fragPos, viewDir);
     // }
     // result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
-    result += CalcPointLight(pointLights[0], fg_in.Normal, fg_in.fragPos, viewDir);
+    // result += CalcPointLight(pointLights[0], fg_in.Normal, fg_in.fragPos, viewDir);
 
     FragColor = result;
     // Gamma correction
@@ -175,16 +177,20 @@ vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
     // float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
+
+    // Retrieve texture values if they are present for the mesh
+    vec4 diffuse_texel = material.has_diffuse ? texture(material.diffuse, fg_in.texCoord) : vec4(1.0);
+    vec4 specular_texel = material.has_specular ? texture(material.specular, fg_in.texCoord) : vec4(1.0);
+
     // Combine results
-    vec4 ambient = vec4(light.ambient, 1.0) * texture(material.diffuse, fg_in.texCoord);
-    vec4 diffuse = vec4(light.diffuse, 1.0) * diff * texture(material.diffuse, fg_in.texCoord);
-    vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.specular, fg_in.texCoord);
+    vec4 ambient = vec4(light.ambient, 1.0) * diffuse_texel;
+    vec4 diffuse = vec4(light.diffuse, 1.0) * diff * diffuse_texel;
+    vec4 specular = vec4(light.specular, 1.0) * spec * specular_texel;
 
     // Calculate shadows
     float shadow = ShadowCalculation(fg_in.FragPosLightSpace, normal, lightDir);
 
     return (ambient + ((1.0 - shadow) * (diffuse + specular)));
-    // return vec4(shadow);
 }
 
 vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
@@ -199,10 +205,14 @@ vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     // attenuation
     float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
-    // combine results
-    vec4 ambient = vec4(light.ambient, 1.0) * texture(material.diffuse, fg_in.texCoord);
-    vec4 diffuse = vec4(light.diffuse, 1.0) * diff * texture(material.diffuse, fg_in.texCoord);
-    vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.specular, fg_in.texCoord);
+    // Retrieve texture values if they are present for the mesh
+    vec4 diffuse_texel = material.has_diffuse ? texture(material.diffuse, fg_in.texCoord) : vec4(1.0);
+    vec4 specular_texel = material.has_specular ? texture(material.specular, fg_in.texCoord) : vec4(1.0);
+
+    // Combine results
+    vec4 ambient = vec4(light.ambient, 1.0) * diffuse_texel;
+    vec4 diffuse = vec4(light.diffuse, 1.0) * diff * diffuse_texel;
+    vec4 specular = vec4(light.specular, 1.0) * spec * specular_texel;
     // ambient *= attenuation;
     // diffuse *= attenuation;
     // specular *= attenuation;
@@ -230,10 +240,14 @@ vec4 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     float theta = dot(lightDir, normalize(-light.direction));
     float epsilon = light.cutOff - light.outerCutOff;
     float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
-    // combine results
-    vec4 ambient = vec4(light.ambient, 1.0) * texture(material.diffuse, fg_in.texCoord);
-    vec4 diffuse = vec4(light.diffuse, 1.0) * diff * texture(material.diffuse, fg_in.texCoord);
-    vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.specular, fg_in.texCoord);
+    // Retrieve texture values if they are present for the mesh
+    vec4 diffuse_texel = material.has_diffuse ? texture(material.diffuse, fg_in.texCoord) : vec4(1.0);
+    vec4 specular_texel = material.has_specular ? texture(material.specular, fg_in.texCoord) : vec4(1.0);
+
+    // Combine results
+    vec4 ambient = vec4(light.ambient, 1.0) * diffuse_texel;
+    vec4 diffuse = vec4(light.diffuse, 1.0) * diff * diffuse_texel;
+    vec4 specular = vec4(light.specular, 1.0) * spec * specular_texel;
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
     specular *= attenuation * intensity;

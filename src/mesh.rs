@@ -147,9 +147,16 @@ impl Mesh {
         gl::BindVertexArray(0);
     }
 
+    pub unsafe fn reset_material(shader_program: &ShaderProgram) {
+        shader_program.set_bool("material.has_diffuse", false);
+        shader_program.set_bool("material.has_specular", false);
+    }
+
     pub unsafe fn draw(&self, shader_program: &ShaderProgram) {
         let mut diffuse_num: u32 = 0;
         let mut specular_num: u32 = 0;
+
+        Mesh::reset_material(shader_program);
 
         for (i, texture) in self.textures.iter().enumerate() {
             gl::ActiveTexture(gl::TEXTURE0 + i as u32);
@@ -169,6 +176,7 @@ impl Mesh {
             // shader_program.set_int(format!("material.{}{}", name, number).as_str(), i as i32);
             // TODO: make this a texture array ig? Ignores numbers for now
             shader_program.set_int(format!("material.{}", name).as_str(), i as i32);
+            shader_program.set_bool(format!("material.has_{}", name).as_str(), true);
             gl::BindTexture(gl::TEXTURE_2D, texture.id);
         }
 
