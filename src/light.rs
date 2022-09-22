@@ -292,7 +292,9 @@ impl PointLight {
     }
 }
 
-pub struct SpotLight {
+// TODO: implement shadows by following this page, more specifically the bottom portion:
+// TODO: https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mapping
+pub struct _SpotLight {
     pub position: Vector3<f32>,
     pub direction: Vector3<f32>,
 
@@ -308,8 +310,8 @@ pub struct SpotLight {
     pub specular: Vector3<f32>,
 }
 
-impl SpotLight {
-    pub unsafe fn send_data(&self, shader_program: &ShaderProgram) {
+impl _SpotLight {
+    pub unsafe fn _send_data(&self, shader_program: &ShaderProgram) {
         shader_program.use_program();
         
         shader_program.set_vector_3("spotLight.position", &self.position);
