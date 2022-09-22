@@ -69,7 +69,7 @@ fn main() {
     // Get transforms for all the asteroids and the planet
     let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
     let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
-    let mut backpack_model_transform = Matrix4::<f32>::from_translation(vec3(20.0, -15.0, 0.0));
+    let backpack_model_transform = Matrix4::<f32>::from_translation(vec3(15.0, -17.0, 0.0));
     let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, -25.0, 0.0));
     let amount: u32 = 1_000;
     let mut rng = rand::thread_rng();
@@ -77,7 +77,6 @@ fn main() {
     let offset: f32 = 5.0;
 
     planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
-    backpack_model_transform = backpack_model_transform * Matrix4::from_scale(0.2);
     floor_model_transform = floor_model_transform * Matrix4::from_nonuniform_scale(36.0, 1.0, 36.0);
     floor_model_transform = floor_model_transform * Matrix4::from_angle_x(Deg(90.0));
     
@@ -145,7 +144,7 @@ fn main() {
     let backpack_model = model::Model::new(
         "assets/models/backpack/backpack.obj",
         vec![
-            // backpack_model_transform,
+            backpack_model_transform,
             floor_model_transform
         ]
     );
@@ -174,7 +173,7 @@ fn main() {
 
     let dir_light = DirLight::new(
         vec3(0.0, 40.0, 40.0),
-        vec3(0.00, 0.00, 0.00),
+        vec3(0.05, 0.05, 0.05),
         vec3(1.0, 1.0, 1.0),
         vec3(0.5, 0.5, 0.5),
         SHADOW_RES

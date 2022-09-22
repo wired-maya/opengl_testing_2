@@ -1,9 +1,9 @@
-use cgmath::{Vector3, Matrix4, vec3, point3, Deg, InnerSpace, Point3};
+use cgmath::{Vector3, Matrix4, vec3, point3, Deg, InnerSpace};
 
 use crate::shader_program::ShaderProgram;
 
 pub struct DirLight {
-    pub direction: Vector3<f32>,
+    pub position: Vector3<f32>,
 
     pub ambient: Vector3<f32>,
     pub diffuse: Vector3<f32>,
@@ -16,14 +16,14 @@ pub struct DirLight {
 
 impl DirLight {
     pub fn new(
-        direction: Vector3<f32>,
+        position: Vector3<f32>,
         ambient: Vector3<f32>,
         diffuse: Vector3<f32>,
         specular: Vector3<f32>,
         shadow_res: u32
     ) -> DirLight {
         let mut dir_light = DirLight {
-            direction,
+            position,
             ambient,
             diffuse,
             specular,
@@ -42,7 +42,7 @@ impl DirLight {
     pub unsafe fn send_lighting_data(&self, shader_program: &ShaderProgram) {
         shader_program.use_program();
         
-        shader_program.set_vector_3("dirLight.direction", &self.direction);
+        shader_program.set_vector_3("dirLight.direction", &self.position);
         
         shader_program.set_vector_3("dirLight.ambient", &self.ambient);
         shader_program.set_vector_3("dirLight.diffuse", &self.diffuse);
@@ -118,16 +118,14 @@ impl DirLight {
             far_plane
         );
 
-        println!("{:?}", light_projection);
-
         // Calculate up vector
-        let front: Vector3<f32> = vec3(0.0, 0.0, -1.0);
+        let front: Vector3<f32> = vec3(0.0, 0.0, 0.0) - self.position; // Direction vector from position
         let right: Vector3<f32> = front.cross(Vector3::unit_y()).normalize();
         let up: Vector3<f32> = right.cross(front).normalize();
 
-        let light_view = Matrix4::<f32>::look_at_rh(
-            point3(self.direction.x, self.direction.y, self.direction.z),
-            point3(front.x, front.y, front.z),
+        let light_view = Matrix4::<f32>::look_to_rh(
+            point3(self.position.x, self.position.y, self.position.z),
+            front,
             up
         );
 
