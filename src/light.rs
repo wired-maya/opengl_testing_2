@@ -1,4 +1,4 @@
-use cgmath::{Vector3, Matrix4, vec3, point3, Deg};
+use cgmath::{Vector3, Matrix4, vec3, point3, Deg, InnerSpace, Point3};
 
 use crate::shader_program::ShaderProgram;
 
@@ -110,18 +110,25 @@ impl DirLight {
         // let (near_plane, far_plane) = (1.0, 7.5);
         let (near_plane, far_plane) = (0.1, 200.0);
         let light_projection: Matrix4<f32> = cgmath::ortho(
-            -10.0,
-            10.0,
-            -10.0,
-            10.0,
+            -100.0,
+            100.0,
+            -100.0,
+            100.0,
             near_plane,
             far_plane
         );
 
-        let light_view = Matrix4::<f32>::look_to_rh(
+        println!("{:?}", light_projection);
+
+        // Calculate up vector
+        let front: Vector3<f32> = vec3(0.0, 0.0, -1.0);
+        let right: Vector3<f32> = front.cross(Vector3::unit_y()).normalize();
+        let up: Vector3<f32> = right.cross(front).normalize();
+
+        let light_view = Matrix4::<f32>::look_at_rh(
             point3(self.direction.x, self.direction.y, self.direction.z),
-            vec3(0.0, 0.0, 0.0),
-            vec3(0.0, 1.0, 0.0)
+            point3(front.x, front.y, front.z),
+            up
         );
 
         let light_space_matrix = light_projection * light_view;
