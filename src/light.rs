@@ -1,4 +1,4 @@
-use cgmath::{Vector3, Matrix4, vec3, point3};
+use cgmath::{Vector3, Matrix4, vec3, point3, Deg};
 
 use crate::shader_program::ShaderProgram;
 
@@ -57,7 +57,7 @@ impl DirLight {
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            gl::DEPTH_COMPONENT as i32,
+            gl::DEPTH_COMPONENT32F as i32,
             self.shadow_res as i32,
             self.shadow_res as i32,
             0,
@@ -74,10 +74,9 @@ impl DirLight {
         gl::TexParameterfv(gl::TEXTURE_2D, gl::TEXTURE_BORDER_COLOR, border_color.as_ptr());
 
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.depth_fbo);
-        gl::FramebufferTexture2D(
+        gl::FramebufferTexture(
             gl::FRAMEBUFFER,
             gl::DEPTH_ATTACHMENT,
-            gl::TEXTURE_2D,
             self.depth_map,
             0
         );
@@ -148,10 +147,44 @@ pub struct PointLight {
 
     // TODO: temp, handle this differently in actual engine, probably
     pub array_position: u8,
+
+    depth_fbo: u32,
+    depth_map: u32,
+    shadow_res: u32
 }
 
 impl PointLight {
-    pub unsafe fn send_data(&self, shader_program: &ShaderProgram) {
+    pub fn new(
+        position: Vector3<f32>,
+        ambient: Vector3<f32>,
+        diffuse: Vector3<f32>,
+        specular: Vector3<f32>,
+        constant: f32,
+        linear: f32,
+        quadratic: f32,
+        array_position: u8,
+        shadow_res: u32
+    ) -> PointLight {
+        let mut point_light = PointLight {
+            position,
+            ambient,
+            diffuse,
+            specular,
+            constant,
+            linear,
+            quadratic,
+            array_position,
+            depth_fbo: 0,
+            depth_map: 0,
+            shadow_res
+        };
+
+        unsafe { point_light.gen_depth_map(); }
+
+        point_light
+    }
+
+    pub unsafe fn send_lighting_data(&self, shader_program: &ShaderProgram) {
         shader_program.use_program();
 
         shader_program.set_vector_3(format!("pointLights[{}].position", self.array_position).as_str(), &self.position);
@@ -163,6 +196,94 @@ impl PointLight {
         shader_program.set_float(format!("pointLights[{}].constant", self.array_position).as_str(), self.constant);
         shader_program.set_float(format!("pointLights[{}].linear", self.array_position).as_str(), self.linear);
         shader_program.set_float(format!("pointLights[{}].quadratic", self.array_position).as_str(), self.quadratic);
+    }
+
+    pub unsafe fn gen_depth_map(&mut self) {
+        gl::GenFramebuffers(1, &mut self.depth_fbo);
+        gl::GenTextures(1, &mut self.depth_map);
+
+        gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.depth_map);
+        for i in 0..6 {
+            gl::TexImage2D(
+                gl::TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                0,
+                gl::DEPTH_COMPONENT32F as i32,
+                self.shadow_res as i32,
+                self.shadow_res as i32,
+                0,
+                gl::DEPTH_COMPONENT,
+                gl::FLOAT,
+                std::ptr::null()
+            );
+        }
+
+        gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+        gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+        gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+        gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
+
+        gl::BindFramebuffer(gl::FRAMEBUFFER, self.depth_fbo);
+        gl::FramebufferTexture(
+            gl::FRAMEBUFFER,
+            gl::DEPTH_ATTACHMENT,
+            self.depth_map,
+            0
+        );
+
+        // Tell OpenGL that we aren't drawing anything with this buffer
+        gl::DrawBuffer(gl::NONE);
+        gl::ReadBuffer(gl::NONE);
+
+        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+    }
+
+    pub unsafe fn bind_buffer(&self) {
+        gl::Viewport(0, 0, self.shadow_res as i32, self.shadow_res as i32);
+        gl::BindFramebuffer(gl::FRAMEBUFFER, self.depth_fbo);
+        gl::Clear(gl::DEPTH_BUFFER_BIT);
+    }
+
+    pub unsafe fn bind_shadow_map(&self, shader_program: &ShaderProgram) {
+        // Texture is 31 to ensure this doesn't interfere with meshes unless they implement
+        // an absurd amount of textures
+        let shadow_map: i32 = 30;
+
+        gl::ActiveTexture(gl::TEXTURE0 + shadow_map as u32);
+
+        shader_program.set_int("shadowCubeMap", shadow_map);
+
+        gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.depth_map);
+    }
+
+    pub unsafe fn configure_shader_and_matrices(&self, shader_program: &ShaderProgram) {
+        let (aspect, near_plane, far_plane) = (1.0, 1.0, 600.0);
+
+        let light_projection: Matrix4<f32> = cgmath::perspective(
+            Deg(90.0),
+            aspect,
+            near_plane,
+            far_plane,
+        );
+
+        let light_transforms: Vec<Matrix4<f32>> = vec![
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(1.0, 0.0, 0.0), vec3(0.0, -1.0, 0.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(-1.0, 0.0, 0.0), vec3(0.0, -1.0, 0.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(0.0, -1.0, 0.0), vec3(0.0, 0.0, -1.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(0.0, 0.0, 1.0), vec3(0.0, -1.0, 0.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(0.0, 0.0, -1.0), vec3(0.0, -1.0, 0.0)),
+        ];
+
+        // Send to shader
+        shader_program.use_program();
+        for (i, light_transform) in light_transforms.iter().enumerate() {
+            shader_program.set_mat4(format!("shadowMatrices[{}]", i).as_str(), light_transform);
+        }
+        shader_program.set_float("far_plane", far_plane);
+        shader_program.set_vector_3("lightPos", &self.position);
+
+        // TODO: only run this when lighting position changes
     }
 }
 

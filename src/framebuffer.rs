@@ -85,7 +85,7 @@ impl Framebuffer {
         gl::TexImage2DMultisample(
             gl::TEXTURE_2D_MULTISAMPLE,
             self.msaa as i32,
-            gl::RGB,
+            gl::RGBA,
             self.width as i32,
             self.height as i32,
             gl::TRUE
@@ -135,11 +135,11 @@ impl Framebuffer {
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            gl::RGB as i32,
+            gl::RGBA as i32,
             self.width as i32,
             self.height as i32,
             0,
-            gl::RGB,
+            gl::RGBA,
             gl::UNSIGNED_BYTE,
             std::ptr::null()
         );

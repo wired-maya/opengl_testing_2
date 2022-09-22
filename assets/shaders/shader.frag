@@ -26,6 +26,8 @@ struct PointLight {
     float constant;
     float linear;
     float quadratic;
+
+    float far_plane;
 };
 
 struct SpotLight {
@@ -62,6 +64,7 @@ uniform SpotLight spotLight;
 uniform vec3 viewPos;
 uniform samplerCube skybox;
 uniform sampler2D shadowMap;
+uniform samplerCube shadowCubeMap;
 
 vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
 vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
@@ -69,6 +72,7 @@ vec4 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec4 CalcReflection(vec3 normal, vec3 fragPos, vec3 viewPos);
 vec4 CalcRefraction(vec3 normal, vec3 fragPos, vec3 viewPos, float ratio);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
+float CubeShadowCalculation(vec3 fragPos, vec3 normal, vec3 lightPos, float far_plane);
 
 // LOTS of room for optimization:
 //   There are lot of duplicated calculations in this approach spread out over the light type functions (e.g. calculating the reflect vector, diffuse and specular terms, and sampling the material textures) so there's room for optimization here. 
@@ -83,6 +87,8 @@ void main() {
     //     result += CalcPointLight(pointLights[i], fg_in.Normal, fg_in.fragPos, viewDir);
     // }
     // result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
+    // result += CalcPointLight(pointLights[0], fg_in.Normal, fg_in.fragPos, viewDir);
+    // vec4 result = CalcPointLight(pointLights[0], fg_in.Normal, fg_in.fragPos, viewDir);
 
     FragColor = result;
     // Gamma correction
@@ -118,6 +124,19 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir) {
 
     return shadow;
     // return closestDepth;
+}
+
+float CubeShadowCalculation(vec3 fragPos, vec3 normal, vec3 lightPos, float far_plane) {
+    vec3 fragToLight = fragPos - lightPos;
+    float closestDepth = texture(shadowCubeMap, fragToLight).r;
+    closestDepth *= far_plane;
+
+    float currentDepth = length(fragToLight);
+
+    float bias = 0.05;
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+
+    return shadow;
 }
 
 vec4 CalcReflection(vec3 normal, vec3 fragPos, vec3 viewPos) {
@@ -170,10 +189,15 @@ vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     vec4 ambient = vec4(light.ambient, 1.0) * texture(material.diffuse, fg_in.texCoord);
     vec4 diffuse = vec4(light.diffuse, 1.0) * diff * texture(material.diffuse, fg_in.texCoord);
     vec4 specular = vec4(light.specular, 1.0) * spec * texture(material.specular, fg_in.texCoord);
-    ambient *= attenuation;
-    diffuse *= attenuation;
-    specular *= attenuation;
-    return (ambient + diffuse + specular);
+    // ambient *= attenuation;
+    // diffuse *= attenuation;
+    // specular *= attenuation;
+
+    // Calculate shadows
+    float shadow = CubeShadowCalculation(fragPos, normal, light.position, light.far_plane);
+
+    return (ambient + ((1.0 - shadow) * (diffuse + specular)));
+    // return (ambient + diffuse + specular);
 }
 
 vec4 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {

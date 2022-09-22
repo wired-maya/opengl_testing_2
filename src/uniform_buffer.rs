@@ -36,7 +36,7 @@ impl UniformBuffer {
         gl::GenBuffers(1, &mut self.ubo);
 
         gl::BindBuffer(gl::UNIFORM_BUFFER, self.ubo);
-        gl::BufferData(gl::UNIFORM_BUFFER, buffer_size as isize, std::ptr::null(), gl::STATIC_DRAW);
+        gl::BufferData(gl::UNIFORM_BUFFER, buffer_size as isize, std::ptr::null(), gl::DYNAMIC_DRAW);
         gl::BindBuffer(gl::UNIFORM_BUFFER, 0);
 
         gl::BindBufferRange(gl::UNIFORM_BUFFER, 0, self.ubo, 0, buffer_size as isize);
