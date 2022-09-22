@@ -176,7 +176,7 @@ fn main() {
         vec3(0.05, 0.05, 0.05),
         vec3(1.0, 1.0, 1.0),
         vec3(0.5, 0.5, 0.5),
-        SHADOW_RES * 4
+        SHADOW_RES
     );
     let point_light = PointLight::new(
         vec3(20.0, -15.0, 0.0),
@@ -187,7 +187,7 @@ fn main() {
         0.007,
         0.0002,
         0,
-        SHADOW_RES * 4
+        SHADOW_RES
     );
 
     unsafe {
