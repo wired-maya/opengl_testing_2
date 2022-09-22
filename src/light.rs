@@ -57,12 +57,12 @@ impl DirLight {
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
-            gl::DEPTH_COMPONENT32F as i32,
+            gl::DEPTH_COMPONENT24 as i32,
             self.shadow_res as i32,
             self.shadow_res as i32,
             0,
             gl::DEPTH_COMPONENT,
-            gl::FLOAT,
+            gl::UNSIGNED_INT,
             std::ptr::null()
         );
 
@@ -212,12 +212,12 @@ impl PointLight {
             gl::TexImage2D(
                 gl::TEXTURE_CUBE_MAP_POSITIVE_X + i,
                 0,
-                gl::DEPTH_COMPONENT32F as i32,
+                gl::DEPTH_COMPONENT24 as i32,
                 self.shadow_res as i32,
                 self.shadow_res as i32,
                 0,
                 gl::DEPTH_COMPONENT,
-                gl::FLOAT,
+                gl::UNSIGNED_INT,
                 std::ptr::null()
             );
         }
@@ -262,7 +262,7 @@ impl PointLight {
     }
 
     pub unsafe fn configure_shader_and_matrices(&self, shader_program: &ShaderProgram) {
-        let (aspect, near_plane, far_plane) = (1.0, 1.0, 600.0);
+        let (aspect, near_plane, far_plane) = (1.0, 1.0, 300.0);
 
         let light_projection: Matrix4<f32> = cgmath::perspective(
             Deg(90.0),
@@ -272,12 +272,12 @@ impl PointLight {
         );
 
         let light_transforms: Vec<Matrix4<f32>> = vec![
-            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(1.0, 0.0, 0.0), vec3(0.0, -1.0, 0.0)),
-            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(-1.0, 0.0, 0.0), vec3(0.0, -1.0, 0.0)),
-            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0)),
-            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(0.0, -1.0, 0.0), vec3(0.0, 0.0, -1.0)),
-            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(0.0, 0.0, 1.0), vec3(0.0, -1.0, 0.0)),
-            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), self.position + vec3(0.0, 0.0, -1.0), vec3(0.0, -1.0, 0.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), vec3(1.0, 0.0, 0.0), vec3(0.0, -1.0, 0.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), vec3(-1.0, 0.0, 0.0), vec3(0.0, -1.0, 0.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.0, 1.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.0, -1.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), vec3(0.0, 0.0, 1.0), vec3(0.0, -1.0, 0.0)),
+            light_projection * Matrix4::look_to_rh(point3(self.position.x, self.position.y, self.position.z), vec3(0.0, 0.0, -1.0), vec3(0.0, -1.0, 0.0)),
         ];
 
         // Send to shader

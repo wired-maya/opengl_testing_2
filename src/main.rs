@@ -69,7 +69,7 @@ fn main() {
     // Get transforms for all the asteroids and the planet
     let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
     let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
-    let backpack_model_transform = Matrix4::<f32>::from_translation(vec3(15.0, -17.0, 0.0));
+    let backpack_model_transform = Matrix4::<f32>::from_translation(vec3(15.0, -23.0, 0.0));
     let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, -25.0, 0.0));
     let amount: u32 = 1_000;
     let mut rng = rand::thread_rng();
@@ -176,7 +176,7 @@ fn main() {
         vec3(0.05, 0.05, 0.05),
         vec3(1.0, 1.0, 1.0),
         vec3(0.5, 0.5, 0.5),
-        SHADOW_RES
+        SHADOW_RES * 4
     );
     let point_light = PointLight::new(
         vec3(20.0, -15.0, 0.0),
@@ -187,7 +187,7 @@ fn main() {
         0.007,
         0.0002,
         0,
-        SHADOW_RES
+        SHADOW_RES * 4
     );
 
     unsafe {
@@ -225,7 +225,7 @@ fn main() {
         // Send light data to shader
         dir_light.send_lighting_data(&shader_program);
         point_light.send_lighting_data(&shader_program);
-        shader_program.set_float("pointLights[0].far_plane", 600.0); // Temp
+        shader_program.set_float("pointLights[0].far_plane", 300.0); // Temp
 
         // Already has a use program
         // TODO: simple rule should be to call use program before you pass it anywhere,
