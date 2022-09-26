@@ -18,6 +18,7 @@ out VS_OUT {
     vec3 TangentDirLightDir;
     vec3 TangentViewPos;
     vec3 TangentFragPos;
+    mat3 normalMatrix;
 } vs_out;
 
 uniform mat4 lightSpaceMatrix;
@@ -33,8 +34,9 @@ void main() {
     vs_out.FragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);
 
     // Calculate matrix to transform normals based on model matrix
+    // TODO: do this on CPU per mesh to save performance
     mat3 normalMatrix = transpose(inverse(mat3(model)));
-    mat3 cameraSpaceMatrix = mat3(view * model);
+    vs_out.normalMatrix = normalMatrix;
 
     // Transform tangent and normal to model's transform
     vec3 T = normalize(normalMatrix * aTangent);
@@ -47,14 +49,13 @@ void main() {
 
     // T = normalize(T - dot(T, N) * N);
 
-    // TODO: calculate this when loading to optimize vert shader
     // Calculate bitangent
     // vec3 B = cross(N, T);
     vec3 B = normalize(normalMatrix * aBitangent);
+    // vec3 B = normalize(vec3(model * vec4(aBitangent, 0.0)));
 
     mat3 TBN = transpose(mat3(T, B, N));
 
-    // 0 is temp here
     vs_out.TangentPointLightPosition = TBN * pointLightPosition;
     vs_out.TangentDirLightDir = TBN * dirLightDir;
     vs_out.TangentViewPos = TBN * viewPos;

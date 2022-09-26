@@ -19,7 +19,7 @@ out VS_OUT {
 void main() {
     gl_Position = view * model * vec4(aPos, 1.0);
     mat3 normalMatrix = mat3(transpose(inverse(view * model)));
-    vs_out.normal = normalize(vec3(vec4(normalMatrix * aNormal, 0.0)));
-    vs_out.tangent = normalize(vec3(vec4(normalMatrix * aTangent, 0.0)));
-    vs_out.bitangent = normalize(vec3(vec4(normalMatrix * aBitangent, 0.0)));
+    vs_out.normal = normalize(normalMatrix * aNormal);
+    vs_out.tangent = normalize(normalMatrix * aTangent);
+    vs_out.bitangent = normalize(normalMatrix * aBitangent);
 }

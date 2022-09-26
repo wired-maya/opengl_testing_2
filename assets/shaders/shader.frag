@@ -58,6 +58,7 @@ in GS_OUT {
     vec3 TangentDirLightDir;
     vec3 TangentViewPos;
     vec3 TangentFragPos;
+    mat3 normalMatrix;
 } fg_in;
 
 uniform Material material;
