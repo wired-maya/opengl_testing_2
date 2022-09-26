@@ -104,3 +104,4 @@ Other notes:
  - Read this (https://www.khronos.org/opengl/wiki/Common_Mistakes) VERY thoroughly
  - https://stackoverflow.com/questions/17092075/what-is-the-point-of-the-textarget-parameter-for-glframebuffertexture
  - Set option for logging level in final engine, which includes OpenGL callbacks
+ - eventually add vulkan and dx12

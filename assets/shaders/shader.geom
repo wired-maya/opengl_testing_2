@@ -6,16 +6,20 @@ layout (triangle_strip, max_vertices = 3) out;
 
 in VS_OUT {
    vec2 texCoord;
-   vec3 Normal;
-   vec3 fragPos;
    vec4 FragPosLightSpace;
+   vec3 TangentPointLightPosition;
+   vec3 TangentDirLightDir;
+   vec3 TangentViewPos;
+   vec3 TangentFragPos;
 } gs_in[PRIMITIVE_LENGTH];
 
 out GS_OUT {
    vec2 texCoord;
-   vec3 Normal;
-   vec3 fragPos;
    vec4 FragPosLightSpace;
+   vec3 TangentPointLightPosition;
+   vec3 TangentDirLightDir;
+   vec3 TangentViewPos;
+   vec3 TangentFragPos;
 } gs_out;
 
 uniform float time;
@@ -42,9 +46,11 @@ void main() {
       gl_Position = gl_in[i].gl_Position;
 
       gs_out.texCoord = gs_in[i].texCoord;
-      gs_out.Normal = gs_in[i].Normal;
-      gs_out.fragPos = gs_in[i].fragPos;
       gs_out.FragPosLightSpace = gs_in[i].FragPosLightSpace;
+      gs_out.TangentPointLightPosition = gs_in[i].TangentPointLightPosition;
+      gs_out.TangentDirLightDir = gs_in[i].TangentDirLightDir;
+      gs_out.TangentViewPos = gs_in[i].TangentViewPos;
+      gs_out.TangentFragPos = gs_in[i].TangentFragPos;
       
       EmitVertex();
    }

@@ -64,12 +64,40 @@ fn main() {
     window.set_scroll_polling(true);
     window.set_cursor_mode(glfw::CursorMode::Disabled);
 
-    gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+    // Set all OpenGL parameters
+    unsafe {
+        // Create GL context
+        gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+
+        // Depth testing
+        gl::Enable(gl::DEPTH_TEST);
+        gl::DepthFunc(gl::LESS);
+
+        // Blending
+        gl::Enable(gl::BLEND);
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+
+        // Face culling
+        gl::Enable(gl::CULL_FACE);
+
+        // Enable debug with callback for simple error printing
+        gl::Enable(gl::DEBUG_OUTPUT);
+        gl::DebugMessageCallback(
+            Some(debug_message_callback),
+            std::ptr::null()
+        );
+
+        // Enable multisampling
+        // gl::Enable(gl::MULTISAMPLE);
+
+        // Draw in wireframe
+        // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+    }
 
     // Get transforms for all the asteroids and the planet
     let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
     let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
-    let backpack_model_transform = Matrix4::<f32>::from_translation(vec3(15.0, -23.0, 0.0));
+    let mut backpack_model_transform = Matrix4::<f32>::from_translation(vec3(15.0, -23.0, 0.0));
     let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, -25.0, 0.0));
     let amount: u32 = 1_000;
     let mut rng = rand::thread_rng();
@@ -77,6 +105,7 @@ fn main() {
     let offset: f32 = 5.0;
 
     planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
+    backpack_model_transform = backpack_model_transform * Matrix4::from_scale(10.0);
     floor_model_transform = floor_model_transform * Matrix4::from_nonuniform_scale(36.0, 1.0, 36.0);
     floor_model_transform = floor_model_transform * Matrix4::from_angle_x(Deg(90.0));
     
@@ -101,30 +130,35 @@ fn main() {
         rock_model_transforms.push(model_transform);
     }
 
-    let shader_program = ShaderProgram::new(
-        "assets/shaders/shader.vert",
-        "assets/shaders/shader.frag",
-        Some("assets/shaders/shader.geom")
+    let mut shader_program = ShaderProgram::new(
+        "assets/shaders/shader.vert".to_string(),
+        "assets/shaders/shader.frag".to_string(),
+        Some("assets/shaders/shader.geom".to_string())
     );
-    let framebuffer_shader_program = ShaderProgram::new(
-        "assets/shaders/framebuffer.vert",
-        "assets/shaders/framebuffer.frag",
+    let mut framebuffer_shader_program = ShaderProgram::new(
+        "assets/shaders/framebuffer.vert".to_string(),
+        "assets/shaders/framebuffer.frag".to_string(),
         None
     );
-    let skybox_shader_program = ShaderProgram::new(
-        "assets/shaders/skybox.vert",
-        "assets/shaders/skybox.frag",
+    let mut skybox_shader_program = ShaderProgram::new(
+        "assets/shaders/skybox.vert".to_string(),
+        "assets/shaders/skybox.frag".to_string(),
         None
     );
-    let depth_shader_program = ShaderProgram::new(
-        "assets/shaders/depth.vert",
-        "assets/shaders/depth.frag",
+    let mut depth_shader_program = ShaderProgram::new(
+        "assets/shaders/depth.vert".to_string(),
+        "assets/shaders/depth.frag".to_string(),
         None
     );
-    let cube_depth_shader_program = ShaderProgram::new(
-        "assets/shaders/cube_depth_shader.vert",
-        "assets/shaders/cube_depth_shader.frag",
-        Some("assets/shaders/cube_depth_shader.geom")
+    let mut cube_depth_shader_program = ShaderProgram::new(
+        "assets/shaders/cube_depth_shader.vert".to_string(),
+        "assets/shaders/cube_depth_shader.frag".to_string(),
+        Some("assets/shaders/cube_depth_shader.geom".to_string())
+    );
+    let mut debug_shader_program = ShaderProgram::new(
+        "assets/shaders/debug_shader.vert".to_string(),
+        "assets/shaders/debug_shader.frag".to_string(),
+        Some("assets/shaders/debug_shader.geom".to_string())
     );
 
     let mut framebuffer = Framebuffer::new(
@@ -159,12 +193,12 @@ fn main() {
     ]);
 
     let uniform_buffer = UniformBuffer::new(
-        &[&shader_program, &skybox_shader_program],
+        &[&shader_program, &skybox_shader_program, &debug_shader_program],
         "Matrices",
         2 * std::mem::size_of::<Matrix4<f32>>() as u32
     );
 
-    let projection_transform = cgmath::perspective(
+    let mut projection_transform = cgmath::perspective(
         Deg(45.0),
         width as f32 / height as f32,
         0.1,
@@ -190,56 +224,8 @@ fn main() {
         SHADOW_RES
     );
 
-    unsafe {
-        // Set this as the rendered framebuffer, it then handles switching
-        framebuffer.bind_buffer();
-
-        // Depth testing
-        gl::Enable(gl::DEPTH_TEST);
-        gl::DepthFunc(gl::LESS);
-
-        // Blending
-        gl::Enable(gl::BLEND);
-        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-
-        // Face culling
-        gl::Enable(gl::CULL_FACE);
-
-        // Enable debug with callback for simple error printing
-        gl::Enable(gl::DEBUG_OUTPUT);
-        gl::DebugMessageCallback(
-            Some(debug_message_callback),
-            std::ptr::null()
-        );
-
-        // Enable multisampling
-        // gl::Enable(gl::MULTISAMPLE);
-
-        // Draw in wireframe
-        // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-
-        // Use needs to be called before setting these even if you have the location
-        shader_program.use_program();
-        shader_program.set_float("material.shininess", 32.0);
-
-        // Send light data to shader
-        dir_light.send_lighting_data(&shader_program);
-        point_light.send_lighting_data(&shader_program);
-        shader_program.set_float("pointLights[0].far_plane", 300.0); // Temp
-
-        // Already has a use program
-        // TODO: simple rule should be to call use program before you pass it anywhere,
-        // TODO: therefore to reduce calls to it, remove it from struct functions and
-        // TODO: make it manual
-        // TODO: Also make this a uniform buffer to reduce calls
-        dir_light.configure_shader_and_matrices(&depth_shader_program);
-        dir_light.configure_shader_and_matrices(&shader_program);
-
-        point_light.configure_shader_and_matrices(&cube_depth_shader_program);
-
-        // Set projection for all shaders that require it
-        uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
-    }
+    let mut should_resend_data = true;
+    let mut show_debug = false;
 
     // Render loop, each iteration is a "frame"
     while !window.should_close() {
@@ -258,8 +244,50 @@ fn main() {
             &mut width,
             &mut height,
             &mut framebuffer,
-            &uniform_buffer
+            &uniform_buffer,
+            &mut [
+                &mut shader_program,
+                &mut framebuffer_shader_program,
+                &mut skybox_shader_program,
+                &mut depth_shader_program,
+                &mut cube_depth_shader_program,
+                &mut debug_shader_program
+            ],
+            &mut should_resend_data,
+            &mut projection_transform,
+            &mut show_debug
         );
+
+        if should_resend_data {
+            unsafe {
+                // Set this as the rendered framebuffer, it then handles switching
+                framebuffer.bind_buffer();
+
+                // Use needs to be called before setting these even if you have the location
+                shader_program.use_program();
+                shader_program.set_float("material.shininess", 32.0);
+
+                // Send light data to shader
+                dir_light.send_lighting_data(&shader_program);
+                point_light.send_lighting_data(&shader_program);
+                shader_program.set_float("pointLight.far_plane", 300.0); // Temp
+
+                // Already has a use program
+                // TODO: simple rule should be to call use program before you pass it anywhere,
+                // TODO: therefore to reduce calls to it, remove it from struct functions and
+                // TODO: make it manual
+                // TODO: Also make this a uniform buffer to reduce calls
+                dir_light.configure_shader_and_matrices(&depth_shader_program);
+                dir_light.configure_shader_and_matrices(&shader_program);
+
+                point_light.configure_shader_and_matrices(&cube_depth_shader_program);
+
+                // Set projection for all shaders that require it
+                uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
+
+                should_resend_data = false;
+            }
+        }
 
         unsafe {
             let view_transform = camera.get_view_matrix();
@@ -313,6 +341,13 @@ fn main() {
             planet_model.draw(&shader_program);
             rock_model.draw(&shader_program);
             backpack_model.draw(&shader_program);
+
+            if show_debug {
+                debug_shader_program.use_program();
+                planet_model.draw(&debug_shader_program);
+                rock_model.draw(&debug_shader_program);
+                backpack_model.draw(&debug_shader_program);
+            }
 
             // END - DRAW MODELS HERE
 
@@ -387,7 +422,11 @@ fn process_events(
     width: &mut u32,
     height: &mut u32,
     framebuffer: &mut Framebuffer,
-    uniform_buffer: &UniformBuffer
+    uniform_buffer: &UniformBuffer,
+    shader_programs: &mut [&mut ShaderProgram],
+    should_resend_data: &mut bool,
+    projection_transform: &mut Matrix4<f32>,
+    show_debug: &mut bool
 ) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
@@ -397,7 +436,7 @@ fn process_events(
 
                 unsafe {
                     gl::Viewport(0, 0, window_width, window_height);
-                    let projection_transform = cgmath::perspective(
+                    *projection_transform = cgmath::perspective(
                         Deg(camera.zoom),
                         *width as f32 / *height as f32,
                         0.1,
@@ -410,6 +449,16 @@ fn process_events(
                 }
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
+            glfw::WindowEvent::Key(Key::R, _, Action::Press, _) => {
+                for i in 0..shader_programs.len() {
+                    shader_programs[i].reload();
+                }
+
+                *should_resend_data = true;
+            }
+            glfw::WindowEvent::Key(Key::E, _, Action::Press, _) => {
+                *show_debug = !*show_debug;
+            }
             glfw::WindowEvent::CursorPos(x, y) => {
                 if *first_mouse {
                     *last_x = x as f32;
@@ -428,7 +477,7 @@ fn process_events(
             glfw::WindowEvent::Scroll(_x_offset, y_offset) => {
                 camera.process_mouse_scroll(y_offset as f32);
 
-                let projection_transform = cgmath::perspective(
+                *projection_transform = cgmath::perspective(
                     Deg(camera.zoom),
                     *width as f32 / *height as f32,
                     0.1,

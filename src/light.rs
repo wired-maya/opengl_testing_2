@@ -42,7 +42,7 @@ impl DirLight {
     pub unsafe fn send_lighting_data(&self, shader_program: &ShaderProgram) {
         shader_program.use_program();
         
-        shader_program.set_vector_3("dirLight.direction", &self.position);
+        shader_program.set_vector_3("dirLightDir", &self.position);
         
         shader_program.set_vector_3("dirLight.ambient", &self.ambient);
         shader_program.set_vector_3("dirLight.diffuse", &self.diffuse);
@@ -192,15 +192,25 @@ impl PointLight {
     pub unsafe fn send_lighting_data(&self, shader_program: &ShaderProgram) {
         shader_program.use_program();
 
-        shader_program.set_vector_3(format!("pointLights[{}].position", self.array_position).as_str(), &self.position);
+        // shader_program.set_vector_3(format!("pointLightPositions[{}]", self.array_position).as_str(), &self.position);
 
-        shader_program.set_vector_3(format!("pointLights[{}].ambient", self.array_position).as_str(), &self.ambient);
-        shader_program.set_vector_3(format!("pointLights[{}].diffuse", self.array_position).as_str(), &self.diffuse);
-        shader_program.set_vector_3(format!("pointLights[{}].specular", self.array_position).as_str(), &self.specular);
+        // shader_program.set_vector_3(format!("pointLights[{}].ambient", self.array_position).as_str(), &self.ambient);
+        // shader_program.set_vector_3(format!("pointLights[{}].diffuse", self.array_position).as_str(), &self.diffuse);
+        // shader_program.set_vector_3(format!("pointLights[{}].specular", self.array_position).as_str(), &self.specular);
 
-        shader_program.set_float(format!("pointLights[{}].constant", self.array_position).as_str(), self.constant);
-        shader_program.set_float(format!("pointLights[{}].linear", self.array_position).as_str(), self.linear);
-        shader_program.set_float(format!("pointLights[{}].quadratic", self.array_position).as_str(), self.quadratic);
+        // shader_program.set_float(format!("pointLights[{}].constant", self.array_position).as_str(), self.constant);
+        // shader_program.set_float(format!("pointLights[{}].linear", self.array_position).as_str(), self.linear);
+        // shader_program.set_float(format!("pointLights[{}].quadratic", self.array_position).as_str(), self.quadratic);
+
+        shader_program.set_vector_3("pointLightPosition", &self.position);
+
+        shader_program.set_vector_3("pointLight.ambient", &self.ambient);
+        shader_program.set_vector_3("pointLight.diffuse", &self.diffuse);
+        shader_program.set_vector_3("pointLight.specular", &self.specular);
+
+        shader_program.set_float("pointLight.constant", self.constant);
+        shader_program.set_float("pointLight.linear", self.linear);
+        shader_program.set_float("pointLight.quadratic", self.quadratic);
     }
 
     pub unsafe fn gen_depth_map(&mut self) {

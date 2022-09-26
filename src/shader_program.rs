@@ -6,51 +6,72 @@ use std::ptr;
 use cgmath::{Vector3, Array, Matrix4, Matrix};
 
 pub struct ShaderProgram {
-    pub id: u32
+    pub id: u32,
+    vertex_path: String,
+    fragment_path: String,
+    maybe_geometry_path: Option<String>
 }
 
 impl ShaderProgram {
-    pub fn new(vertex_path: &str, fragment_path: &str, maybe_geometry_path: Option<&str>) -> ShaderProgram {
-        let mut shader_program = ShaderProgram { id: 0 };
+    pub fn new(vertex_path: String, fragment_path: String, maybe_geometry_path: Option<String>) -> ShaderProgram {
+        let mut shader_program = ShaderProgram {
+            id: 0,
+            vertex_path,
+            fragment_path,
+            maybe_geometry_path
+        };
 
         unsafe {
-            let vert_shader = ShaderProgram::compile_shader(vertex_path, "VERTEX");
-            let frag_shader = ShaderProgram::compile_shader(fragment_path, "FRAGMENT");
-
-            // Geometry shader is the only one that is optional
-            let geom_shader = if let Some(geometry_path) = maybe_geometry_path {
-                ShaderProgram::compile_shader(geometry_path, "GEOMETRY")
-            } else {
-                0
-            };
-
-            let shader_program_id = gl::CreateProgram();
-
-            println!("DEBUG::SHADER::PROGRAM::ATTACHING_SHADERS");
-
-            gl::AttachShader(shader_program_id, vert_shader);
-            gl::AttachShader(shader_program_id, frag_shader);
-            if geom_shader != 0 { gl::AttachShader(shader_program_id, geom_shader); }
-
-            println!("DEBUG::SHADER::PROGRAM::COMPILING_PROGRAM");
-
-            gl::LinkProgram(shader_program_id);
-            ShaderProgram::check_compile_errors(shader_program_id, "PROGRAM");
-
-            println!("DEBUG::SHADER::PROGRAM::COMPILATION_COMPLETE");
-
-            gl::DeleteShader(vert_shader);
-            gl::DeleteShader(frag_shader);
-            if geom_shader != 0 { gl::DeleteShader(geom_shader); }
-
-            shader_program.id = shader_program_id;
+            shader_program.compile_program();
         }
 
         shader_program
     }
 
+    pub fn reload(&mut self) {
+        unsafe {
+            gl::UseProgram(0);
+            gl::DeleteProgram(self.id);
+            self.id = 0;
+
+            self.compile_program();
+        }
+    }
+
+    pub unsafe fn compile_program(&mut self) {
+        let vert_shader = ShaderProgram::compile_shader(&self.vertex_path, "VERTEX");
+        let frag_shader = ShaderProgram::compile_shader(&self.fragment_path, "FRAGMENT");
+
+        // Geometry shader is the only one that is optional
+        let geom_shader = if let Some(geometry_path) = &self.maybe_geometry_path {
+            ShaderProgram::compile_shader(geometry_path, "GEOMETRY")
+        } else {
+            0
+        };
+
+        let shader_program_id = gl::CreateProgram();
+
+        println!("DEBUG::SHADER::PROGRAM::ATTACHING_SHADERS");
+
+        gl::AttachShader(shader_program_id, vert_shader);
+        gl::AttachShader(shader_program_id, frag_shader);
+        if geom_shader != 0 { gl::AttachShader(shader_program_id, geom_shader); }
+
+        println!("DEBUG::SHADER::PROGRAM::COMPILING_PROGRAM");
+
+        gl::LinkProgram(shader_program_id);
+        ShaderProgram::check_compile_errors(shader_program_id, "PROGRAM");
+
+        println!("DEBUG::SHADER::PROGRAM::COMPILATION_COMPLETE");
+
+        gl::DeleteShader(vert_shader);
+        gl::DeleteShader(frag_shader);
+        if geom_shader != 0 { gl::DeleteShader(geom_shader); }
+
+        self.id = shader_program_id;
+    }
+
     unsafe fn compile_shader(path: &str, type_: &str) -> u32 {
-        // TODO: add println!()s for fragment shader compilations just to make sure everything works
         let mut shader_file = File::open(path)
             .unwrap_or_else(|_| panic!("Failed to open {}", path));
         let mut shader_code = String::new();

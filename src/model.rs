@@ -40,7 +40,7 @@ impl Model {
             let indices: Vec<u32> = mesh.indices.clone();
 
             // TODO: with https://learnopengl.com/Advanced-OpenGL/Advanced-Data,
-            // TODO: it could be possible to store less data on the gpu using uneaven data and verteces, as is default
+            // TODO: it could be possible to store less data on the gpu using uneven data and verteces, as is default
             let (p, n, t) = (&mesh.positions, &mesh.normals, &mesh.texcoords);
 
             for i in 0..num_vertices {
@@ -67,6 +67,11 @@ impl Model {
                 // Specular map
                 if !material.specular_texture.is_empty() {
                     let texture = self.load_material_texture(&material.specular_texture, "specular");
+                    textures.push(texture);
+                }
+                // Normal map
+                if !material.normal_texture.is_empty() {
+                    let texture = self.load_material_texture(&material.normal_texture, "normal");
                     textures.push(texture);
                 }
             }
