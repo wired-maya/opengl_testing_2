@@ -12,6 +12,9 @@ in VS_OUT {
    vec3 TangentViewPos;
    vec3 TangentFragPos;
    mat3 normalMatrix;
+   vec3 fragPos;
+   vec3 lightPos;
+   vec3 viewPos;
 } gs_in[PRIMITIVE_LENGTH];
 
 out GS_OUT {
@@ -22,6 +25,9 @@ out GS_OUT {
    vec3 TangentViewPos;
    vec3 TangentFragPos;
    mat3 normalMatrix;
+   vec3 fragPos;
+   vec3 lightPos;
+   vec3 viewPos;
 } gs_out;
 
 uniform float time;
@@ -54,6 +60,9 @@ void main() {
       gs_out.TangentViewPos = gs_in[i].TangentViewPos;
       gs_out.TangentFragPos = gs_in[i].TangentFragPos;
       gs_out.normalMatrix = gs_in[i].normalMatrix;
+      gs_out.fragPos = gs_in[i].fragPos;
+      gs_out.lightPos = gs_in[i].lightPos;
+      gs_out.viewPos = gs_in[i].viewPos;
       
       EmitVertex();
    }

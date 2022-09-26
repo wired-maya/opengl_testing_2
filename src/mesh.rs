@@ -1,4 +1,4 @@
-use cgmath::{Vector3, Vector2, Zero, Matrix4, Vector4, InnerSpace, vec2};
+use cgmath::{Vector3, Vector2, Zero, Matrix4, Vector4, vec2};
 use memoffset::offset_of;
 
 use crate::shader_program::ShaderProgram;

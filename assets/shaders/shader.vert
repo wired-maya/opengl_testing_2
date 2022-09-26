@@ -11,6 +11,7 @@ layout (std140) uniform Matrices {
     mat4 view;
 };
 
+// TODO: have consistent naming that includes what coordinate space it is in
 out VS_OUT {
     vec2 texCoord;
     vec4 FragPosLightSpace;
@@ -18,7 +19,10 @@ out VS_OUT {
     vec3 TangentDirLightDir;
     vec3 TangentViewPos;
     vec3 TangentFragPos;
-    mat3 normalMatrix;
+    // Cubemap shadows in world space
+    vec3 fragPos;
+    vec3 lightPos;
+    vec3 viewPos;
 } vs_out;
 
 uniform mat4 lightSpaceMatrix;
@@ -33,10 +37,13 @@ void main() {
 
     vs_out.FragPosLightSpace = lightSpaceMatrix * vec4(fragPos, 1.0);
 
+    vec4 vertex = vec4(aPos, 1.0);
+    vec4 vertexView = view * model * vertex;
+
     // Calculate matrix to transform normals based on model matrix
+    // TODO: does not allow for non uniform scale (somehow?), fix later
     // TODO: do this on CPU per mesh to save performance
     mat3 normalMatrix = transpose(inverse(mat3(model)));
-    vs_out.normalMatrix = normalMatrix;
 
     // Transform tangent and normal to model's transform
     vec3 T = normalize(normalMatrix * aTangent);
@@ -47,11 +54,13 @@ void main() {
     // vec3 T = normalize(vec3(model * vec4(aTangent, 0.0)));
     // vec3 N = normalize(vec3(model * vec4(aNormal, 0.0)));
 
-    // T = normalize(T - dot(T, N) * N);
+    // TODO: do this re-calculation in the pre-processor
+    // TODO: make debug shader draw from this shader
+    T = normalize(T - dot(T, N) * N);
 
     // Calculate bitangent
-    // vec3 B = cross(N, T);
-    vec3 B = normalize(normalMatrix * aBitangent);
+    vec3 B = cross(T, N);
+    // vec3 B = normalize(normalMatrix * aBitangent);
     // vec3 B = normalize(vec3(model * vec4(aBitangent, 0.0)));
 
     mat3 TBN = transpose(mat3(T, B, N));
@@ -61,5 +70,9 @@ void main() {
     vs_out.TangentViewPos = TBN * viewPos;
     vs_out.TangentFragPos = TBN * fragPos;
 
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    vs_out.fragPos = fragPos;
+    vs_out.viewPos = viewPos;
+    vs_out.lightPos = pointLightPosition;
+
+    gl_Position = projection * vertexView;
 }

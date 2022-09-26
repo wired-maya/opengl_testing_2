@@ -98,7 +98,7 @@ fn main() {
     let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
     let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
     let mut backpack_model_transform = Matrix4::<f32>::from_translation(vec3(15.0, -23.0, 0.0));
-    let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, -25.0, 0.0));
+    let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, -75.0, 0.0));
     let amount: u32 = 1_000;
     let mut rng = rand::thread_rng();
     let radius: f32 = 30.0;
@@ -106,7 +106,7 @@ fn main() {
 
     planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
     backpack_model_transform = backpack_model_transform * Matrix4::from_scale(10.0);
-    floor_model_transform = floor_model_transform * Matrix4::from_nonuniform_scale(36.0, 1.0, 36.0);
+    floor_model_transform = floor_model_transform * Matrix4::from_scale(36.0);
     floor_model_transform = floor_model_transform * Matrix4::from_angle_x(Deg(90.0));
     
     for i in 0..amount {

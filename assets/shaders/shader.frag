@@ -59,6 +59,9 @@ in GS_OUT {
     vec3 TangentViewPos;
     vec3 TangentFragPos;
     mat3 normalMatrix;
+    vec3 fragPos;
+    vec3 lightPos;
+    vec3 viewPos;
 } fg_in;
 
 uniform Material material;
@@ -137,7 +140,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir) {
 }
 
 float CubeShadowCalculation(vec3 fragPos, vec3 normal, vec3 lightPos, float far_plane) {
-    vec3 fragToLight = fragPos - lightPos;
+    vec3 fragToLight = fg_in.fragPos - fg_in.lightPos;
 
     float currentDepth = length(fragToLight);
 
@@ -152,7 +155,7 @@ float CubeShadowCalculation(vec3 fragPos, vec3 normal, vec3 lightPos, float far_
     float shadow = 0.0;
     float bias = 0.15;
     int samples = 20;
-    float viewDistance = length(fg_in.TangentViewPos - fragPos);
+    float viewDistance = length(fg_in.viewPos - fg_in.fragPos);
     float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
 
     for (int i = 0; i < samples; ++i) {
@@ -209,7 +212,7 @@ vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightPos, vec3
 vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightPos) {
     vec3 lightDir = normalize(lightPos - fragPos);
     // diffuse shading
-    float diff = max(dot(lightDir, normal), 0.0);
+    float diff = max(dot(normal, lightDir), 0.0);
     // specular shading
     // vec3 reflectDir = reflect(-lightDir, normal);
     // float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
@@ -235,8 +238,8 @@ vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
     // Calculate shadows
     float shadow = CubeShadowCalculation(fragPos, normal, lightPos, light.far_plane);
 
-    // return (ambient + ((1.0 - shadow) * (diffuse + specular)));
-    return (ambient + diffuse + specular);
+    return (ambient + ((1.0 - shadow) * (diffuse + specular)));
+    // return (ambient + diffuse + specular);
 }
 
 // TODO: remake with new stuff
