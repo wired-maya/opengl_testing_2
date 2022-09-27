@@ -105,7 +105,7 @@ fn main() {
     let offset: f32 = 5.0;
 
     planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
-    backpack_model_transform = backpack_model_transform * Matrix4::from_scale(10.0);
+    backpack_model_transform = backpack_model_transform * Matrix4::from_scale(1.0);
     floor_model_transform = floor_model_transform * Matrix4::from_scale(36.0);
     floor_model_transform = floor_model_transform * Matrix4::from_angle_x(Deg(90.0));
     

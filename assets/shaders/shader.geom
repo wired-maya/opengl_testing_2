@@ -11,7 +11,6 @@ in VS_OUT {
    vec3 TangentDirLightDir;
    vec3 TangentViewPos;
    vec3 TangentFragPos;
-   mat3 normalMatrix;
    vec3 fragPos;
    vec3 lightPos;
    vec3 viewPos;
@@ -24,7 +23,6 @@ out GS_OUT {
    vec3 TangentDirLightDir;
    vec3 TangentViewPos;
    vec3 TangentFragPos;
-   mat3 normalMatrix;
    vec3 fragPos;
    vec3 lightPos;
    vec3 viewPos;
@@ -59,7 +57,6 @@ void main() {
       gs_out.TangentDirLightDir = gs_in[i].TangentDirLightDir;
       gs_out.TangentViewPos = gs_in[i].TangentViewPos;
       gs_out.TangentFragPos = gs_in[i].TangentFragPos;
-      gs_out.normalMatrix = gs_in[i].normalMatrix;
       gs_out.fragPos = gs_in[i].fragPos;
       gs_out.lightPos = gs_in[i].lightPos;
       gs_out.viewPos = gs_in[i].viewPos;

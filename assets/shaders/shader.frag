@@ -58,7 +58,6 @@ in GS_OUT {
     vec3 TangentDirLightDir;
     vec3 TangentViewPos;
     vec3 TangentFragPos;
-    mat3 normalMatrix;
     vec3 fragPos;
     vec3 lightPos;
     vec3 viewPos;
