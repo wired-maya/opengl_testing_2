@@ -56,11 +56,11 @@ void main() {
 
     // TODO: do this re-calculation in the pre-processor
     // TODO: make debug shader draw from this shader
-    T = normalize(T - dot(T, N) * N);
+    // T = normalize(T - dot(T, N) * N);
 
     // Calculate bitangent
-    vec3 B = cross(T, N);
-    // vec3 B = normalize(normalMatrix * aBitangent);
+    // vec3 B = cross(T, N);
+    vec3 B = normalize(normalMatrix * aBitangent);
     // vec3 B = normalize(vec3(model * vec4(aBitangent, 0.0)));
 
     mat3 TBN = transpose(mat3(T, B, N));

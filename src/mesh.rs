@@ -259,12 +259,14 @@ impl Mesh {
         shader_program.set_bool("material.has_diffuse", false);
         shader_program.set_bool("material.has_specular", false);
         shader_program.set_bool("material.has_normal", false);
+        shader_program.set_bool("material.has_displacement", false);
     }
 
     pub unsafe fn draw(&self, shader_program: &ShaderProgram) {
         let mut diffuse_num: u32 = 0;
         let mut specular_num: u32 = 0;
         let mut normal_num: u32 = 0;
+        let mut displacement_num: u32 = 0;
 
         Mesh::reset_material(shader_program);
 
@@ -283,6 +285,10 @@ impl Mesh {
                 "normal" => {
                     normal_num += 1;
                     normal_num
+                }
+                "displacement" => {
+                    displacement_num += 1;
+                    displacement_num
                 }
                 _ => panic!("unknown texture type")
             };

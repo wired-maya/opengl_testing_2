@@ -11,6 +11,9 @@ struct Material {
     
     bool has_normal;
     sampler2D normal;
+
+    bool has_displacement;
+    sampler2D displacement;
     
     float shininess;
 };
@@ -73,13 +76,14 @@ uniform samplerCube skybox;
 uniform sampler2D shadowMap;
 uniform samplerCube shadowCubeMap;
 
-vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightPos, vec3 fragPos);
-vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightPos);
+vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightPos, vec3 fragPos, vec2 texCoord);
+vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightPos, vec2 texCoord);
 // vec4 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec4 CalcReflection(vec3 normal, vec3 fragPos, vec3 viewPos);
 vec4 CalcRefraction(vec3 normal, vec3 fragPos, vec3 viewPos, float ratio);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
 float CubeShadowCalculation(vec3 fragPos, vec3 normal, vec3 lightPos, float far_plane);
+vec2 ParallaxMapping(vec2 texCoord, vec3 viewDir);
 
 // LOTS of room for optimization:
 //   There are lot of duplicated calculations in this approach spread out over the light type functions (e.g. calculating the reflect vector, diffuse and specular terms, and sampling the material textures) so there's room for optimization here. 
@@ -87,7 +91,7 @@ void main() {
     // Properties
     vec3 normal;
 
-    // This is already in normal space
+    // If normal map is present, use it
     if (material.has_normal) {
         // Obtain normal from normal map in range [0,1]
         normal = texture(material.normal, fg_in.texCoord).rgb;
@@ -100,8 +104,17 @@ void main() {
 
     vec3 viewDir = normalize(fg_in.TangentViewPos - fg_in.TangentFragPos);
 
-    // vec4 result = CalcDirLight(dirLight, normal, viewDir, fg_in.TangentDirLightDir, fg_in.TangentFragPos);
-    vec4 result = CalcPointLight(pointLight, normal, fg_in.TangentFragPos, viewDir, fg_in.TangentPointLightPosition);
+    vec2 texCoord;
+
+    // If depth map is present, use it
+    if (material.has_displacement) {
+        texCoord = ParallaxMapping(fg_in.texCoord, viewDir);
+        if (texCoord.x > 1.0 || texCoord.y > 1.0 || texCoord.x < 0.0 || texCoord.y < 0.0) discard;
+    }
+    else texCoord = fg_in.texCoord;
+
+    vec4 result = CalcDirLight(dirLight, normal, viewDir, fg_in.TangentDirLightDir, fg_in.TangentFragPos, texCoord);
+    // vec4 result = CalcPointLight(pointLight, normal, fg_in.TangentFragPos, viewDir, fg_in.TangentPointLightPosition, texCoord);
     // result += CalcPointLight(pointLights[0], fg_in.Normal, fg_in.fragPos, viewDir);
 
     FragColor = result;
@@ -110,6 +123,53 @@ void main() {
 
     // FragColor = CalcReflection(norm, fragPos, viewPos);
     // FragColor = CalcRefraction(norm, fragPos, viewPos, 1.00 / 1.33); // Refraction ratio for water
+}
+
+vec2 ParallaxMapping(vec2 texCoord, vec3 viewDir) {
+    // float height = texture(material.displacement, texCoord).r;
+    // vec2 p = (viewDir.xy / viewDir.z) * (height * 0.1); // Height scale replaced with double for now
+    // return texCoord - p;
+
+    // Number of depth layers
+    const float minLayers = 8.0;
+    const float maxLayers = 32.0;
+    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
+
+    // Scale how deep the effect goes
+    const float height_scale = 0.1;
+    // Calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // Depth of current layer
+    float currentLayerDepth = 0.0;
+    // The amount to shift the texture coordinates per layer (from vector P)
+    vec2 P = viewDir.xy * height_scale;
+    vec2 deltaTexCoords = P / numLayers;
+
+    // Get initial values
+    vec2 currentTexCoords = texCoord;
+    float currentDepthMapValue = texture(material.displacement, currentTexCoords).r;
+
+    while (currentLayerDepth < currentDepthMapValue) {
+        // Shift texture coords along direction of P
+        currentTexCoords -= deltaTexCoords;
+        // Get depthmap value at current texture coordinates
+        currentDepthMapValue = texture(material.displacement, currentTexCoords).r;
+        // Get depth of next layer
+        currentLayerDepth += layerDepth;
+    }
+
+    // Get texture coords before collision
+    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+
+    // Get depth after and before collision for linear interpolation
+    float afterDepth = currentDepthMapValue - currentLayerDepth;
+    float beforeDepth = texture(material.displacement, prevTexCoords).r - currentLayerDepth + layerDepth;
+
+    // Interpolation of texture coordinates
+    float weight = afterDepth / (afterDepth - beforeDepth);
+    vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+
+    return finalTexCoords;
 }
 
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir) {
@@ -180,7 +240,7 @@ float CubeShadowCalculation(vec3 fragPos, vec3 normal, vec3 lightPos, float far_
 //     return vec4(texture(skybox, R).rgb, 1.0);
 // }
 
-vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightPos, vec3 fragPos) {
+vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightPos, vec3 fragPos, vec2 texCoord) {
     // vec3 lightDir = normalize(-light.direction);
     // vec3 lightDir = normalize(lightPos - fragPos);
     vec3 lightDir = normalize(lightPos);
@@ -193,8 +253,8 @@ vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightPos, vec3
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
 
     // Retrieve texture values if they are present for the mesh
-    vec4 diffuse_texel = material.has_diffuse ? texture(material.diffuse, fg_in.texCoord) : vec4(1.0);
-    vec4 specular_texel = material.has_specular ? texture(material.specular, fg_in.texCoord) : vec4(1.0);
+    vec4 diffuse_texel = material.has_diffuse ? texture(material.diffuse, texCoord) : vec4(1.0);
+    vec4 specular_texel = material.has_specular ? texture(material.specular, texCoord) : vec4(1.0);
 
     // Combine results
     vec4 ambient = vec4(light.ambient, 1.0) * diffuse_texel;
@@ -204,11 +264,11 @@ vec4 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 lightPos, vec3
     // Calculate shadows
     float shadow = ShadowCalculation(fg_in.FragPosLightSpace, normal, lightDir);
 
-    return (ambient + ((1.0 - shadow) * (diffuse + specular)));
-    // return (ambient + diffuse + specular);
+    // return (ambient + ((1.0 - shadow) * (diffuse + specular)));
+    return (ambient + diffuse + specular);
 }
 
-vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightPos) {
+vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightPos, vec2 texCoord) {
     vec3 lightDir = normalize(lightPos - fragPos);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
@@ -221,8 +281,8 @@ vec4 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
     float distance = length(lightPos - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
     // Retrieve texture values if they are present for the mesh
-    vec4 diffuse_texel = material.has_diffuse ? texture(material.diffuse, fg_in.texCoord) : vec4(1.0);
-    vec4 specular_texel = material.has_specular ? texture(material.specular, fg_in.texCoord) : vec4(1.0);
+    vec4 diffuse_texel = material.has_diffuse ? texture(material.diffuse, texCoord) : vec4(1.0);
+    vec4 specular_texel = material.has_specular ? texture(material.specular, texCoord) : vec4(1.0);
 
     // Combine results
     vec4 ambient = vec4(light.ambient, 1.0) * diffuse_texel;

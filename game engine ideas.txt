@@ -105,3 +105,4 @@ Other notes:
  - https://stackoverflow.com/questions/17092075/what-is-the-point-of-the-textarget-parameter-for-glframebuffertexture
  - Set option for logging level in final engine, which includes OpenGL callbacks
  - eventually add vulkan and dx12
+ - with multiple supported graphics libs, add option to restrict them (e.g. for if you want to support ray tracing)

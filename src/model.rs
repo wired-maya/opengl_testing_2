@@ -89,7 +89,7 @@ impl Model {
         }
 
         let texture = Texture {
-            id: unsafe { Model::texture_from_file(path, &self.directory) },
+            id: unsafe { Model::texture_from_file_split_path(path, &self.directory) },
             type_: type_.into(),
             path: path.into()
         };
@@ -97,13 +97,17 @@ impl Model {
         texture
     }
 
-    pub unsafe fn texture_from_file(path: &str, directory: &str) -> u32 {
+    pub unsafe fn texture_from_file_split_path(path: &str, directory: &str) -> u32 {
         let filename = format!("{}/{}", directory, path);
         
+        Model::texture_from_file(filename.as_str())
+    }
+
+    pub unsafe fn texture_from_file(path: &str) -> u32 {
         let mut texture_id = 0;
         gl::GenTextures(1, &mut texture_id);
 
-        let img = image::open(&Path::new(&filename)).expect("Failed to load texture");
+        let img = image::open(&Path::new(&path)).expect("Failed to load texture");
         // let img = img.flipv();
         let data = img.as_bytes();
 

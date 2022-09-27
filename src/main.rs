@@ -11,11 +11,13 @@ mod framebuffer;
 mod skybox;
 mod uniform_buffer;
 mod light;
+mod quad;
 
 use self::glfw::{Context, Key, Action};
 use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice};
 use camera::{Camera, CameraMovement};
 use light::{DirLight, PointLight};
+use quad::create_quad;
 use shader_program::ShaderProgram;
 use framebuffer::Framebuffer;
 use cgmath::{prelude::*, vec3,  Deg, Point3, Matrix4};
@@ -99,6 +101,8 @@ fn main() {
     let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
     let mut backpack_model_transform = Matrix4::<f32>::from_translation(vec3(15.0, -23.0, 0.0));
     let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, -75.0, 0.0));
+    let mut wall_model_transform = Matrix4::<f32>::from_translation(vec3(-5.0, -23.0, 15.0));
+    let mut toy_model_transform = Matrix4::<f32>::from_translation(vec3(5.0, -23.0, 15.0));
     let amount: u32 = 1_000;
     let mut rng = rand::thread_rng();
     let radius: f32 = 30.0;
@@ -108,6 +112,8 @@ fn main() {
     backpack_model_transform = backpack_model_transform * Matrix4::from_scale(1.0);
     floor_model_transform = floor_model_transform * Matrix4::from_scale(36.0);
     floor_model_transform = floor_model_transform * Matrix4::from_angle_x(Deg(90.0));
+    wall_model_transform = wall_model_transform * Matrix4::from_scale(5.0);
+    toy_model_transform = toy_model_transform * Matrix4::from_scale(5.0);
     
     for i in 0..amount {
         let angle = i as f32 / amount as f32 * 360.0;
@@ -180,6 +186,24 @@ fn main() {
         vec![
             backpack_model_transform,
             floor_model_transform
+        ]
+    );
+
+    let wall_quad = create_quad(
+        "assets/textures/brick/bricks2.jpg",
+        "assets/textures/brick/bricks2_normal.jpg",
+        "assets/textures/brick/bricks2_disp.jpg",
+        vec![
+            wall_model_transform
+        ]
+    );
+
+    let toy_quad = create_quad(
+        "assets/textures/wood/wood.png",
+        "assets/textures/wood/toy_box_normal.png",
+        "assets/textures/wood/toy_box_disp.png",
+        vec![
+            toy_model_transform
         ]
     );
 
@@ -308,6 +332,8 @@ fn main() {
             depth_shader_program.use_program();
             planet_model.draw(&depth_shader_program);
             rock_model.draw(&depth_shader_program);
+            wall_quad.draw(&depth_shader_program);
+            toy_quad.draw(&depth_shader_program);
 
             // Reset
             gl::CullFace(gl::BACK);
@@ -324,6 +350,8 @@ fn main() {
             cube_depth_shader_program.use_program();
             planet_model.draw(&cube_depth_shader_program);
             rock_model.draw(&cube_depth_shader_program);
+            wall_quad.draw(&cube_depth_shader_program);
+            toy_quad.draw(&cube_depth_shader_program);
 
             // Reset
             gl::CullFace(gl::BACK);
@@ -341,12 +369,16 @@ fn main() {
             planet_model.draw(&shader_program);
             rock_model.draw(&shader_program);
             backpack_model.draw(&shader_program);
+            wall_quad.draw(&shader_program);
+            toy_quad.draw(&shader_program);
 
             if show_debug {
                 debug_shader_program.use_program();
                 planet_model.draw(&debug_shader_program);
                 rock_model.draw(&debug_shader_program);
                 backpack_model.draw(&debug_shader_program);
+                wall_quad.draw(&debug_shader_program);
+                toy_quad.draw(&debug_shader_program);
             }
 
             // END - DRAW MODELS HERE
