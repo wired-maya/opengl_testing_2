@@ -16,7 +16,12 @@ pub struct Framebuffer {
 impl Framebuffer {
     pub fn new(width: u32, height: u32, msaa: u32) -> Framebuffer {
         // Create quad that will display framebuffer
-        let texture = Texture {
+        let texture0 = Texture {
+            id: 0,
+            type_: "diffuse".into(),
+            path: "".into()
+        };
+        let texture1 = Texture {
             id: 0,
             type_: "diffuse".into(),
             path: "".into()
@@ -56,7 +61,8 @@ impl Framebuffer {
         ];
 
         let textures = vec![
-            texture
+            texture0,
+            texture1
         ];
 
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
@@ -133,37 +139,36 @@ impl Framebuffer {
         gl::GenFramebuffers(1, &mut self.intermediate_fbo);
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.intermediate_fbo);
 
-        // Create colour attachment texture
-        gl::GenTextures(1, &mut self.mesh.textures[0].id);
-        gl::BindTexture(gl::TEXTURE_2D, self.mesh.textures[0].id);
-        gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGBA16F as i32,
-            self.width as i32,
-            self.height as i32,
-            0,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            std::ptr::null()
-        );
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-        // We only need colour buffer
-        gl::FramebufferTexture2D(
-            gl::FRAMEBUFFER,
-            gl::COLOR_ATTACHMENT0,
-            gl::TEXTURE_2D,
-            self.mesh.textures[0].id,
-            0
-        );
-        // TODO: should use this instead
-        // gl::FramebufferTexture(
-        //     gl::FRAMEBUFFER,
-        //     gl::COLOR_ATTACHMENT0,
-        //     self.mesh.textures[0].id,
-        //     0
-        // );
+        // Create colour attachment textures (two to support bloom)
+        for i in 0..2 {
+            gl::GenTextures(1, &mut self.mesh.textures[i].id);
+            gl::BindTexture(gl::TEXTURE_2D, self.mesh.textures[i].id);
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA16F as i32,
+                self.width as i32,
+                self.height as i32,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                std::ptr::null()
+            );
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::FramebufferTexture(
+                gl::FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT0 + i as u32,
+                self.mesh.textures[i].id,
+                0
+            );
+        }
+
+        // Tell OpenGL we are drawing to two buffers
+        let attachments = [gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1];
+        gl::DrawBuffers(2, attachments.as_ptr());
 
         // Throw error if buffer is incomplete
         if gl::CheckFramebufferStatus(gl::FRAMEBUFFER) != gl::FRAMEBUFFER_COMPLETE {
