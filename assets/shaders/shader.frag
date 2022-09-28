@@ -117,9 +117,12 @@ void main() {
     // vec4 result = CalcPointLight(pointLight, normal, fg_in.TangentFragPos, viewDir, fg_in.TangentPointLightPosition, texCoord);
     // result += CalcPointLight(pointLights[0], fg_in.Normal, fg_in.fragPos, viewDir);
 
-    FragColor = result;
+    FragColor = vec4(result.rgb, 1.0);
+
+    // TODO: fix alpha blending
+    // FragColor = result;
     // Gamma correction
-    FragColor.rgb = pow(FragColor.rgb, vec3(1.0 / gamma));
+    // FragColor.rgb = pow(FragColor.rgb, vec3(1.0 / gamma));
 
     // FragColor = CalcReflection(norm, fragPos, viewPos);
     // FragColor = CalcRefraction(norm, fragPos, viewPos, 1.00 / 1.33); // Refraction ratio for water

@@ -232,14 +232,14 @@ fn main() {
     let dir_light = DirLight::new(
         vec3(0.0, 40.0, 40.0),
         vec3(0.05, 0.05, 0.05),
-        vec3(1.0, 1.0, 1.0),
+        vec3(10.0, 10.0, 10.0),
         vec3(0.5, 0.5, 0.5),
         SHADOW_RES
     );
     let point_light = PointLight::new(
         vec3(20.0, -15.0, 0.0),
         vec3(0.05, 0.05, 0.05),
-        vec3(0.8, 0.8, 0.8),
+        vec3(20.0, 20.0, 20.0),
         vec3(1.0, 1.0, 1.0),
         1.0,
         0.007,
@@ -308,6 +308,10 @@ fn main() {
 
                 // Set projection for all shaders that require it
                 uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
+
+                // Set exposure
+                framebuffer_shader_program.use_program();
+                framebuffer_shader_program.set_float("exposure", 0.2);
 
                 should_resend_data = false;
             }
@@ -397,6 +401,8 @@ fn main() {
     // TODO: Delete GL objects when they exit scope
 }
 
+// TODO: use this function for all logging so logging level can be changed easily
+// TODO: e.g. min_severity property (throw options in a struct?)
 // Callback function intended to be called from C
 extern "system" fn debug_message_callback(
     source: u32,

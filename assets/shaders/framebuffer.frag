@@ -12,6 +12,8 @@ struct Material {
 
 uniform Material material;
 
+uniform float exposure;
+
 const float offset = 1.0 / 300.0;
 
 void main()
@@ -19,7 +21,20 @@ void main()
     // Post processing effects are done here
 
     // No effect
-    FragColor = texture(material.diffuse, TexCoords);
+    // FragColor = texture(material.diffuse, TexCoords);
+
+    // HDR tone mapping
+    vec3 hdrColor = texture(material.diffuse, TexCoords).rgb;
+    // Reinhard tone mapping
+    // vec3 mapped = hdrColor / (hdrColor + vec3(1.0));
+    // Exposure tone mapping
+    vec3 mapped = vec3(1.0) - exp(-hdrColor * exposure);
+
+    // Gamma correction
+    const float gamma = 2.2;
+    mapped = pow(mapped, vec3(1.0 / gamma));
+
+    FragColor = vec4(mapped, 1.0);
 
     // Inversion
     // FragColor = vec4(vec3(1.0 - texture(material.diffuse, TexCoords)), 1.0);
@@ -60,6 +75,6 @@ void main()
     
     // FragColor = vec4(col, 1.0);
 
-    // Figure out how to run gamma correction only on framebuffer instead of in
-    // model and skybox shaders
+    // TODO: Figure out how to run gamma correction only on framebuffer instead of in
+    // TODO: model and skybox shaders
 }
