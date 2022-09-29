@@ -190,20 +190,32 @@ fn main() {
     );
 
     let wall_quad = create_quad(
-        "assets/textures/brick/bricks2.jpg",
-        "assets/textures/brick/bricks2_normal.jpg",
-        "assets/textures/brick/bricks2_disp.jpg",
+        Some("assets/textures/brick/bricks2.jpg"),
+        Some("assets/textures/brick/bricks2_normal.jpg"),
+        Some("assets/textures/brick/bricks2_disp.jpg"),
         vec![
             wall_model_transform
         ]
     );
 
     let toy_quad = create_quad(
-        "assets/textures/wood/wood.png",
-        "assets/textures/wood/toy_box_normal.png",
-        "assets/textures/wood/toy_box_disp.png",
+        Some("assets/textures/wood/wood.png"),
+        Some("assets/textures/wood/toy_box_normal.png"),
+        Some("assets/textures/wood/toy_box_disp.png"),
         vec![
             toy_model_transform
+        ]
+    );
+
+    let light_quad = create_quad(
+        None,
+        None,
+        None,
+        vec![
+            Matrix4::<f32>::from_translation(vec3(0.0, 40.0, 40.0))
+            * Matrix4::<f32>::from_scale(10.0)
+            * Matrix4::<f32>::from_angle_x(Deg(-45.0))
+            * Matrix4::<f32>::from_angle_y(Deg(180.0))
         ]
     );
 
@@ -375,6 +387,7 @@ fn main() {
             backpack_model.draw(&shader_program);
             wall_quad.draw(&shader_program);
             toy_quad.draw(&shader_program);
+            light_quad.draw(&shader_program);
 
             if show_debug {
                 debug_shader_program.use_program();
