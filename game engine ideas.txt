@@ -106,3 +106,30 @@ Other notes:
  - Set option for logging level in final engine, which includes OpenGL callbacks
  - eventually add vulkan and dx12
  - with multiple supported graphics libs, add option to restrict them (e.g. for if you want to support ray tracing)
+ - Create a system for hot reloading the game when you change something small like a position of something, instead of
+   having to re-compile and re-load all the assets again
+    - Could have a button that gets cargo to build, then pass in command line arguments for a kind of hot-restart
+      - Take advantage of the fact the rust builder doesn't completely re-compile the program in debug mode
+      - These methods would still require a full reload if lower level parts of the engine are changed, but that
+        doesn't matter as it was expected anyways
+      - Take advantage of rust's conditional compilation (debug_assertions) to compile out hot-reload code when building
+        in release, to optimize the resulting executable further
+      - Command line arguments include an asset and associated texture and vertex buffer IDs, which then are re-
+        used in the re-compiled program instead of loading the assets again, then have a check to delete un-used
+        IDs
+      - This could even work for shader compilation, though there is a shader hot-reload button already
+      - Remember to have checks to not release the resources on the GPU if there is a hot restart in progress
+      - Look into if there is a process to recompile while keeping the same window object and re-binding an opengl
+        context, or if there is a way to transfer those contexts
+      - See if there is a way to hook into vscode's debug system for a hot restart button there
+      - Track what would need to be fully re-compiled (e.g. if you change to support vulkan as well, force a full
+        recompilation)
+      - Since this is invasive, possibly require it to be enabled in case you don't want it to break other things
+        depending on your dev environment
+    - If above is unfeasable (and I will try my damndest to make it), then have the engine throw all changes in an
+      interpreted file for hot-restart, then in release compile it
+        - This would once again have issues with changing lower level things, but you could choose to enable/disable
+          this feature when working in lower level sections of the engine
+        - Could combine this with the previous method to have a hot-reload/hot-restart paradigm similar to flutter's
+ - Allow switching for prefered graphics library when multiple are supported, maybe even WebGL at some point
+ - Be very aggressive to remove un-used code (e.g. vulkan support if it is not enabled) to keep speed up and size down
