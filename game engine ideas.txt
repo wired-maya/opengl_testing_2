@@ -121,11 +121,15 @@ Other notes:
       - Remember to have checks to not release the resources on the GPU if there is a hot restart in progress
       - Look into if there is a process to recompile while keeping the same window object and re-binding an opengl
         context, or if there is a way to transfer those contexts
-      - See if there is a way to hook into vscode's debug system for a hot restart button there
+      - See if there is a way to hook into vscode's debug system for a hot-restart button there
       - Track what would need to be fully re-compiled (e.g. if you change to support vulkan as well, force a full
         recompilation)
       - Since this is invasive, possibly require it to be enabled in case you don't want it to break other things
         depending on your dev environment
+      - Could deal with needing to build multiple exes in one folder without overwriting (since one is still running)
+        by having up to 10 exes that are appended with a timestamp, then have the build script for debug clear all
+        previous exes (could also have an exe that is being hot-reloaded into clear out the exe that existed before
+        it)
     - If above is unfeasable (and I will try my damndest to make it), then have the engine throw all changes in an
       interpreted file for hot-restart, then in release compile it
         - This would once again have issues with changing lower level things, but you could choose to enable/disable
