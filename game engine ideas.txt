@@ -139,3 +139,6 @@ Other notes:
  - Be very aggressive to remove un-used code (e.g. vulkan support if it is not enabled) to keep speed up and size down
  - Make sure to allow for dynamic switching of styling, e.g. have a text crawl at the start that is styled like a computer
    terminal, meanwhile normal text looks different.
+ - Design could be that you have an engine namespace -> core namespace -> GL specific namespace, so
+   that the switching can be handled by the game maker with command line arguments, to allow for things such as the
+   steam GL selection dialogue to work
