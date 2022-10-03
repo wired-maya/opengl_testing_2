@@ -137,3 +137,5 @@ Other notes:
         - Could combine this with the previous method to have a hot-reload/hot-restart paradigm similar to flutter's
  - Allow switching for prefered graphics library when multiple are supported, maybe even WebGL at some point
  - Be very aggressive to remove un-used code (e.g. vulkan support if it is not enabled) to keep speed up and size down
+ - Make sure to allow for dynamic switching of styling, e.g. have a text crawl at the start that is styled like a computer
+   terminal, meanwhile normal text looks different.
