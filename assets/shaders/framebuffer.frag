@@ -5,7 +5,7 @@ in vec2 TexCoords;
 
 struct Material {
     sampler2D diffuse;
-    sampler2D specular;
+    sampler2D specular; // This is just bloom layer
     float shininess;
 };
 
@@ -24,6 +24,8 @@ void main()
 
     // HDR tone mapping
     vec3 hdrColor = texture(material.diffuse, TexCoords).rgb;
+    vec3 bloomColor = texture(material.specular, TexCoords).rgb;
+    hdrColor += bloomColor; // additive blending
     // Reinhard tone mapping
     // vec3 mapped = hdrColor / (hdrColor + vec3(1.0));
     // Exposure tone mapping
