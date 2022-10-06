@@ -91,9 +91,15 @@ vec2 ParallaxMapping(vec2 texCoord, vec3 viewDir);
 void main() {
     // If this has no diffuse, make it a super bright object
     if (!material.has_diffuse) {
-        // TODO: Find a way to differentiate between light sources
+        // TODO: discard them normally, I'm just keeping this cuz it looks cool
         FragColor = vec4(dirLight.diffuse, 1.0);
+
+        // Make sure to pass bright light to bloom layer!
+        float brightness = dot(FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+        if (brightness > 1.0) BrightColor = vec4(FragColor.rgb, 1.0);
+        else BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
         return;
+        // discard;
     }
 
     // Properties
@@ -136,7 +142,7 @@ void main() {
     // FragColor = CalcRefraction(norm, fragPos, viewPos, 1.00 / 1.33); // Refraction ratio for water
 
     float brightness = dot(FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-    if (brightness > 1.0) BrightColor = vec4(FragColor.rgb, 1.0);
+    if (brightness > 10.0) BrightColor = vec4(FragColor.rgb, 1.0);
     else BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
 }
 

@@ -4,6 +4,7 @@ use crate::{shader_program::{ShaderProgram}, mesh::{Texture, Mesh, Vertex}};
 
 pub struct Framebuffer {
     fbo: u32,
+    tbos: [u32; 2],
     intermediate_fbo: u32,
     ms_tbos: [u32; 2],
     ms_rbo: u32,
@@ -20,9 +21,14 @@ pub struct Framebuffer {
 impl Framebuffer {
     pub fn new(width: u32, height: u32, msaa: u32) -> Framebuffer {
         // Create quad that will display framebuffer
-        let texture = Texture {
+        let frame_texture = Texture {
             id: 0,
             type_: "diffuse".into(),
+            path: "".into()
+        };
+        let bloom_texture = Texture {
+            id: 0,
+            type_: "specular".into(),
             path: "".into()
         };
 
@@ -60,7 +66,7 @@ impl Framebuffer {
         ];
 
         let textures = vec![
-            texture
+            frame_texture, bloom_texture
         ];
 
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
@@ -69,6 +75,7 @@ impl Framebuffer {
 
         let mut framebuffer = Framebuffer {
             fbo: 0,
+            tbos: [0, 0],
             intermediate_fbo: 0,
             ms_tbos: [0, 0],
             ms_rbo: 0,
@@ -157,6 +164,18 @@ impl Framebuffer {
             gl::BindFramebuffer(gl::FRAMEBUFFER, self.ping_pong_fbos[i]);
             gl::BindTexture(gl::TEXTURE_2D, self.ping_pong_tbos[i]);
 
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA16F as i32,
+                self.width as i32,
+                self.height as i32,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                std::ptr::null()
+            );
+
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
@@ -168,6 +187,12 @@ impl Framebuffer {
                 self.ping_pong_tbos[i],
                 0
             );
+
+            // Throw error if buffer is incomplete
+            if gl::CheckFramebufferStatus(gl::FRAMEBUFFER) != gl::FRAMEBUFFER_COMPLETE {
+                println!("ERROR::FRAMEBUFFER:: Framebuffer is not complete!");
+                panic!();
+            }
         }
 
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
@@ -179,29 +204,35 @@ impl Framebuffer {
         gl::GenFramebuffers(1, &mut self.intermediate_fbo);
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.intermediate_fbo);
 
-        gl::GenTextures(1, &mut self.mesh.textures[0].id);
-        gl::BindTexture(gl::TEXTURE_2D, self.mesh.textures[0].id);
-        gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            gl::RGBA16F as i32,
-            self.width as i32,
-            self.height as i32,
-            0,
-            gl::RGBA,
-            gl::UNSIGNED_BYTE,
-            std::ptr::null()
-        );
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-        gl::FramebufferTexture(
-            gl::FRAMEBUFFER,
-            gl::COLOR_ATTACHMENT0,
-            self.mesh.textures[0].id,
-            0
-        );
+        for i in 0..self.tbos.len() {
+            // TODO: figure out if you can do this in one line
+            gl::GenTextures(1, &mut self.tbos[i]);
+            gl::BindTexture(gl::TEXTURE_2D, self.tbos[i]);
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA16F as i32,
+                self.width as i32,
+                self.height as i32,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                std::ptr::null()
+            );
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            gl::FramebufferTexture(
+                gl::FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT0 + i as u32,
+                self.tbos[i],
+                0
+            );
+        }
+
+        let attachments = [gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1];
+        gl::DrawBuffers(2, attachments.as_ptr());
 
         // Throw error if buffer is incomplete
         if gl::CheckFramebufferStatus(gl::FRAMEBUFFER) != gl::FRAMEBUFFER_COMPLETE {
@@ -221,41 +252,56 @@ impl Framebuffer {
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
 
-    pub unsafe fn draw_blur(&mut self, shader_program: &ShaderProgram) {
+    pub unsafe fn draw(&mut self, fb_shader_program: &ShaderProgram, blur_shader_program: &ShaderProgram) {
+        // Blit multisampled buffers to normal colourbuffers of intermediate FBO
+        for i in 0..self.ms_tbos.len() {
+            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, self.fbo);
+            gl::ReadBuffer(gl::COLOR_ATTACHMENT0 + i as u32);
+            gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, self.intermediate_fbo);
+            gl::DrawBuffer(gl::COLOR_ATTACHMENT0 + i as u32);
+            gl::BlitFramebuffer(
+                0, 0, self.width as i32, self.height as i32,
+                0, 0, self.width as i32, self.height as i32,
+                gl::COLOR_BUFFER_BIT, gl::NEAREST
+            );
+            // TODO: check for blit error
+        }
+
+        // ------------------
+        // Draw gaussian blur
+        // ------------------
+
         let amount = 10;
+        self.ping_pong_hoz = true;
+        self.ping_pong_first_iter = true;
+
+        blur_shader_program.use_program();
 
         for _ in 0..amount {
             gl::BindFramebuffer(
                 gl::FRAMEBUFFER,
                 self.ping_pong_fbos[if self.ping_pong_hoz {1} else {0}]
             );
-            shader_program.set_bool("horizontal", self.ping_pong_hoz);
-            gl::BindTexture(
-                gl::TEXTURE_2D,
-                if self.ping_pong_first_iter {
-                    self.ms_tbos[1]
-                }
-                else {
-                    self.ping_pong_tbos[if self.ping_pong_hoz {0} else {1}]
-                }
-            );
-            // TODO: Render Quad
+            blur_shader_program.set_bool("horizontal", self.ping_pong_hoz);
+
+            self.mesh.textures[0].id = if self.ping_pong_first_iter {
+                self.tbos[1]
+            }
+            else {
+                self.ping_pong_tbos[if self.ping_pong_hoz {0} else {1}]
+            };
+
+            self.mesh.draw(blur_shader_program);
+
             self.ping_pong_hoz = !self.ping_pong_hoz;
             self.ping_pong_first_iter = false;
         
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         }
-    }
 
-    pub unsafe fn draw(&self, shader_program: &ShaderProgram) {
-        // Blit multisampled buffer to normal colourbuffer of intermediate FBO
-        gl::BindFramebuffer(gl::READ_FRAMEBUFFER, self.fbo);
-        gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, self.intermediate_fbo);
-        gl::BlitFramebuffer(
-            0, 0, self.width as i32, self.height as i32,
-            0, 0, self.width as i32, self.height as i32,
-            gl::COLOR_BUFFER_BIT, gl::NEAREST
-        );
+        // -----------------
+        // Draw normal frame
+        // -----------------
 
         // Bind to default buffer to draw this framebuffer
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
@@ -267,10 +313,14 @@ impl Framebuffer {
         // Set neccesary values
         gl::Disable(gl::DEPTH_TEST);
         // gl::Enable(gl::FRAMEBUFFER_SRGB);
+        
+        // Set necessary textures
+        self.mesh.textures[0].id = self.tbos[0];
+        self.mesh.textures[1].id = self.ping_pong_tbos[if self.ping_pong_hoz {0} else {1}];
 
         // Draw the quad mesh
-        shader_program.use_program();
-        self.mesh.draw(shader_program);
+        fb_shader_program.use_program();
+        self.mesh.draw(fb_shader_program);
 
         // Set neccasary values
         gl::Enable(gl::DEPTH_TEST);
@@ -285,10 +335,10 @@ impl Framebuffer {
         for i in 0..self.ms_tbos.len() {
             gl::DeleteTextures(1, &mut self.ms_tbos[i]);
             gl::DeleteTextures(1, &mut self.ping_pong_tbos[i]);
+            gl::DeleteTextures(1, &mut self.tbos[i]);
             gl::DeleteFramebuffers(1, &mut self.ping_pong_fbos[i]);
         }
 
-        gl::DeleteTextures(1, &mut self.mesh.textures[0].id);
         gl::DeleteRenderbuffers(1, &mut self.ms_rbo);
 
         // Change self width and height

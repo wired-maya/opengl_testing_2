@@ -8,7 +8,8 @@ struct Material {
     float shininess;
 };
 
-out vec4 FragColor;
+layout (location = 0) out vec4 FragColor;
+layout (location = 1) out vec4 BrightColor;
 
 in vec3 TexCoords;
 
@@ -17,6 +18,7 @@ uniform Material material;
 void main()
 {    
     FragColor = texture(material.diffuse, TexCoords);
+    BrightColor = vec4(0.0); // Don't let skybox through into bloom layer
 
     // Gamma correction
     // FragColor.rgb = pow(FragColor.rgb, vec3(1.0 / gamma));

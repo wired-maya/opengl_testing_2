@@ -166,6 +166,16 @@ fn main() {
         "assets/shaders/debug_shader.frag".to_string(),
         Some("assets/shaders/debug_shader.geom".to_string())
     );
+    let mut blur_shader_program = ShaderProgram::new(
+        "assets/shaders/framebuffer.vert".to_string(),
+        "assets/shaders/gaussian_blur.frag".to_string(),
+        None
+    );
+    let mut light_shader_program = ShaderProgram::new(
+        "assets/shaders/light_source.vert".to_string(),
+        "assets/shaders/light_source.frag".to_string(),
+        None
+    );
 
     let mut framebuffer = Framebuffer::new(
         width,
@@ -229,7 +239,7 @@ fn main() {
     ]);
 
     let uniform_buffer = UniformBuffer::new(
-        &[&shader_program, &skybox_shader_program, &debug_shader_program],
+        &[&shader_program, &skybox_shader_program, &debug_shader_program, &light_shader_program],
         "Matrices",
         2 * std::mem::size_of::<Matrix4<f32>>() as u32
     );
@@ -287,7 +297,9 @@ fn main() {
                 &mut skybox_shader_program,
                 &mut depth_shader_program,
                 &mut cube_depth_shader_program,
-                &mut debug_shader_program
+                &mut debug_shader_program,
+                &mut blur_shader_program,
+                &mut light_shader_program
             ],
             &mut should_resend_data,
             &mut projection_transform,
@@ -324,6 +336,11 @@ fn main() {
                 // Set exposure
                 framebuffer_shader_program.use_program();
                 framebuffer_shader_program.set_float("exposure", 0.2);
+
+                // Set light colour
+                // TODO: this should be done based on what light is currently rendering instead
+                light_shader_program.use_program();
+                light_shader_program.set_vector_3("diffuse", &dir_light.diffuse);
 
                 should_resend_data = false;
             }
@@ -387,7 +404,10 @@ fn main() {
             backpack_model.draw(&shader_program);
             wall_quad.draw(&shader_program);
             toy_quad.draw(&shader_program);
-            light_quad.draw(&shader_program);
+
+            // Draw light
+            light_shader_program.use_program();
+            light_quad.draw(&light_shader_program);
 
             if show_debug {
                 debug_shader_program.use_program();
@@ -404,7 +424,7 @@ fn main() {
             skybox.draw(&skybox_shader_program);
 
             // Draw framebuffer
-            framebuffer.draw(&framebuffer_shader_program);
+            framebuffer.draw(&framebuffer_shader_program, &blur_shader_program);
         }
 
         window.swap_buffers();
