@@ -12,6 +12,7 @@ struct Material {
 uniform Material material;
 
 uniform bool horizontal;
+// TODO: find a way to change intensity based on HDR colour value?
 uniform float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
 
 void main() {

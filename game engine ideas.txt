@@ -142,3 +142,7 @@ Other notes:
  - Design could be that you have an engine namespace -> core namespace -> GL specific namespace, so
    that the switching can be handled by the game maker with command line arguments, to allow for things such as the
    steam GL selection dialogue to work
+ - Allow for usage of either tts executable (could be used to generate voice mumble) or sound file for text, able to be set
+   or reset depending on whether you want voice acting or just one sound normally, supports per text write sound as well as
+   whole line sound (for voice acting vs the type writer sound effects of tsc), and everything is able to be rebound
+   dynamically
