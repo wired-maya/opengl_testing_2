@@ -22,6 +22,7 @@ void main()
     // No effect
     // FragColor = texture(material.diffuse, TexCoords);
 
+    // TODO: possibly calculate bloom based on tone mapped values so bloom is based on exposure 
     // HDR tone mapping
     vec3 hdrColor = texture(material.diffuse, TexCoords).rgb;
     vec3 bloomColor = texture(material.specular, TexCoords).rgb;
