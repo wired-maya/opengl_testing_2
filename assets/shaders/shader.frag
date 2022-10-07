@@ -129,7 +129,7 @@ void main() {
 
     vec4 result = CalcDirLight(dirLight, normal, viewDir, fg_in.TangentDirLightDir, fg_in.TangentFragPos, texCoord);
     // vec4 result = CalcPointLight(pointLight, normal, fg_in.TangentFragPos, viewDir, fg_in.TangentPointLightPosition, texCoord);
-    // result += CalcPointLight(pointLights[0], fg_in.Normal, fg_in.fragPos, viewDir);
+    result += CalcPointLight(pointLight, normal, fg_in.TangentFragPos, viewDir, fg_in.TangentPointLightPosition, texCoord);
 
     FragColor = vec4(result.rgb, 1.0);
 
