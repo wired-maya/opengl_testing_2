@@ -55,7 +55,7 @@ struct PointLight {
 layout (location = 0) out vec4 FragColor;
 layout (location = 1) out vec4 BrightColor;
 
-in GS_OUT {
+in VS_OUT {
     vec2 texCoord;
     vec4 FragPosLightSpace;
     vec3 TangentPointLightPosition;
@@ -65,6 +65,7 @@ in GS_OUT {
     vec3 fragPos;
     vec3 lightPos;
     vec3 viewPos;
+    vec3 Normal;
 } fg_in;
 
 uniform Material material;

@@ -139,7 +139,8 @@ fn main() {
     let mut shader_program = ShaderProgram::new(
         "assets/shaders/shader.vert".to_string(),
         "assets/shaders/shader.frag".to_string(),
-        Some("assets/shaders/shader.geom".to_string())
+        // Some("assets/shaders/shader.geom".to_string())
+        None
     );
     let mut framebuffer_shader_program = ShaderProgram::new(
         "assets/shaders/framebuffer.vert".to_string(),

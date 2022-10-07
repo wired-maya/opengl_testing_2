@@ -23,6 +23,7 @@ out VS_OUT {
     vec3 fragPos;
     vec3 lightPos;
     vec3 viewPos;
+    vec3 Normal;
 } vs_out;
 
 uniform mat4 lightSpaceMatrix;
@@ -73,6 +74,7 @@ void main() {
     vs_out.fragPos = fragPos;
     vs_out.viewPos = viewPos;
     vs_out.lightPos = pointLightPosition;
+    vs_out.Normal = N;
 
     gl_Position = projection * vertexView;
 }
