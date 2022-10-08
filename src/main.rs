@@ -138,7 +138,7 @@ fn main() {
 
     let mut shader_program = ShaderProgram::new(
         "assets/shaders/shader.vert".to_string(),
-        "assets/shaders/shader.frag".to_string(),
+        "assets/shaders/deffered_shader.frag".to_string(),
         // Some("assets/shaders/shader.geom".to_string())
         None
     );
@@ -175,6 +175,11 @@ fn main() {
     let mut light_shader_program = ShaderProgram::new(
         "assets/shaders/light_source.vert".to_string(),
         "assets/shaders/light_source.frag".to_string(),
+        None
+    );
+    let mut lighting_pass_shader_program = ShaderProgram::new(
+        "assets/shaders/framebuffer.vert".to_string(),
+        "assets/shaders/lighting_pass_shader.frag".to_string(),
         None
     );
 
@@ -300,7 +305,8 @@ fn main() {
                 &mut cube_depth_shader_program,
                 &mut debug_shader_program,
                 &mut blur_shader_program,
-                &mut light_shader_program
+                &mut light_shader_program,
+                &mut lighting_pass_shader_program
             ],
             &mut should_resend_data,
             &mut projection_transform,
@@ -425,7 +431,11 @@ fn main() {
             skybox.draw(&skybox_shader_program);
 
             // Draw framebuffer
-            framebuffer.draw(&framebuffer_shader_program, &blur_shader_program);
+            framebuffer.draw(
+                &framebuffer_shader_program,
+                &blur_shader_program,
+                &lighting_pass_shader_program
+            );
         }
 
         window.swap_buffers();

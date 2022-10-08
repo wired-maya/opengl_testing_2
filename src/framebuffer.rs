@@ -6,7 +6,7 @@ pub struct Framebuffer {
     g_fbo: u32,
     g_pos: u32,
     g_normal: u32,
-    g_color_spec: u32,
+    g_albedo_spec: u32,
     g_rbo: u32,
     fbo: u32,
     intermediate_tbos: [u32; 2],
@@ -25,6 +25,7 @@ pub struct Framebuffer {
 impl Framebuffer {
     pub fn new(width: u32, height: u32, msaa: u32) -> Framebuffer {
         // Create quad that will display framebuffer
+        // These are temporarily called arbitrary things so that there are 3 unique textures
         let frame_texture = Texture {
             id: 0,
             type_: "diffuse".into(),
@@ -33,6 +34,11 @@ impl Framebuffer {
         let bloom_texture = Texture {
             id: 0,
             type_: "specular".into(),
+            path: "".into()
+        };
+        let pos_texture = Texture {
+            id: 0,
+            type_: "normal".into(),
             path: "".into()
         };
 
@@ -70,7 +76,7 @@ impl Framebuffer {
         ];
 
         let textures = vec![
-            frame_texture, bloom_texture
+            frame_texture, bloom_texture, pos_texture
         ];
 
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
@@ -82,7 +88,7 @@ impl Framebuffer {
             g_fbo: 0,
             g_pos: 0,
             g_normal: 0,
-            g_color_spec: 0,
+            g_albedo_spec: 0,
             g_rbo: 0,
             fbo: 0,
             intermediate_tbos: [0, 0],
@@ -166,8 +172,8 @@ impl Framebuffer {
         );
 
         // Color + specular color buffer
-        gl::GenTextures(1, &mut self.g_color_spec);
-        gl::BindTexture(gl::TEXTURE_2D, self.g_color_spec);
+        gl::GenTextures(1, &mut self.g_albedo_spec);
+        gl::BindTexture(gl::TEXTURE_2D, self.g_albedo_spec);
         gl::TexImage2D(
             gl::TEXTURE_2D,
             0,
@@ -184,7 +190,7 @@ impl Framebuffer {
         gl::FramebufferTexture(
             gl::FRAMEBUFFER,
             gl::COLOR_ATTACHMENT2,
-            self.g_color_spec,
+            self.g_albedo_spec,
             0
         );
 
@@ -350,29 +356,55 @@ impl Framebuffer {
 
     pub unsafe fn bind_buffer(&self) {
         gl::Viewport(0, 0, self.width as i32, self.height as i32);
-        gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo); // TODO: bind to deffered buffer
+        gl::BindFramebuffer(gl::FRAMEBUFFER, self.g_fbo); // TODO: bind to deffered buffer
         
         // Colour buffer does not need to be cleared when skybox is active
         gl::ClearColor(0.0, 0.0, 0.0, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
 
-    pub unsafe fn draw(&mut self, fb_shader_program: &ShaderProgram, blur_shader_program: &ShaderProgram) {
+    pub unsafe fn draw(
+        &mut self,
+        fb_shader_program: &ShaderProgram,
+        blur_shader_program: &ShaderProgram,
+        lighting_pass_shader_program: &ShaderProgram
+    ) {
         // TODO: handle drawing from deffered buffer to this buffer that handles combining them
 
+        gl::Disable(gl::DEPTH_TEST);
+
+        // ------------------------------------
+        // Draw quad to handle deffered shading
+        // ------------------------------------
+
+        gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo);
+
+        self.mesh.textures[0].id = self.g_pos;
+        self.mesh.textures[1].id = self.g_normal;
+        self.mesh.textures[2].id = self.g_albedo_spec;
+
+        lighting_pass_shader_program.use_program();
+        self.mesh.draw(lighting_pass_shader_program);
+
+        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        
+        // ---------------------------------------------------------------------
         // Blit multisampled buffers to normal colourbuffers of intermediate FBO
-        for i in 0..self.tbos.len() {
-            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, self.fbo);
-            gl::ReadBuffer(gl::COLOR_ATTACHMENT0 + i as u32);
-            gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, self.intermediate_fbo);
-            gl::DrawBuffer(gl::COLOR_ATTACHMENT0 + i as u32);
-            gl::BlitFramebuffer(
-                0, 0, self.width as i32, self.height as i32,
-                0, 0, self.width as i32, self.height as i32,
-                gl::COLOR_BUFFER_BIT, gl::NEAREST
-            );
-            // TODO: check for blit error
-        }
+        // ---------------------------------------------------------------------
+
+        // gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo);
+        // for i in 0..self.tbos.len() {
+        //     gl::BindFramebuffer(gl::READ_FRAMEBUFFER, self.fbo);
+        //     gl::ReadBuffer(gl::COLOR_ATTACHMENT0 + i as u32);
+        //     gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, self.intermediate_fbo);
+        //     gl::DrawBuffer(gl::COLOR_ATTACHMENT0 + i as u32);
+        //     gl::BlitFramebuffer(
+        //         0, 0, self.width as i32, self.height as i32,
+        //         0, 0, self.width as i32, self.height as i32,
+        //         gl::COLOR_BUFFER_BIT, gl::NEAREST
+        //     );
+        //     // TODO: check for blit error
+        // }
 
         // ------------------
         // Draw gaussian blur
@@ -392,7 +424,7 @@ impl Framebuffer {
             blur_shader_program.set_bool("horizontal", self.ping_pong_hoz);
 
             self.mesh.textures[0].id = if self.ping_pong_first_iter {
-                self.intermediate_tbos[1]
+                self.tbos[1]
             }
             else {
                 self.ping_pong_tbos[if self.ping_pong_hoz {0} else {1}]
@@ -417,21 +449,15 @@ impl Framebuffer {
         gl::ClearColor(1.0, 0.0, 1.0, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT);
 
-        // Set neccesary values
-        gl::Disable(gl::DEPTH_TEST);
-        // gl::Enable(gl::FRAMEBUFFER_SRGB);
-        
         // Set necessary textures
-        self.mesh.textures[0].id = self.intermediate_tbos[0];
+        self.mesh.textures[0].id = self.tbos[0];
         self.mesh.textures[1].id = self.ping_pong_tbos[if self.ping_pong_hoz {0} else {1}];
 
         // Draw the quad mesh
         fb_shader_program.use_program();
         self.mesh.draw(fb_shader_program);
 
-        // Set neccasary values
         gl::Enable(gl::DEPTH_TEST);
-        // gl::Disable(gl::FRAMEBUFFER_SRGB);
     }
 
     pub unsafe fn resize(&mut self, width: u32, height: u32) {
