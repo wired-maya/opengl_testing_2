@@ -146,3 +146,9 @@ Other notes:
    or reset depending on whether you want voice acting or just one sound normally, supports per text write sound as well as
    whole line sound (for voice acting vs the type writer sound effects of tsc), and everything is able to be rebound
    dynamically
+ - Could have the main set of defined things be an array that is iterated over by the engine, which could use the fact
+   that everything in rust can be an expression with curly braces
+ - Possible even have the ability to pass functions which are then called into it, maybe using the way enums work
+ - Have some way to set multiple styling templates, a default template, etc to lower repeated code
+ - Could also have widget structs that hold all that info that handle drawing one or multiple widgets with their info
+ - Possibly allow support for parsing of text files as well to simplify script writing
