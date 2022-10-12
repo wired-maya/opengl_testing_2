@@ -20,7 +20,7 @@ use light::{DirLight, PointLight};
 use quad::create_quad;
 use shader_program::ShaderProgram;
 use framebuffer::Framebuffer;
-use cgmath::{prelude::*, vec3,  Deg, Point3, Matrix4};
+use cgmath::{prelude::*, vec3,  Deg, Point3, Matrix4, Vector3};
 use skybox::Skybox;
 use uniform_buffer::UniformBuffer;
 use self::rand::Rng;
@@ -44,7 +44,7 @@ fn main() {
     let mut first_mouse = true;
 
     let mut camera = Camera::default();
-    camera.position = Point3 { x: 0.0, y: 00.0, z: 30.0 };
+    camera.position = Point3 { x: 0.0, y: 0.0, z: 1.0 };
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -95,46 +95,6 @@ fn main() {
 
         // Draw in wireframe
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-    }
-
-    // Get transforms for all the asteroids and the planet
-    let mut rock_model_transforms: Vec<Matrix4<f32>> = vec![];
-    let mut planet_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0));
-    let mut backpack_model_transform = Matrix4::<f32>::from_translation(vec3(15.0, -23.0, 0.0));
-    let mut floor_model_transform = Matrix4::<f32>::from_translation(vec3(0.0, -75.0, 0.0));
-    let mut wall_model_transform = Matrix4::<f32>::from_translation(vec3(-5.0, -23.0, 15.0));
-    let mut toy_model_transform = Matrix4::<f32>::from_translation(vec3(5.0, -23.0, 15.0));
-    let amount: u32 = 1_000;
-    let mut rng = rand::thread_rng();
-    let radius: f32 = 30.0;
-    let offset: f32 = 5.0;
-
-    planet_model_transform = planet_model_transform * Matrix4::from_scale(4.0);
-    backpack_model_transform = backpack_model_transform * Matrix4::from_scale(1.0);
-    floor_model_transform = floor_model_transform * Matrix4::from_scale(36.0);
-    floor_model_transform = floor_model_transform * Matrix4::from_angle_x(Deg(90.0));
-    wall_model_transform = wall_model_transform * Matrix4::from_scale(5.0);
-    toy_model_transform = toy_model_transform * Matrix4::from_scale(5.0);
-    
-    for i in 0..amount {
-        let angle = i as f32 / amount as f32 * 360.0;
-        let mut displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
-        let x = angle.sin() * radius + displacement;
-        displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
-        let y = displacement * 0.4; // Keep height of asteroid field smaller compared to width of x and z
-        displacement = (rng.gen::<i32>() % (2.0 * offset * 100.0) as i32) as f32 / 100.0 - offset;
-        let z = angle.cos() * radius + displacement;
-        let mut model_transform = Matrix4::<f32>::from_translation(vec3(x, y, z));
-
-        // Scale between 0.05 and 0.25
-        let scale = (rng.gen::<i32>() % 20) as f32 / 100.0 + 0.05;
-        model_transform = model_transform * Matrix4::from_scale(scale);
-
-        // Add random rotation around a semi randomly picked rotation axis vector
-        let rot_angle = (rng.gen::<i32>() % 360) as f32;
-        model_transform = model_transform * Matrix4::from_axis_angle(vec3(0.4, 0.6, 0.8).normalize(), Deg(rot_angle));
-
-        rock_model_transforms.push(model_transform);
     }
 
     let mut shader_program = ShaderProgram::new(
@@ -190,50 +150,34 @@ fn main() {
         MSAA
     );
 
+    let distance_scale = 2.0;
+
+    let mut light_positions: Vec<Vector3<f32>> = vec![];
+    let mut planet_transforms: Vec<Matrix4<f32>> = vec![];
+    let mut light_colors: Vec<Vector3<f32>> = vec![];
+    let amount = 4;
+
+    for x in 0..amount {
+        for z in 0..amount {
+            let transform: Vector3<f32> = vec3(x as f32, 0.0, z as f32) * distance_scale;
+            let mut matrix = Matrix4::<f32>::from_translation(transform);
+            matrix = matrix * Matrix4::<f32>::from_scale(distance_scale / 10.0);
+            planet_transforms.push(matrix);
+            light_positions.push(transform + vec3(0.0, 1.0, 0.0));
+
+            let color = if x % 2 == 0 {
+                vec3(1.0, 0.0, 0.0)
+            } else {
+                vec3(0.0, 1.0, 0.0)
+            };
+
+            light_colors.push(color);
+        }
+    }
+
     let planet_model = model::Model::new(
         "assets/models/planet/planet.obj",
-        vec![planet_model_transform]
-    );
-    let rock_model = model::Model::new(
-        "assets/models/rock/rock.obj",
-        rock_model_transforms
-    );
-    let backpack_model = model::Model::new(
-        "assets/models/backpack/backpack.obj",
-        vec![
-            backpack_model_transform,
-            floor_model_transform
-        ]
-    );
-
-    let wall_quad = create_quad(
-        Some("assets/textures/brick/bricks2.jpg"),
-        Some("assets/textures/brick/bricks2_normal.jpg"),
-        Some("assets/textures/brick/bricks2_disp.jpg"),
-        vec![
-            wall_model_transform
-        ]
-    );
-
-    let toy_quad = create_quad(
-        Some("assets/textures/wood/wood.png"),
-        Some("assets/textures/wood/toy_box_normal.png"),
-        Some("assets/textures/wood/toy_box_disp.png"),
-        vec![
-            toy_model_transform
-        ]
-    );
-
-    let light_quad = create_quad(
-        None,
-        None,
-        None,
-        vec![
-            Matrix4::<f32>::from_translation(vec3(0.0, 40.0, 40.0))
-            * Matrix4::<f32>::from_scale(10.0)
-            * Matrix4::<f32>::from_angle_x(Deg(-45.0))
-            * Matrix4::<f32>::from_angle_y(Deg(180.0))
-        ]
+        planet_transforms
     );
 
     let skybox = Skybox::new(vec![
@@ -257,32 +201,6 @@ fn main() {
         0.1,
         500.0
     );
-
-    let dir_light = DirLight::new(
-        vec3(0.0, 40.0, 40.0),
-        vec3(0.05, 0.05, 0.05),
-        vec3(10.0, 10.0, 10.0),
-        vec3(0.5, 0.5, 0.5),
-        SHADOW_RES
-    );
-    let point_light = PointLight::new(
-        vec3(20.0, -15.0, 0.0),
-        vec3(0.05, 0.05, 0.05),
-        vec3(20.0, 20.0, 20.0),
-        vec3(1.0, 1.0, 1.0),
-        1.0,
-        0.007,
-        0.0002,
-        0,
-        SHADOW_RES
-    );
-
-    let light_positions = vec![
-        // vec3(x, y, z)
-    ];
-    let light_colors = vec![
-        // vec3()
-    ];
 
     let mut should_resend_data = true;
     let mut show_debug = false;
@@ -337,8 +255,8 @@ fn main() {
 
                 // Send some sample lights to lighting pass
                 lighting_pass_shader_program.use_program();
-                for i in 0..32 {
-                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), &light_positions[i]);
+                for (i, pos) in light_positions.iter().enumerate() {
+                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), pos);
                     lighting_pass_shader_program.set_vector_3(format!("lights[{}].Color", i).as_str(), &light_colors[i]);
                 }
 
@@ -347,10 +265,10 @@ fn main() {
                 // TODO: therefore to reduce calls to it, remove it from struct functions and
                 // TODO: make it manual
                 // TODO: Also make this a uniform buffer to reduce calls
-                dir_light.configure_shader_and_matrices(&depth_shader_program);
+                // dir_light.configure_shader_and_matrices(&depth_shader_program);
                 // dir_light.configure_shader_and_matrices(&shader_program);
 
-                point_light.configure_shader_and_matrices(&cube_depth_shader_program);
+                // point_light.configure_shader_and_matrices(&cube_depth_shader_program);
 
                 // Set projection for all shaders that require it
                 uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
@@ -361,8 +279,8 @@ fn main() {
 
                 // Set light colour
                 // TODO: this should be done based on what light is currently rendering instead
-                light_shader_program.use_program();
-                light_shader_program.set_vector_3("diffuse", &dir_light.diffuse);
+                // light_shader_program.use_program();
+                // light_shader_program.set_vector_3("diffuse", &dir_light.diffuse);
 
                 should_resend_data = false;
             }
@@ -378,72 +296,58 @@ fn main() {
 
             // START - DRAW MODELS HERE
 
-            // Fix peter panning
-            gl::CullFace(gl::FRONT);
+            // // Fix peter panning
+            // gl::CullFace(gl::FRONT);
 
-            // Draw to depth buffer for lighting
-            dir_light.bind_buffer();
+            // // Draw to depth buffer for lighting
+            // dir_light.bind_buffer();
 
-            depth_shader_program.use_program();
-            planet_model.draw(&depth_shader_program);
-            rock_model.draw(&depth_shader_program);
-            wall_quad.draw(&depth_shader_program);
-            toy_quad.draw(&depth_shader_program);
+            // depth_shader_program.use_program();
+            // planet_model.draw(&depth_shader_program);
+            // rock_model.draw(&depth_shader_program);
+            // wall_quad.draw(&depth_shader_program);
+            // toy_quad.draw(&depth_shader_program);
 
-            // Reset
-            gl::CullFace(gl::BACK);
+            // // Reset
+            // gl::CullFace(gl::BACK);
 
-            // Floor, doesn't cast shadows so don't cull front faces
-            backpack_model.draw(&depth_shader_program);
+            // // Floor, doesn't cast shadows so don't cull front faces
+            // backpack_model.draw(&depth_shader_program);
 
-            // Fix peter panning
-            gl::CullFace(gl::FRONT);
+            // // Fix peter panning
+            // gl::CullFace(gl::FRONT);
 
-            // Draw to depth buffer for lighting
-            point_light.bind_buffer();
+            // // Draw to depth buffer for lighting
+            // point_light.bind_buffer();
 
-            cube_depth_shader_program.use_program();
-            planet_model.draw(&cube_depth_shader_program);
-            rock_model.draw(&cube_depth_shader_program);
-            wall_quad.draw(&cube_depth_shader_program);
-            toy_quad.draw(&cube_depth_shader_program);
+            // cube_depth_shader_program.use_program();
+            // planet_model.draw(&cube_depth_shader_program);
+            // rock_model.draw(&cube_depth_shader_program);
+            // wall_quad.draw(&cube_depth_shader_program);
+            // toy_quad.draw(&cube_depth_shader_program);
 
-            // Reset
-            gl::CullFace(gl::BACK);
+            // // Reset
+            // gl::CullFace(gl::BACK);
 
-            // Floor, doesn't cast shadows so don't cull front faces
-            backpack_model.draw(&cube_depth_shader_program);
+            // // Floor, doesn't cast shadows so don't cull front faces
+            // backpack_model.draw(&cube_depth_shader_program);
 
             // Draw to regular framebuffer for an actual scene
             framebuffer.bind_buffer();
 
             shader_program.use_program();
             shader_program.set_vector_3("viewPos", &camera.position.to_vec());
-            dir_light.bind_shadow_map(&shader_program);
-            point_light.bind_shadow_map(&shader_program);
             planet_model.draw(&shader_program);
-            rock_model.draw(&shader_program);
-            backpack_model.draw(&shader_program);
-            wall_quad.draw(&shader_program);
-            toy_quad.draw(&shader_program);
-
-            // Draw light
-            light_shader_program.use_program();
-            light_quad.draw(&light_shader_program);
 
             if show_debug {
                 debug_shader_program.use_program();
                 planet_model.draw(&debug_shader_program);
-                rock_model.draw(&debug_shader_program);
-                backpack_model.draw(&debug_shader_program);
-                wall_quad.draw(&debug_shader_program);
-                toy_quad.draw(&debug_shader_program);
             }
 
             // END - DRAW MODELS HERE
 
             // Drawn last so it only is drawn over unused pixels, improving performance
-            skybox.draw(&skybox_shader_program);
+            // skybox.draw(&skybox_shader_program);
 
             // Draw framebuffer
             framebuffer.draw(

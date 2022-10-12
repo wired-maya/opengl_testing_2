@@ -248,6 +248,8 @@ impl Framebuffer {
                 gl::UNSIGNED_BYTE,
                 std::ptr::null()
             );
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::BindTexture(gl::TEXTURE_2D, 0);
             gl::FramebufferTexture2D(
                 gl::FRAMEBUFFER,
