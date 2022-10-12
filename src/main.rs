@@ -76,8 +76,9 @@ fn main() {
         gl::DepthFunc(gl::LESS);
 
         // Blending
-        gl::Enable(gl::BLEND);
-        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+        // gl::Enable(gl::BLEND);
+        // gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+        gl::Disable(gl::BLEND);
 
         // Face culling
         gl::Enable(gl::CULL_FACE);
@@ -276,6 +277,13 @@ fn main() {
         SHADOW_RES
     );
 
+    let light_positions = vec![
+        // vec3(x, y, z)
+    ];
+    let light_colors = vec![
+        // vec3()
+    ];
+
     let mut should_resend_data = true;
     let mut show_debug = false;
 
@@ -319,13 +327,20 @@ fn main() {
                 framebuffer.bind_buffer();
 
                 // Use needs to be called before setting these even if you have the location
-                shader_program.use_program();
-                shader_program.set_float("material.shininess", 32.0);
+                // shader_program.use_program();
+                // shader_program.set_float("material.shininess", 32.0);
 
                 // Send light data to shader
-                dir_light.send_lighting_data(&shader_program);
-                point_light.send_lighting_data(&shader_program);
-                shader_program.set_float("pointLight.far_plane", 300.0); // Temp
+                // dir_light.send_lighting_data(&shader_program);
+                // point_light.send_lighting_data(&shader_program);
+                // shader_program.set_float("pointLight.far_plane", 300.0); // Temp
+
+                // Send some sample lights to lighting pass
+                lighting_pass_shader_program.use_program();
+                for i in 0..32 {
+                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), &light_positions[i]);
+                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Color", i).as_str(), &light_colors[i]);
+                }
 
                 // Already has a use program
                 // TODO: simple rule should be to call use program before you pass it anywhere,
@@ -333,7 +348,7 @@ fn main() {
                 // TODO: make it manual
                 // TODO: Also make this a uniform buffer to reduce calls
                 dir_light.configure_shader_and_matrices(&depth_shader_program);
-                dir_light.configure_shader_and_matrices(&shader_program);
+                // dir_light.configure_shader_and_matrices(&shader_program);
 
                 point_light.configure_shader_and_matrices(&cube_depth_shader_program);
 

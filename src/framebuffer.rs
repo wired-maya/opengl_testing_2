@@ -22,6 +22,10 @@ pub struct Framebuffer {
     msaa: u32
 }
 
+// TODO: Refactor this whole struct into a render pipeline and multiple framebuffer structs,
+// TODO: with the main render pipeline struct handling resizing, sending data, hot recompiling
+// TODO: shaders, etc, maybe make framebuffer struct a generic struct you can spin the rest
+// TODO: off of.
 impl Framebuffer {
     pub fn new(width: u32, height: u32, msaa: u32) -> Framebuffer {
         // Create quad that will display framebuffer
