@@ -9,6 +9,7 @@ pub struct Framebuffer {
     g_albedo_spec: u32,
     g_rbo: u32,
     fbo: u32,
+    rbo: u32,
     intermediate_tbos: [u32; 2],
     intermediate_fbo: u32,
     tbos: [u32; 2],
@@ -19,7 +20,8 @@ pub struct Framebuffer {
     mesh: Mesh,
     width: u32,
     height: u32,
-    msaa: u32
+    msaa: u32,
+    light_quad: Mesh
 }
 
 // TODO: Refactor this whole struct into a render pipeline and multiple framebuffer structs,
@@ -27,7 +29,7 @@ pub struct Framebuffer {
 // TODO: shaders, etc, maybe make framebuffer struct a generic struct you can spin the rest
 // TODO: off of.
 impl Framebuffer {
-    pub fn new(width: u32, height: u32, msaa: u32) -> Framebuffer {
+    pub fn new(width: u32, height: u32, msaa: u32, light_positions: &Vec<Vector3<f32>>) -> Framebuffer {
         // Create quad that will display framebuffer
         // These are temporarily called arbitrary things so that there are 3 unique textures
         let frame_texture = Texture {
@@ -87,6 +89,50 @@ impl Framebuffer {
 
         let mesh = Mesh::new(vertices, indices, textures, model_transforms);
 
+        let mut light_transforms = vec![];
+
+        for (_, pos) in light_positions.iter().enumerate() {
+            let mut transform = Matrix4::<f32>::from_translation(*pos);
+            transform = transform * Matrix4::from_scale(0.2);
+
+            light_transforms.push(transform);
+        }
+
+        // Flat panel definition (second time b/c I am too lazy to fuck with borrows rn)
+        let vertices = vec![
+            Vertex {
+                position: Vector3::new(-1.0, 1.0, 0.0),
+                normal: Vector3::new(0.0, 0.0, 0.0),
+                tex_coord: Vector2::new(0.0, 1.0),
+                ..Vertex::default()
+            },
+            Vertex {
+                position: Vector3::new(-1.0, -1.0, 0.0),
+                normal: Vector3::new(0.0, 0.0, 0.0),
+                tex_coord: Vector2::new(0.0, 0.0),
+                ..Vertex::default()
+            },
+            Vertex {
+                position: Vector3::new(1.0, -1.0, 0.0),
+                normal: Vector3::new(0.0, 0.0, 0.0),
+                tex_coord: Vector2::new(1.0, 0.0),
+                ..Vertex::default()
+            },
+            Vertex {
+                position: Vector3::new(1.0, 1.0, 0.0),
+                normal: Vector3::new(0.0, 0.0, 0.0),
+                tex_coord: Vector2::new(1.0, 1.0),
+                ..Vertex::default()
+            }
+        ];
+
+        let indices = vec![
+            0, 1, 2,
+            0, 2, 3
+        ];
+
+        let light_quad = Mesh::new(vertices, indices, vec![], light_transforms);
+
         let mut framebuffer = Framebuffer {
             // TODO: use defaults to avoid all these 0s
             g_fbo: 0,
@@ -95,6 +141,7 @@ impl Framebuffer {
             g_albedo_spec: 0,
             g_rbo: 0,
             fbo: 0,
+            rbo: 0,
             intermediate_tbos: [0, 0],
             intermediate_fbo: 0,
             tbos: [0, 0],
@@ -106,6 +153,7 @@ impl Framebuffer {
             width,
             height,
             msaa,
+            light_quad
         };
 
         unsafe { framebuffer.setup_buffer() }
@@ -263,6 +311,23 @@ impl Framebuffer {
         let attachments = [gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1];
         gl::DrawBuffers(2, attachments.as_ptr());
 
+        // Create an equally render buffer object for depth and stencil attachments
+        gl::GenRenderbuffers(1, &mut self.rbo);
+        gl::BindRenderbuffer(gl::RENDERBUFFER, self.rbo);
+        gl::RenderbufferStorage(
+            gl::RENDERBUFFER,
+            gl::DEPTH24_STENCIL8,
+            self.width as i32,
+            self.height as i32
+        );
+        gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
+        gl::FramebufferRenderbuffer(
+            gl::FRAMEBUFFER,
+            gl::DEPTH_STENCIL_ATTACHMENT,
+            gl::RENDERBUFFER,
+            self.rbo
+        );
+
         // Throw error if buffer is incomplete
         if gl::CheckFramebufferStatus(gl::FRAMEBUFFER) != gl::FRAMEBUFFER_COMPLETE {
             println!("ERROR::FRAMEBUFFER:: Framebuffer is not complete!");
@@ -392,6 +457,27 @@ impl Framebuffer {
         lighting_pass_shader_program.use_program();
         self.mesh.draw(lighting_pass_shader_program);
 
+        // Following is to draw lights using forward shading
+        // TODO: put this work in a second framebuffer
+
+        gl::Enable(gl::DEPTH_TEST);
+
+        // Blit depth buffer
+        gl::BindFramebuffer(gl::READ_FRAMEBUFFER, self.g_fbo);
+        gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, self.fbo);
+        gl::BlitFramebuffer(
+            0, 0, self.width as i32, self.height as i32,
+            0, 0, self.width as i32, self.height as i32,
+            gl::DEPTH_BUFFER_BIT, gl::NEAREST
+        );
+        gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo);
+
+        // TODO: add colour, though this would probably be in the refactor
+        // Draw quads at light sources
+        self.light_quad.draw(lighting_pass_shader_program);
+
+        gl::Disable(gl::DEPTH_TEST);
+
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         
         // ---------------------------------------------------------------------
@@ -467,7 +553,7 @@ impl Framebuffer {
     }
 
     pub unsafe fn resize(&mut self, width: u32, height: u32) {
-        // TODO: delete g_buffer objs
+        // TODO: delete g_buffer objs, rbo, etc
         // Delete old objects and textures
         gl::DeleteFramebuffers(1, &mut self.fbo);
         gl::DeleteFramebuffers(1, &mut self.intermediate_fbo);

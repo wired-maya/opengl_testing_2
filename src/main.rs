@@ -144,12 +144,6 @@ fn main() {
         None
     );
 
-    let mut framebuffer = Framebuffer::new(
-        width,
-        height,
-        MSAA
-    );
-
     let distance_scale = 2.0;
 
     let mut light_positions: Vec<Vector3<f32>> = vec![];
@@ -165,15 +159,19 @@ fn main() {
             planet_transforms.push(matrix);
             light_positions.push(transform + vec3(0.0, 1.0, 0.0));
 
-            let color = if x % 2 == 0 {
-                vec3(1.0, 0.0, 0.0)
-            } else {
-                vec3(0.0, 1.0, 0.0)
-            };
+            let color = if x % 2 == 0 { vec3(1.0, 0.0, 0.0) } 
+            else { vec3(0.0, 1.0, 0.0) };
 
             light_colors.push(color);
         }
     }
+
+    let mut framebuffer = Framebuffer::new(
+        width,
+        height,
+        MSAA,
+        &light_positions
+    );
 
     let planet_model = model::Model::new(
         "assets/models/planet/planet.obj",

@@ -34,6 +34,14 @@ uniform Material material;
 uniform vec3 viewPos;
 
 void main() {
+    // For forward shaded light fragments
+    if (!material.has_diffuse) {
+        // TODO: find a way to get index to get light colour
+        FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        BrightColor = vec4(1.0);
+        return;
+    }
+
     // Get data from G-Buffer
     vec3 FragPos = texture(material.diffuse, TexCoords).rgb;
     vec3 Normal = texture(material.specular, TexCoords).rgb;
