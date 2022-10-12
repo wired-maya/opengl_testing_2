@@ -460,25 +460,25 @@ impl Framebuffer {
         // Following is to draw lights using forward shading
         // TODO: put this work in a second framebuffer
 
-        gl::Enable(gl::DEPTH_TEST);
+        // gl::Enable(gl::DEPTH_TEST);
 
-        // Blit depth buffer
-        gl::BindFramebuffer(gl::READ_FRAMEBUFFER, self.g_fbo);
-        gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, self.fbo);
-        gl::BlitFramebuffer(
-            0, 0, self.width as i32, self.height as i32,
-            0, 0, self.width as i32, self.height as i32,
-            gl::DEPTH_BUFFER_BIT, gl::NEAREST
-        );
-        gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo);
+        // // Blit depth buffer
+        // gl::BindFramebuffer(gl::READ_FRAMEBUFFER, self.g_fbo);
+        // gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, self.fbo);
+        // gl::BlitFramebuffer(
+        //     0, 0, self.width as i32, self.height as i32,
+        //     0, 0, self.width as i32, self.height as i32,
+        //     gl::DEPTH_BUFFER_BIT, gl::NEAREST
+        // );
+        // gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo);
 
-        // TODO: add colour, though this would probably be in the refactor
-        // Draw quads at light sources
-        self.light_quad.draw(lighting_pass_shader_program);
+        // // TODO: add colour, though this would probably be in the refactor
+        // // Draw quads at light sources
+        // self.light_quad.draw(lighting_pass_shader_program);
 
-        gl::Disable(gl::DEPTH_TEST);
+        // gl::Disable(gl::DEPTH_TEST);
 
-        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        // gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         
         // ---------------------------------------------------------------------
         // Blit multisampled buffers to normal colourbuffers of intermediate FBO

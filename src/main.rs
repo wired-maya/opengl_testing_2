@@ -151,18 +151,41 @@ fn main() {
     let mut light_colors: Vec<Vector3<f32>> = vec![];
     let amount = 4;
 
+    let mut rnd = rand::thread_rng();
+
+    // Temp light radius, this will be handled per-light later
+    let constant = 1.0;
+    let linear = 0.7;
+    let quadratic = 1.8;
+    let mut light_radii = vec![];
+
     for x in 0..amount {
         for z in 0..amount {
+            // Maybe add random offset to create a rough surface, perfect for showing off cool light?
             let transform: Vector3<f32> = vec3(x as f32, 0.0, z as f32) * distance_scale;
             let mut matrix = Matrix4::<f32>::from_translation(transform);
             matrix = matrix * Matrix4::<f32>::from_scale(distance_scale / 10.0);
             planet_transforms.push(matrix);
-            light_positions.push(transform + vec3(0.0, 1.0, 0.0));
+            light_positions.push(transform + (vec3(0.5, 0.0, 0.5) * distance_scale));
 
-            let color = if x % 2 == 0 { vec3(1.0, 0.0, 0.0) } 
-            else { vec3(0.0, 1.0, 0.0) };
+            // let color = if x % 2 == 0 { vec3(1.0, 0.0, 0.0) } 
+            // else { vec3(0.0, 1.0, 0.0) };
+
+            let random_nums = rnd.gen::<(f32, f32, f32)>();
+            let color = vec3(random_nums.0, random_nums.1, random_nums.2);
 
             light_colors.push(color);
+
+            let light_max: f32 = f32::max(
+                f32::max(random_nums.0, random_nums.1),
+                random_nums.2
+            );
+            // This hurts to look at, I know...
+            let radius = (-linear + f32::sqrt(
+                linear * linear - 4.0 * quadratic * (constant - (256.0 / 5.0) * light_max)
+            )) / (2.0 * quadratic);
+
+            light_radii.push(radius);
         }
     }
 
