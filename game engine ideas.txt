@@ -154,3 +154,6 @@ Other notes:
  - Possibly allow support for parsing of text files as well to simplify script writing
  - Could also use concurrency/await for each call, for example to get a response from a menu you could do:
    let response: u32 = await Menu.draw(["opt1", "opt2"]; where the returned number is an index
+ - Have an array of widgets that implement the draw trait (custom traits have to be a thing right?), and then
+   render each widget in the array in the order they are in the array on a 2D plane without depth testing,
+   so that first in is first drawn and so on. allow access to this stack manually of course.
