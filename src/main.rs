@@ -279,6 +279,7 @@ fn main() {
                 for (i, pos) in light_positions.iter().enumerate() {
                     lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), pos);
                     lighting_pass_shader_program.set_vector_3(format!("lights[{}].Color", i).as_str(), &light_colors[i]);
+                    lighting_pass_shader_program.set_float(format!("lights[{}].Radius", i).as_str(), light_radii[i]);
                 }
 
                 // Already has a use program

@@ -24,6 +24,7 @@ struct Material {
 struct Light {
     vec3 Position;
     vec3 Color;
+    float Radius;
 };
 
 in vec2 TexCoords;
@@ -54,10 +55,15 @@ void main() {
     vec3 lighting = Albedo * 0.1; // Hard coded ambient component
     vec3 viewDir = normalize(viewPos - FragPos);
     for (int i = 0; i < NR_LIGHTS; ++i) {
-        // Diffuse
-        vec3 lightDir = normalize(lights[i].Position - FragPos);
-        vec3 diffuse = max(dot(Normal, lightDir), 0.0) * Albedo * lights[i].Color;
-        lighting += diffuse;
+        // Check if you are outside the radius or not and don't do lighting calcs if you are
+
+        float distance = length(lights[i].Position - FragPos);
+        if (distance < lights[i].Radius) {
+            // Diffuse
+            vec3 lightDir = normalize(lights[i].Position - FragPos);
+            vec3 diffuse = max(dot(Normal, lightDir), 0.0) * Albedo * lights[i].Color;
+            lighting += diffuse;
+        }
     }
 
     FragColor = vec4(lighting, 1.0);
