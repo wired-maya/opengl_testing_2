@@ -152,3 +152,5 @@ Other notes:
  - Have some way to set multiple styling templates, a default template, etc to lower repeated code
  - Could also have widget structs that hold all that info that handle drawing one or multiple widgets with their info
  - Possibly allow support for parsing of text files as well to simplify script writing
+ - Could also use concurrency/await for each call, for example to get a response from a menu you could do:
+   let response: u32 = await Menu.draw(["opt1", "opt2"]; where the returned number is an index
