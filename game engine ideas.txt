@@ -157,3 +157,5 @@ Other notes:
  - Have an array of widgets that implement the draw trait (custom traits have to be a thing right?), and then
    render each widget in the array in the order they are in the array on a 2D plane without depth testing,
    so that first in is first drawn and so on. allow access to this stack manually of course.
+ - Start making the engine by first making a 2D draw struct that draws a background, then work your way up to the rest
+   of the widgets, implement styling and animations, move to 3D then to input and sound, etc
