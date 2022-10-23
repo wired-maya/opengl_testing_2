@@ -163,3 +163,4 @@ Other notes:
  - Use flutter widgets as a basis of what properties certain widgets have, for example text widgets have similar props
    to flutter textstyle, etc.
  - Background could be rendered as an ortho 3D image for more complex visualized shapes
+ - Good lib structure for tests and examples for code is provided here -> https://doc.rust-lang.org/book/ch11-03-test-organization.html#the-tests-directory
