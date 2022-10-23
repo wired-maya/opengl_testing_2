@@ -2,6 +2,9 @@
     GAME ENGINE V1 IDEAS:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// TODO: definitely go over this, remove conflicting ideas, and create more of a design document
+// TODO: than insane rambling
+
 Has a handful of widgets:
  - 3D environment window(? possibly)
  - Background (branch into separate scripting later, so you can have
