@@ -169,3 +169,4 @@ Other notes:
  - Good lib structure for tests and examples for code is provided here -> https://doc.rust-lang.org/book/ch11-03-test-organization.html#the-tests-directory
  - IDs and shit needs to be private so that nothing can mess with the de-allocation or re-allocation of resources
    on the GPU, if the user of the engine wants to mess with those they can make their own abstractions
+ - Be sure to do research on what is the most optimal way to do things in both rust and opengl, squeeze out that performance!
