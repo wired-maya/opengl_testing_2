@@ -177,3 +177,16 @@ Other notes:
  - Maybe treat abstractions for opengl objects like smart pointers, -> https://doc.rust-lang.org/book/ch15-02-deref.html
  - Drop trait automatically clears objects from opengl
  - Could be very useful for opengl abstractions -> https://doc.rust-lang.org/book/ch15-04-rc.html
+ - Main goals:
+    - Easy to use engine that lets people with little coding experience create smooth rich experiences
+    - High amount of public API to allow for a reasonable escalation of difficulty when a user wants to do something more advanced
+    - Compatibility with rust type and borrow safety, only obfuscating the unsafe opengl code, leaving no unsafe code open to the user
+    - Ergonomic design patterns to allow for natural development of games
+ - Concurrency ideas:
+    - Thread dedicated to drawing screen (could have separate for 2D and 3D environments), with a draw stack that is sent owned values
+      from other threads, which are now owned by the draw stack and nothing else
+        - These should be the only threads that interact with OpenGL, other than loading
+    - Main thread that handles loading all assets and sending values to other threads, syncing them together, etc
+    - Game logic thread, handles inputs, advancing text, choosing options, etc.
+      - This thread would pass ownership of UI elements to UI thread, but retain a weak reference in its own array, possibly
+    - Possibly multithreaded loading, but would need to do research on that
