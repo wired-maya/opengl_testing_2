@@ -190,3 +190,4 @@ Other notes:
     - Game logic thread, handles inputs, advancing text, choosing options, etc.
       - This thread would pass ownership of UI elements to UI thread, but retain a weak reference in its own array, possibly
     - Possibly multithreaded loading, but would need to do research on that
+ - Be sure to use &self: Box<Self> when implementing widget traits such as draw(), aka only allow drawing when in draw stack
