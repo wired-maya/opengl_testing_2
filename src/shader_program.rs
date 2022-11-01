@@ -148,6 +148,7 @@ impl ShaderProgram {
         }
     }
 
+    // TODO: make everything here safe abstractions
     pub unsafe fn use_program(&self) {
         gl::UseProgram(self.id);
     }

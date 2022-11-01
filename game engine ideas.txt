@@ -191,3 +191,31 @@ Other notes:
       - This thread would pass ownership of UI elements to UI thread, but retain a weak reference in its own array, possibly
     - Possibly multithreaded loading, but would need to do research on that
  - Be sure to use &self: Box<Self> when implementing widget traits such as draw(), aka only allow drawing when in draw stack
+ - Enum with Rgb(i32, i32, i32), Hsv(i32, i32, i32), etc. values could be very useful as a design pattern
+ - Raw pointers exist in rust, could probably use them with opengl (or just continue using .as_ptr() whenever possible)
+ - Might be able to use mutable static vars? -> https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#accessing-or-modifying-a-mutable-static-variable
+ - Type aliases to cut down on repitition, e.g. type Widget = Box<dyn Draw, etc>
+ - It’s best to write functions using a generic type and one of the closure traits so your functions can accept either functions or closures
+ - Make sure you can create macros where needed
+ - Could have each function that updates UI (maybe that's its own trait?) wait until user input before proceeding, allowing the declarative rust-native
+   style for using the engine that is desired
+ - Path dependencies work for other crates in proj folder, use this when developing engine alongside game
+ - Easy idea is a no-git create inside the engine library crate that requries ../crate and is called testing
+ - Look into safe multithreading -> https://doc.rust-lang.org/std/thread/struct.Builder.html
+ - Possibly implement drop trait on the threads to make sure they finish what they are doing before exiting? -> https://doc.rust-lang.org/book/ch20-03-graceful-shutdown-and-cleanup.html
+ - Tokio -> best async library
+ - Eyre -> unified result type to avoid mess of different error types (though this shouldnt be a problem in the engine, still keep in mind in case it is needed)
+ - Color eyre -> above but has colours as well, makes runtime exceptions as good as compiler exceptions
+ - Tracing -> gathering "event based information" -> just check if this is needed
+ - Rayon -> could help with multithreaded loaded, etc
+ - Clap -> most featureful command line parsing tool, use for debug config in game, not engine (WORKS IN A YAML FILE THAT IS CHECKED AT COMPILE TIME)
+ - EGUI/IMGUI -> possible debug windows for even more information than renderdoc can provide (e.g. non-gl debug info like the render stack)
+    - Go forever is faster and more native-rust
+    - Make sure to remove this in release compile to not bloat final game
+ - Best to use clippy like this -> cargo clippy --fix -- -W clippy::pedantic -W clippy::nursery -W clippy::unwrap_used -W clippy::expect_used
+    - See if there is a way to do this project-level
+    - More info -> https://github.com/rust-lang/rust-clippy
+ - MAKE INVALID STATES UNREPRESENTABLE -> make each state its own struct
+ - Build the actual engine bottom up then outwards, which is to say make background -> easy widgets (text, images) -> complex widgets (3D view,
+   person-highlighter) all with default animations/fonts/colours/etc, ensure basic functionality works (can advance text, resizes properly, etc),
+   then fill in the ways to customize (custom animations, styles, etc. Look at the way some flutter widgets are defined for inspiration)
