@@ -7,6 +7,7 @@ mod model;
 mod quad;
 mod skybox;
 mod uniform_buffer;
+mod error;
 
 pub use shader_program::*;
 pub use camera::*;
@@ -17,3 +18,4 @@ pub use model::*;
 pub use quad::*;
 pub use skybox::*;
 pub use uniform_buffer::*;
+pub use error::*;

@@ -88,47 +88,47 @@ fn main() {
         "assets/shaders/deffered_shader.frag".to_string(),
         // Some("assets/shaders/shader.geom".to_string())
         None
-    );
+    ).unwrap();
     let mut framebuffer_shader_program = ShaderProgram::new(
         "assets/shaders/framebuffer.vert".to_string(),
         "assets/shaders/framebuffer.frag".to_string(),
         None
-    );
+    ).unwrap();
     let mut skybox_shader_program = ShaderProgram::new(
         "assets/shaders/skybox.vert".to_string(),
         "assets/shaders/skybox.frag".to_string(),
         None
-    );
+    ).unwrap();
     let mut depth_shader_program = ShaderProgram::new(
         "assets/shaders/depth.vert".to_string(),
         "assets/shaders/depth.frag".to_string(),
         None
-    );
+    ).unwrap();
     let mut cube_depth_shader_program = ShaderProgram::new(
         "assets/shaders/cube_depth_shader.vert".to_string(),
         "assets/shaders/cube_depth_shader.frag".to_string(),
         Some("assets/shaders/cube_depth_shader.geom".to_string())
-    );
+    ).unwrap();
     let mut debug_shader_program = ShaderProgram::new(
         "assets/shaders/debug_shader.vert".to_string(),
         "assets/shaders/debug_shader.frag".to_string(),
         Some("assets/shaders/debug_shader.geom".to_string())
-    );
+    ).unwrap();
     let mut blur_shader_program = ShaderProgram::new(
         "assets/shaders/framebuffer.vert".to_string(),
         "assets/shaders/gaussian_blur.frag".to_string(),
         None
-    );
+    ).unwrap();
     let mut light_shader_program = ShaderProgram::new(
         "assets/shaders/light_source.vert".to_string(),
         "assets/shaders/light_source.frag".to_string(),
         None
-    );
+    ).unwrap();
     let mut lighting_pass_shader_program = ShaderProgram::new(
         "assets/shaders/framebuffer.vert".to_string(),
         "assets/shaders/lighting_pass_shader.frag".to_string(),
         None
-    );
+    ).unwrap();
 
     let distance_scale = 2.0;
 

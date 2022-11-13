@@ -1,9 +1,11 @@
-use std::ffi::CString;
+use std::{ffi::CString, fmt::Display};
 use std::fs::File;
 use std::io::Read;
 use std::ptr;
 
 use cgmath::{Vector3, Array, Matrix4, Matrix};
+
+use super::error::GlError;
 
 pub struct ShaderProgram {
     pub id: u32,
@@ -13,7 +15,7 @@ pub struct ShaderProgram {
 }
 
 impl ShaderProgram {
-    pub fn new(vertex_path: String, fragment_path: String, maybe_geometry_path: Option<String>) -> ShaderProgram {
+    pub fn new(vertex_path: String, fragment_path: String, maybe_geometry_path: Option<String>) -> Result<ShaderProgram, GlError> {
         let mut shader_program = ShaderProgram {
             id: 0,
             vertex_path,
@@ -21,165 +23,218 @@ impl ShaderProgram {
             maybe_geometry_path
         };
 
-        unsafe {
-            shader_program.compile_program();
-        }
+        shader_program.compile_program()?;
 
-        shader_program
+        Ok(shader_program)
     }
 
-    pub fn reload(&mut self) {
+    pub fn reload(&mut self) -> Result<(), GlError> {
         unsafe {
             gl::UseProgram(0);
             gl::DeleteProgram(self.id);
-            self.id = 0;
-
-            self.compile_program();
         }
+
+        self.id = 0;
+        self.compile_program()
     }
 
-    pub unsafe fn compile_program(&mut self) {
-        let vert_shader = ShaderProgram::compile_shader(&self.vertex_path, "VERTEX");
-        let frag_shader = ShaderProgram::compile_shader(&self.fragment_path, "FRAGMENT");
+    pub fn compile_program(&mut self) -> Result<(), GlError> {
+        let vert_shader = ShaderProgram::compile_shader(&self.vertex_path, ShaderCompileType::Vertex)?;
+        let frag_shader = ShaderProgram::compile_shader(&self.fragment_path, ShaderCompileType::Fragment)?;
 
         // Geometry shader is the only one that is optional
         let geom_shader = if let Some(geometry_path) = &self.maybe_geometry_path {
-            ShaderProgram::compile_shader(geometry_path, "GEOMETRY")
+            ShaderProgram::compile_shader(geometry_path, ShaderCompileType::Geometry)?
         } else {
             0
         };
 
-        let shader_program_id = gl::CreateProgram();
+        let shader_program_id;
 
-        println!("DEBUG::SHADER::PROGRAM::ATTACHING_SHADERS");
+        unsafe {
+            shader_program_id = gl::CreateProgram();
 
-        gl::AttachShader(shader_program_id, vert_shader);
-        gl::AttachShader(shader_program_id, frag_shader);
-        if geom_shader != 0 { gl::AttachShader(shader_program_id, geom_shader); }
+            println!("DEBUG::SHADER::PROGRAM::ATTACHING_SHADERS");
 
-        println!("DEBUG::SHADER::PROGRAM::COMPILING_PROGRAM");
+            gl::AttachShader(shader_program_id, vert_shader);
+            gl::AttachShader(shader_program_id, frag_shader);
+            if geom_shader != 0 { gl::AttachShader(shader_program_id, geom_shader); }
 
-        gl::LinkProgram(shader_program_id);
-        ShaderProgram::check_compile_errors(shader_program_id, "PROGRAM");
+            println!("DEBUG::SHADER::PROGRAM::COMPILING_PROGRAM");
 
-        println!("DEBUG::SHADER::PROGRAM::COMPILATION_COMPLETE");
+            gl::LinkProgram(shader_program_id);
+            ShaderProgram::check_compile_errors(shader_program_id, ShaderCompileType::Program)?;
 
-        gl::DeleteShader(vert_shader);
-        gl::DeleteShader(frag_shader);
-        if geom_shader != 0 { gl::DeleteShader(geom_shader); }
+            println!("DEBUG::SHADER::PROGRAM::COMPILATION_COMPLETE");
+
+            gl::DeleteShader(vert_shader);
+            gl::DeleteShader(frag_shader);
+            if geom_shader != 0 { gl::DeleteShader(geom_shader); }
+        }
 
         self.id = shader_program_id;
+
+        Ok(())
     }
 
-    unsafe fn compile_shader(path: &str, type_: &str) -> u32 {
-        let mut shader_file = File::open(path)
-            .unwrap_or_else(|_| panic!("Failed to open {}", path));
+    pub fn compile_shader(path: &str, type_: ShaderCompileType) -> Result<u32, GlError> {
+        let mut shader_file = File::open(path)?;
         let mut shader_code = String::new();
 
         println!("DEBUG::SHADER::{}::READING_FILE: {}", type_, path);
 
-        shader_file
-            .read_to_string(&mut shader_code)
-            .unwrap_or_else(|_| panic!("Failed to read {} shader", type_.to_lowercase()));
+        shader_file.read_to_string(&mut shader_code)?;
 
-        let shader_code = CString::new(shader_code.as_bytes()).unwrap();
-        let shader = gl::CreateShader(match type_ {
-            "VERTEX" => gl::VERTEX_SHADER,
-            "GEOMETRY" => gl::GEOMETRY_SHADER,
-            "FRAGMENT" => gl::FRAGMENT_SHADER,
+        let shader_code = CString::new(shader_code.as_bytes())?;
+        let shader_type = match type_ {
+            ShaderCompileType::Vertex => gl::VERTEX_SHADER,
+            ShaderCompileType::Geometry => gl::GEOMETRY_SHADER,
+            ShaderCompileType::Fragment => gl::FRAGMENT_SHADER,
             _ => gl::VERTEX_SHADER // Default to vertex shader just in case
-        });
+        };
+        let shader;
 
-        gl::ShaderSource(shader, 1, &shader_code.as_ptr(), ptr::null());
+        unsafe {
+            shader = gl::CreateShader(shader_type);
 
-        println!("DEBUG::SHADER::{}::COMPILING_SHADER", type_);
+            gl::ShaderSource(shader, 1, &shader_code.as_ptr(), ptr::null());
 
-        gl::CompileShader(shader);
-        ShaderProgram::check_compile_errors(shader, type_);
+            println!("DEBUG::SHADER::{}::COMPILING_SHADER", type_);
+
+            gl::CompileShader(shader);
+            ShaderProgram::check_compile_errors(shader, type_.clone())?;
+        }
 
         println!("DEBUG::SHADER::{}::COMPILATION_COMPLETE", type_);
 
-        shader
+        Ok(shader)
     }
 
-    unsafe fn check_compile_errors(id: u32, type_: &str) {
+    pub unsafe fn check_compile_errors(id: u32, type_: ShaderCompileType) -> Result<(), GlError> {
         let mut success = gl::FALSE as gl::types::GLint;
+        match type_ {
+            ShaderCompileType::Program => gl::GetProgramiv(id, gl::LINK_STATUS, &mut success),
+            _ => gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success)
+        }
 
-        if type_ == "PROGRAM" {
-            gl::GetProgramiv(id, gl::LINK_STATUS, &mut success);
-            if success != gl::TRUE as gl::types::GLint {
-                let mut len: gl::types::GLint = 0;
-                gl::GetProgramiv(id, gl::INFO_LOG_LENGTH, &mut len);
+        let error;
 
-                let error = {
-                    let mut buffer: Vec<u8> = Vec::with_capacity(len as usize + 1);
-                    buffer.extend([b' '].iter().cycle().take(len as usize));
-                    CString::from_vec_unchecked(buffer)
-                };
+        if success != gl::TRUE as gl::types::GLint {
+            let mut len: gl::types::GLint = 0;
 
-                gl::GetProgramInfoLog(
-                    id,
-                    len,
-                    ptr::null_mut(),
-                    error.as_ptr() as *mut gl::types::GLchar
-                );
-                println!("ERROR::SHADER::PROGRAM::COMPILATION_FAILED\n{}", error.to_string_lossy().into_owned());
+            match type_ {
+                ShaderCompileType::Program => {
+                    gl::GetProgramiv(id, gl::INFO_LOG_LENGTH, &mut len);
+    
+                    error = {
+                        let mut buffer: Vec<u8> = Vec::with_capacity(len as usize + 1);
+                        buffer.extend([b' '].iter().cycle().take(len as usize));
+                        CString::from_vec_unchecked(buffer)
+                    };
+        
+                    gl::GetProgramInfoLog(
+                        id,
+                        len,
+                        ptr::null_mut(),
+                        error.as_ptr() as *mut gl::types::GLchar
+                    );
+                },
+                _ => {
+                    gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut len);
+    
+                    error = {
+                        let mut buffer: Vec<u8> = Vec::with_capacity(len as usize + 1);
+                        buffer.extend([b' '].iter().cycle().take(len as usize));
+                        CString::from_vec_unchecked(buffer)
+                    };
+        
+                    gl::GetShaderInfoLog(
+                        id,
+                        len,
+                        ptr::null_mut(),
+                        error.as_ptr() as *mut gl::types::GLchar
+                    );
+                }
             }
-        } else {
-            gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
-            if success != gl::TRUE as gl::types::GLint {
-                let mut len: gl::types::GLint = 0;
-                gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut len);
 
-                let error = {
-                    let mut buffer: Vec<u8> = Vec::with_capacity(len as usize + 1);
-                    buffer.extend([b' '].iter().cycle().take(len as usize));
-                    CString::from_vec_unchecked(buffer)
-                };
+            // into_string() shouldn't error since it's directly from OpenGL
+            return Err(GlError::ShaderCompileError(type_, id, error.into_string().unwrap()))
+        }
 
-                gl::GetShaderInfoLog(
-                    id,
-                    len,
-                    ptr::null_mut(),
-                    error.as_ptr() as *mut gl::types::GLchar
-                );
-                println!("ERROR::SHADER::{}::COMPILATION_FAILED\n{}", type_, error.to_string_lossy().into_owned());
-            }
+        Ok(())
+    }
+
+    pub fn use_program(&self) {
+        unsafe { gl::UseProgram(self.id) } // Cannot error as program always exists by this point
+    }
+
+    pub unsafe fn set_uniform<F: Fn(i32)>(&self, name: &str, uniform_func: F) -> Result<(), GlError> {
+        let cstr = CString::new(name)?;
+        let location = gl::GetUniformLocation(self.id, cstr.as_ptr());
+
+        if location == -1 {
+            return Err(GlError::UniformNotFound(name.to_owned(), self.id));
+        }
+
+        uniform_func(location);
+
+        Ok(())
+    }
+
+    pub fn set_bool(&self, name: &str, value: bool) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform(name, |location| gl::Uniform1i(location, value as gl::types::GLint))
         }
     }
 
-    // TODO: make everything here safe abstractions
-    pub unsafe fn use_program(&self) {
-        gl::UseProgram(self.id);
+    pub fn set_int(&self, name: &str, value: i32) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform(name, |location| gl::Uniform1i(location, value as gl::types::GLint))
+        }
     }
 
-    pub unsafe fn set_bool(&self, name: &str, value: bool) {
-        let cstr = CString::new(name).unwrap();
-        gl::Uniform1i(gl::GetUniformLocation(self.id, cstr.as_ptr()), value as gl::types::GLint);
+    pub fn set_float(&self, name: &str, value: f32) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform(name, |location| gl::Uniform1f(location, value as gl::types::GLfloat))
+        }
     }
 
-    pub unsafe fn set_int(&self, name: &str, value: i32) {
-        let cstr = CString::new(name).unwrap();
-        gl::Uniform1i(gl::GetUniformLocation(self.id, cstr.as_ptr()), value as gl::types::GLint);
+    pub fn set_vector_3(&self, name: &str, value: &Vector3<f32>) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform(name, |location| gl::Uniform3fv(location, 1, value.as_ptr()))
+        }
     }
 
-    pub unsafe fn set_float(&self, name: &str, value: f32) {
-        let cstr = CString::new(name).unwrap();
-        gl::Uniform1f(gl::GetUniformLocation(self.id, cstr.as_ptr()), value as gl::types::GLfloat);
+    pub fn set_vec3(&self, name: &str, x: f32, y: f32, z: f32) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform(name, |location| gl::Uniform3f(location, x, y, z))
+        }
     }
 
-    pub unsafe fn set_vector_3(&self, name: &str, value: &Vector3<f32>) {
-        let cstr = CString::new(name).unwrap();
-        gl::Uniform3fv(gl::GetUniformLocation(self.id, cstr.as_ptr()), 1, value.as_ptr());
+    pub fn set_mat4(&self, name: &str, value: &Matrix4<f32>) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform(name, |location| gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()))
+        }
     }
+}
 
-    pub unsafe fn _set_vec3(&self, name: &str, x: f32, y: f32, z: f32) {
-        let cstr = CString::new(name).unwrap();
-        gl::Uniform3f(gl::GetUniformLocation(self.id, cstr.as_ptr()), x, y, z);
-    }
+#[derive(Debug, Clone)]
+pub enum ShaderCompileType {
+    Program,
+    Vertex,
+    Fragment,
+    Geometry
+}
 
-    pub unsafe fn set_mat4(&self, name: &str, value: &Matrix4<f32>) {
-        let cstr = CString::new(name).unwrap();
-        gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, cstr.as_ptr()), 1, gl::FALSE, value.as_ptr());
+impl Display for ShaderCompileType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            ShaderCompileType::Program => "Program",
+            ShaderCompileType::Vertex => "Vertex",
+            ShaderCompileType::Geometry => "Geometry",
+            ShaderCompileType::Fragment => "Fragment"
+        };
+
+        write!(f, "{}", str)
     }
 }
