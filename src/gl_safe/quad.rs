@@ -1,6 +1,5 @@
 use cgmath::{Matrix4, Vector3, Vector2};
-
-use crate::{mesh::{Texture, Mesh, Vertex}, model::Model};
+use super::{Texture, Mesh, Vertex, Model};
 
 pub fn create_quad(diff_map: Option<&str>, norm_map: Option<&str>, disp_map: Option<&str>, model_transforms: Vec<Matrix4<f32>>) -> Mesh {
     let mut textures: Vec<Texture> = vec![];

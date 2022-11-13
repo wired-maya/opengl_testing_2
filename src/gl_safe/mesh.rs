@@ -1,7 +1,7 @@
 use cgmath::{Vector3, Vector2, Zero, Matrix4, Vector4, vec2};
 use memoffset::offset_of;
 
-use crate::shader_program::ShaderProgram;
+use crate::gl_safe::ShaderProgram;
 
 // TODO: sort any meshes with alpha values and render them farthest to closest w/o depth buffer
 // TODO: make sure to move vertex and texture structs to their own files

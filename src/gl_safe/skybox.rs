@@ -1,8 +1,7 @@
 use std::path::Path;
 use cgmath::{Vector3, Vector2, Matrix4, vec3};
 use image::DynamicImage::*;
-
-use crate::{mesh::{Texture, Mesh, Vertex}, shader_program::ShaderProgram};
+use super::{Texture, Mesh, Vertex, ShaderProgram};
 
 pub struct Skybox {
     pub mesh: Mesh,

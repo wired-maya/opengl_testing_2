@@ -1,6 +1,6 @@
 use cgmath::{Vector3, Matrix4, vec3, point3, Deg, InnerSpace};
 
-use crate::shader_program::ShaderProgram;
+use crate::gl_safe::ShaderProgram;
 
 pub struct DirLight {
     pub position: Vector3<f32>,

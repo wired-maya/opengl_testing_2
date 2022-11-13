@@ -1,6 +1,6 @@
 use std::ffi::CString;
 
-use crate::shader_program::ShaderProgram;
+use crate::gl_safe::ShaderProgram;
 
 pub struct UniformBuffer {
     name: String,

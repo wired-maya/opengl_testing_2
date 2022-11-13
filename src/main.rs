@@ -3,26 +3,12 @@ extern crate glfw;
 extern crate image;
 extern crate rand;
 
-mod shader_program;
-mod camera;
-mod mesh;
-mod model;
-mod framebuffer;
-mod skybox;
-mod uniform_buffer;
-mod light;
-mod quad;
+mod gl_safe;
 
 use self::glfw::{Context, Key, Action};
 use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice};
-use camera::{Camera, CameraMovement};
-use light::{DirLight, PointLight};
-use quad::create_quad;
-use shader_program::ShaderProgram;
-use framebuffer::Framebuffer;
+use gl_safe::*;
 use cgmath::{prelude::*, vec3,  Deg, Point3, Matrix4, Vector3};
-use skybox::Skybox;
-use uniform_buffer::UniformBuffer;
 use self::rand::Rng;
 
 const WIDTH: u32 = 800;
@@ -196,7 +182,7 @@ fn main() {
         &light_positions
     );
 
-    let planet_model = model::Model::new(
+    let planet_model = Model::new(
         "assets/models/planet/planet.obj",
         planet_transforms
     );

@@ -1,6 +1,6 @@
 use cgmath::{Vector3, Vector2, Matrix4, vec3};
 
-use crate::{shader_program::{ShaderProgram}, mesh::{Texture, Mesh, Vertex}};
+use crate::{gl_safe::{ShaderProgram, Texture, Mesh, Vertex}};
 
 pub struct Framebuffer {
     g_fbo: u32,

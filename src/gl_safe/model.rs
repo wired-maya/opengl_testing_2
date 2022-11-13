@@ -1,6 +1,6 @@
 use std::path::Path;
 use cgmath::{vec2, vec3, Matrix4};
-use crate::{mesh::{Mesh, Vertex, Texture}, shader_program::ShaderProgram};
+use crate::gl_safe::{ShaderProgram, Mesh, Vertex, Texture};
 use image::DynamicImage::*;
 
 #[derive(Default)]
