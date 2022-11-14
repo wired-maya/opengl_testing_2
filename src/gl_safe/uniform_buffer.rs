@@ -27,9 +27,9 @@ impl UniformBuffer {
 
     unsafe fn bind_shaders(&mut self, shader_program: &ShaderProgram) {
         let cstr = CString::new(&self.name[..]).unwrap();
-        let uniform_block_index = gl::GetUniformBlockIndex(shader_program.id, cstr.as_ptr());
+        let uniform_block_index = gl::GetUniformBlockIndex(shader_program.get_id(), cstr.as_ptr());
 
-        gl::UniformBlockBinding(shader_program.id, uniform_block_index, 0);
+        gl::UniformBlockBinding(shader_program.get_id(), uniform_block_index, 0);
     }
 
     unsafe fn create_ubo(&mut self, buffer_size: u32) {

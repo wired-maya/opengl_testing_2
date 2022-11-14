@@ -455,7 +455,7 @@ impl Framebuffer {
         self.mesh.textures[2].id = self.g_albedo_spec;
 
         lighting_pass_shader_program.use_program();
-        self.mesh.draw(lighting_pass_shader_program);
+        self.mesh.draw(lighting_pass_shader_program).unwrap();
 
         // Following is to draw lights using forward shading
         // TODO: put this work in a second framebuffer
@@ -513,7 +513,7 @@ impl Framebuffer {
                 gl::FRAMEBUFFER,
                 self.ping_pong_fbos[if self.ping_pong_hoz {1} else {0}]
             );
-            blur_shader_program.set_bool("horizontal", self.ping_pong_hoz);
+            blur_shader_program.set_bool("horizontal", self.ping_pong_hoz).unwrap();
 
             self.mesh.textures[0].id = if self.ping_pong_first_iter {
                 self.tbos[1]
@@ -522,7 +522,7 @@ impl Framebuffer {
                 self.ping_pong_tbos[if self.ping_pong_hoz {0} else {1}]
             };
 
-            self.mesh.draw(blur_shader_program);
+            self.mesh.draw(blur_shader_program).unwrap();
 
             self.ping_pong_hoz = !self.ping_pong_hoz;
             self.ping_pong_first_iter = false;
@@ -547,7 +547,7 @@ impl Framebuffer {
 
         // Draw the quad mesh
         fb_shader_program.use_program();
-        self.mesh.draw(fb_shader_program);
+        self.mesh.draw(fb_shader_program).unwrap();
 
         gl::Enable(gl::DEPTH_TEST);
     }

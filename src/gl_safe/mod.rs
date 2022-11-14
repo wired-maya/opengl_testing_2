@@ -8,6 +8,8 @@ mod quad;
 mod skybox;
 mod uniform_buffer;
 mod error;
+mod vert_array;
+mod buffer_obj;
 
 pub use shader_program::*;
 pub use camera::*;
@@ -19,3 +21,5 @@ pub use quad::*;
 pub use skybox::*;
 pub use uniform_buffer::*;
 pub use error::*;
+pub use vert_array::*;
+pub use buffer_obj::*;

@@ -2,13 +2,11 @@ use std::{ffi::CString, fmt::Display};
 use std::fs::File;
 use std::io::Read;
 use std::ptr;
-
 use cgmath::{Vector3, Array, Matrix4, Matrix};
-
 use super::error::GlError;
 
 pub struct ShaderProgram {
-    pub id: u32,
+    id: u32,
     vertex_path: String,
     fragment_path: String,
     maybe_geometry_path: Option<String>
@@ -214,6 +212,19 @@ impl ShaderProgram {
     pub fn set_mat4(&self, name: &str, value: &Matrix4<f32>) -> Result<(), GlError> {
         unsafe {
             self.set_uniform(name, |location| gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()))
+        }
+    }
+
+    pub fn get_id(&self) -> u32 {
+        return self.id;
+    }
+}
+
+impl Drop for ShaderProgram {
+    fn drop(&mut self) {
+        unsafe {
+            gl::UseProgram(0);
+            gl::DeleteProgram(self.id);
         }
     }
 }

@@ -19,7 +19,7 @@ impl Model {
 
     pub fn draw(&self, shader_program: &ShaderProgram) {
         for mesh in &self.meshes {
-            unsafe { mesh.draw(shader_program) }
+            mesh.draw(shader_program).unwrap();
         }
     }
 
