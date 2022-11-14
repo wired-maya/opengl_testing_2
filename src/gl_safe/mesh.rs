@@ -1,6 +1,8 @@
+use std::rc::Rc;
+
 use cgmath::{Vector3, Vector2, Zero, Matrix4, vec2};
 use memoffset::offset_of;
-use super::{ShaderProgram, GlError, VertexArray, Buffer};
+use super::{ShaderProgram, GlError, VertexArray, Buffer, Texture};
 
 // TODO: sort any meshes with alpha values and render them farthest to closest w/o depth buffer
 // TODO: make sure to move vertex and texture structs to their own files
@@ -26,25 +28,8 @@ impl Default for Vertex {
     }
 }
 
-// TODO: move out of here into its own mod when doing model refactor
-#[derive(Clone)]
-pub struct Texture {
-    pub id: u32, // TODO: make this private
-    pub type_: String,
-    pub path: String
-}
-
-impl Texture {
-    pub fn ready_texture(&self, num: u32) {
-        unsafe {
-            gl::ActiveTexture(gl::TEXTURE0 + num);
-            gl::BindTexture(gl::TEXTURE_2D, self.id);
-        }
-    }
-}
-
 pub struct Mesh {
-    pub textures: Vec<Texture>,
+    pub textures: Vec<Rc<Texture>>,
     pub vao: VertexArray,
     pub vbo: Buffer<Vertex>,
     pub ebo: Buffer<u32>,
@@ -52,7 +37,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>, textures: Vec<Texture>, model_transforms: Vec<Matrix4<f32>>) -> Mesh {
+    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>, textures: Vec<Rc<Texture>>, model_transforms: Vec<Matrix4<f32>>) -> Mesh {
         let mut mesh = Mesh {
             textures,
             vao: VertexArray::new(),

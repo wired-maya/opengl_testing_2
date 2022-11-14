@@ -10,6 +10,7 @@ mod uniform_buffer;
 mod error;
 mod vert_array;
 mod buffer_obj;
+mod texture;
 
 pub use shader_program::*;
 pub use camera::*;
@@ -23,3 +24,4 @@ pub use uniform_buffer::*;
 pub use error::*;
 pub use vert_array::*;
 pub use buffer_obj::*;
+pub use texture::*;

@@ -1,22 +1,14 @@
-use std::path::Path;
+use std::rc::Rc;
+
 use cgmath::{Vector3, Vector2, Matrix4, vec3};
-use image::DynamicImage::*;
-use super::{Texture, Mesh, Vertex, ShaderProgram};
+use super::{Texture, Mesh, Vertex, ShaderProgram, GlError};
 
 pub struct Skybox {
-    pub mesh: Mesh,
-    faces: Vec<String>
+    pub mesh: Mesh
 }
 
 impl Skybox {
-    pub fn new(faces: Vec<String>) -> Skybox {
-        // Create mesh for skybox
-        let texture = Texture {
-            id: 0,
-            type_: "diffuse".to_owned(),
-            path: "".to_owned()
-        };
-
+    pub fn new(faces: Vec<String>) -> Result<Skybox, GlError> {
         // Cube definition
         let vertices = vec![
             Vertex {
@@ -79,81 +71,26 @@ impl Skybox {
         ];
 
         let textures = vec![
-            texture
+            Rc::new(Texture::from_file_cubemap(faces)?)
         ];
 
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
 
         let mesh = Mesh::new(vertices, indices, textures, model_transforms);
 
-        let mut skybox = Skybox {
-            mesh,
-            faces
-        };
+        let skybox = Skybox { mesh };
 
-        unsafe { skybox.load_cube_map() }
-
-        skybox
+        Ok(skybox)
     }
 
-    unsafe fn load_cube_map(&mut self) {
-        gl::GenTextures(1, &mut self.mesh.textures[0].id);
-        gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.mesh.textures[0].id);
-
-        for (i, face) in self.faces.iter().enumerate() {
-            let img = image::open(&Path::new(face)).expect("Failed to load cubemap texture");
-            let data = img.as_bytes();
-
-            let (internal_format, data_format) = match img {
-                ImageLuma8(_) => (gl::RED, gl::RED),
-                ImageLumaA8(_) => (gl::RG, gl::RG),
-                ImageRgb8(_) => (gl::SRGB, gl::RGB),
-                ImageRgba8(_) => (gl::SRGB_ALPHA, gl::RGBA),
-                _ => (gl::SRGB, gl::RGB) // If nothing else, try default
-            };
-
-            gl::TexImage2D(
-                gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32,
-                0,
-                internal_format as i32,
-                img.width() as i32,
-                img.height() as i32,
-                0,
-                data_format,
-                gl::UNSIGNED_BYTE,
-                data.as_ptr() as *const gl::types::GLvoid
-            );
-        }
-
-        gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-        gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as i32);
-    }
-
-    pub unsafe fn draw(&self, shader_program: &ShaderProgram) {
+    pub unsafe fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
         // Change depth func so test values pass when they are equal to the buffer's content
         gl::DepthFunc(gl::LEQUAL);
 
-        shader_program.use_program();
-        shader_program.set_int("material.diffuse", 0).unwrap();
-        // self.mesh.draw(shader_program);
-
-        let texture = &self.mesh.textures[0];
-
-        // Use separate draw function only for cubemaps
-        gl::ActiveTexture(gl::TEXTURE0);
-
-        gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture.id);
-
-        self.mesh.vao.draw_elements(
-            self.mesh.ebo.len() as i32,
-            self.mesh.tbo.len() as i32
-        );
-
-        gl::ActiveTexture(gl::TEXTURE0);
+        self.mesh.draw(shader_program)?;
 
         gl::DepthFunc(gl::LESS);
+
+        Ok(())
     }
 }

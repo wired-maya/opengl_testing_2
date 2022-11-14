@@ -1,19 +1,20 @@
-use std::path::Path;
+use std::{path::Path, rc::Rc};
 use cgmath::{vec2, vec3, Matrix4};
-use crate::gl_safe::{ShaderProgram, Mesh, Vertex, Texture};
-use image::DynamicImage::*;
+use super::{ShaderProgram, Mesh, Vertex, Texture, GlError};
 
 #[derive(Default)]
 pub struct Model {
     pub meshes: Vec<Mesh>,
-    pub textures_loaded: Vec<Texture>, // Stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
+    // Stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
+    // Reference counter to ensure textures are dropped properly.
+    pub textures_loaded: Vec<Rc<Texture>>,
     directory: String
 }
 
 impl Model {
     pub fn new(path: &str, model_transforms: Vec<Matrix4<f32>>) -> Model {
         let mut model = Model::default();
-        model.load_model(path, model_transforms);
+        model.load_model(path, model_transforms).unwrap();
         model
     }
 
@@ -23,7 +24,7 @@ impl Model {
         }
     }
 
-    fn load_model(&mut self, path: &str, model_transforms: Vec<Matrix4<f32>>) {
+    fn load_model(&mut self, path: &str, model_transforms: Vec<Matrix4<f32>>) -> Result<(), GlError> {
         let path = Path::new(path);
         self.directory = path.parent().unwrap_or_else(|| Path::new("")).to_str().unwrap().into();
         
@@ -55,23 +56,23 @@ impl Model {
             }
 
             // Process material
-            let mut textures: Vec<Texture> = Vec::new();
+            let mut textures: Vec<Rc<Texture>> = Vec::new();
             if let Some(material_id) = mesh.material_id {
                 let material = &materials[material_id];
 
                 // Diffuse map
                 if !material.diffuse_texture.is_empty() {
-                    let texture = self.load_material_texture(&material.diffuse_texture, "diffuse");
+                    let texture = self.load_material_texture(&material.diffuse_texture, "diffuse")?;
                     textures.push(texture);
                 }
                 // Specular map
                 if !material.specular_texture.is_empty() {
-                    let texture = self.load_material_texture(&material.specular_texture, "specular");
+                    let texture = self.load_material_texture(&material.specular_texture, "specular")?;
                     textures.push(texture);
                 }
                 // Normal map
                 if !material.normal_texture.is_empty() {
-                    let texture = self.load_material_texture(&material.normal_texture, "normal");
+                    let texture = self.load_material_texture(&material.normal_texture, "normal")?;
                     textures.push(texture);
                 }
             }
@@ -79,67 +80,21 @@ impl Model {
             self.meshes.push(Mesh::new(vertices, indices, textures, model_transforms.to_vec()));
         }
 
-        // TODO: maybe clear up memory by clearing textures loaded?
+        Ok(())
     }
 
-    fn load_material_texture(&mut self, path: &str, type_: &str) -> Texture {
+    fn load_material_texture(&mut self, path: &str, type_: &str) -> Result<Rc<Texture>, GlError> {
         let texture = self.textures_loaded.iter().find(|t| t.path == path);
         if let Some(texture) = texture {
-            return texture.clone();
+            return Ok(Rc::clone(texture));
         }
 
-        let texture = Texture {
-            id: unsafe { Model::texture_from_file_split_path(path, &self.directory) },
-            type_: type_.into(),
-            path: path.into()
-        };
-        self.textures_loaded.push(texture.clone());
-        texture
-    }
+        let path = format!("{}/{}", &self.directory, path);
+        let texture = Rc::new(Texture::from_file_2d(&path, type_)?);
+        let result = Rc::clone(&texture);
 
-    pub unsafe fn texture_from_file_split_path(path: &str, directory: &str) -> u32 {
-        let filename = format!("{}/{}", directory, path);
-        
-        Model::texture_from_file(filename.as_str())
-    }
-
-    pub unsafe fn texture_from_file(path: &str) -> u32 {
-        let mut texture_id = 0;
-        gl::GenTextures(1, &mut texture_id);
-
-        let img = image::open(&Path::new(&path)).expect("Failed to load texture");
-        // let img = img.flipv();
-        let data = img.as_bytes();
-
-        // TODO: if there is an alpha, mark mesh as transparent
-        let (internal_format, data_format) = match img {
-            ImageLuma8(_) => (gl::RED, gl::RED),
-            ImageLumaA8(_) => (gl::RG, gl::RG),
-            ImageRgb8(_) => (gl::SRGB, gl::RGB),
-            ImageRgba8(_) => (gl::SRGB_ALPHA, gl::RGBA),
-            _ => (gl::SRGB, gl::RGB) // If nothing else, try default
-        };
-    
-
-        gl::BindTexture(gl::TEXTURE_2D, texture_id);
-        gl::TexImage2D(
-            gl::TEXTURE_2D,
-            0,
-            internal_format as i32,
-            img.width() as i32,
-            img.height() as i32,
-            0,
-            data_format,
-            gl::UNSIGNED_BYTE,
-            data.as_ptr() as *const gl::types::GLvoid
-        );
-        gl::GenerateMipmap(gl::TEXTURE_2D);
-
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-
-        texture_id
+        // Send owned RC to loaded textures, and reference to the actual mesh
+        self.textures_loaded.push(texture);
+        Ok(result)
     }
 }

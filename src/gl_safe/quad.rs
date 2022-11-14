@@ -1,34 +1,29 @@
-use cgmath::{Matrix4, Vector3, Vector2};
-use super::{Texture, Mesh, Vertex, Model};
+use std::rc::Rc;
 
-pub fn create_quad(diff_map: Option<&str>, norm_map: Option<&str>, disp_map: Option<&str>, model_transforms: Vec<Matrix4<f32>>) -> Mesh {
-    let mut textures: Vec<Texture> = vec![];
+use cgmath::{Matrix4, Vector3, Vector2};
+use super::{Texture, Mesh, Vertex, GlError};
+
+pub fn create_quad(
+    diff_map: Option<&str>,
+    norm_map: Option<&str>,
+    disp_map: Option<&str>,
+    model_transforms: Vec<Matrix4<f32>>
+) -> Result<Mesh, GlError> {
+    let mut textures: Vec<Rc<Texture>> = vec![];
     
     if let Some(diff_path) = diff_map {
         textures.push(
-            Texture {
-                id: unsafe { Model::texture_from_file(diff_path) },
-                type_: "diffuse".into(),
-                path: diff_path.into()
-            }
+            Rc::new(Texture::from_file_2d(diff_path, "diffuse")?)
         );
     }
     if let Some(norm_path) = norm_map {
         textures.push(
-            Texture {
-                id: unsafe { Model::texture_from_file(norm_path) },
-                type_: "normal".into(),
-                path: norm_path.into()
-            }
+            Rc::new(Texture::from_file_2d(norm_path, "normal")?)
         )
     };
     if let Some(disp_path) = disp_map {
         textures.push(
-            Texture {
-                id: unsafe { Model::texture_from_file(disp_path) },
-                type_: "displacement".into(),
-                path: disp_path.into()
-            }
+            Rc::new(Texture::from_file_2d(disp_path, "displacement")?)
         );
     }
 
@@ -67,5 +62,5 @@ pub fn create_quad(diff_map: Option<&str>, norm_map: Option<&str>, disp_map: Opt
 
     let mesh = Mesh::new(vertices, indices, textures, model_transforms);
 
-    mesh
+    Ok(mesh)
 }

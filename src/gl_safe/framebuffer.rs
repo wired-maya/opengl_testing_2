@@ -1,3 +1,5 @@
+use std::{rc::Rc, cell::RefCell};
+
 use cgmath::{Vector3, Vector2, Matrix4, vec3};
 
 use crate::{gl_safe::{ShaderProgram, Texture, Mesh, Vertex}};
@@ -32,21 +34,24 @@ impl Framebuffer {
     pub fn new(width: u32, height: u32, msaa: u32, light_positions: &Vec<Vector3<f32>>) -> Framebuffer {
         // Create quad that will display framebuffer
         // These are temporarily called arbitrary things so that there are 3 unique textures
-        let frame_texture = Texture {
-            id: 0,
+        let frame_texture = Rc::new(Texture {
+            id: RefCell::new(0),
             type_: "diffuse".into(),
-            path: "".into()
-        };
-        let bloom_texture = Texture {
-            id: 0,
+            path: "".into(),
+            target: gl::TEXTURE_2D
+        });
+        let bloom_texture = Rc::new(Texture {
+            id: RefCell::new(0),
             type_: "specular".into(),
-            path: "".into()
-        };
-        let pos_texture = Texture {
-            id: 0,
+            path: "".into(),
+            target: gl::TEXTURE_2D
+        });
+        let pos_texture = Rc::new(Texture {
+            id: RefCell::new(0),
             type_: "normal".into(),
-            path: "".into()
-        };
+            path: "".into(),
+            target: gl::TEXTURE_2D
+        });
 
         // Flat panel definition
         let vertices = vec![
@@ -450,9 +455,9 @@ impl Framebuffer {
 
         gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo);
 
-        self.mesh.textures[0].id = self.g_pos;
-        self.mesh.textures[1].id = self.g_normal;
-        self.mesh.textures[2].id = self.g_albedo_spec;
+        self.mesh.textures[0].set_id(self.g_pos);
+        self.mesh.textures[1].set_id(self.g_normal);
+        self.mesh.textures[2].set_id(self.g_albedo_spec);
 
         lighting_pass_shader_program.use_program();
         self.mesh.draw(lighting_pass_shader_program).unwrap();
@@ -515,12 +520,12 @@ impl Framebuffer {
             );
             blur_shader_program.set_bool("horizontal", self.ping_pong_hoz).unwrap();
 
-            self.mesh.textures[0].id = if self.ping_pong_first_iter {
+            self.mesh.textures[0].set_id(if self.ping_pong_first_iter {
                 self.tbos[1]
             }
             else {
                 self.ping_pong_tbos[if self.ping_pong_hoz {0} else {1}]
-            };
+            });
 
             self.mesh.draw(blur_shader_program).unwrap();
 
@@ -542,8 +547,8 @@ impl Framebuffer {
         gl::Clear(gl::COLOR_BUFFER_BIT);
 
         // Set necessary textures
-        self.mesh.textures[0].id = self.tbos[0];
-        self.mesh.textures[1].id = self.ping_pong_tbos[if self.ping_pong_hoz {0} else {1}];
+        self.mesh.textures[0].set_id(self.tbos[0]);
+        self.mesh.textures[1].set_id(self.ping_pong_tbos[if self.ping_pong_hoz {0} else {1}]);
 
         // Draw the quad mesh
         fb_shader_program.use_program();

@@ -7,7 +7,8 @@ pub enum GlError{
     CStringError(NulError),
     UniformNotFound(String, u32),
     ShaderCompileError(ShaderCompileType, u32, String),
-    IoError(io::Error)
+    IoError(io::Error),
+    ImageError(image::ImageError)
 }
 
 impl Display for GlError {
@@ -18,7 +19,8 @@ impl Display for GlError {
                 write!(f, "Uniform '{}' was not found in shader {}", uniform, id),
             GlError::ShaderCompileError(type_, id, error) =>
                 write!(f, "Shader '{}' with ID {} failed to compile:\n{}", type_, id, error),
-            GlError::IoError(io_error) => write!(f, "{}", io_error)
+            GlError::IoError(io_error) => write!(f, "{}", io_error),
+            GlError::ImageError(img_error) => write!(f, "{}", img_error)
         }
     }
 }
@@ -34,5 +36,11 @@ impl From<NulError> for GlError {
 impl From<io::Error> for GlError {
     fn from(err: io::Error) -> Self {
         GlError::IoError(err)
+    }
+}
+
+impl From<image::ImageError> for GlError {
+    fn from(err: image::ImageError) -> Self {
+        GlError::ImageError(err)
     }
 }
