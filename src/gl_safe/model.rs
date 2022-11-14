@@ -12,26 +12,28 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(path: &str, model_transforms: Vec<Matrix4<f32>>) -> Model {
+    pub fn new(path: &str, model_transforms: Vec<Matrix4<f32>>) -> Result<Model, GlError> {
         let mut model = Model::default();
-        model.load_model(path, model_transforms).unwrap();
-        model
+        model.load_model(path, model_transforms)?;
+        Ok(model)
     }
 
-    pub fn draw(&self, shader_program: &ShaderProgram) {
+    pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
         for mesh in &self.meshes {
-            mesh.draw(shader_program).unwrap();
+            mesh.draw(shader_program)?;
         }
+
+        Ok(())
     }
 
-    fn load_model(&mut self, path: &str, model_transforms: Vec<Matrix4<f32>>) -> Result<(), GlError> {
+    pub fn load_model(&mut self, path: &str, model_transforms: Vec<Matrix4<f32>>) -> Result<(), GlError> {
         let path = Path::new(path);
         self.directory = path.parent().unwrap_or_else(|| Path::new("")).to_str().unwrap().into();
         
         let obj = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS);
 
-        let (models, materials) = obj.unwrap();
-        let materials = materials.unwrap(); // Fix broken return type
+        let (models, materials) = obj?;
+        let materials = materials?; // Fix broken return type
         for model in models {
             let mesh = &model.mesh;
             let num_vertices = mesh.positions.len() / 3;
@@ -83,7 +85,7 @@ impl Model {
         Ok(())
     }
 
-    fn load_material_texture(&mut self, path: &str, type_: &str) -> Result<Rc<Texture>, GlError> {
+    pub fn load_material_texture(&mut self, path: &str, type_: &str) -> Result<Rc<Texture>, GlError> {
         let texture = self.textures_loaded.iter().find(|t| t.path == path);
         if let Some(texture) = texture {
             return Ok(Rc::clone(texture));

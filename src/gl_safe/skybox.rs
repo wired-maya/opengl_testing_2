@@ -83,13 +83,15 @@ impl Skybox {
         Ok(skybox)
     }
 
-    pub unsafe fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
-        // Change depth func so test values pass when they are equal to the buffer's content
-        gl::DepthFunc(gl::LEQUAL);
+    pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
+        unsafe {
+            // Change depth func so test values pass when they are equal to the buffer's content
+            gl::DepthFunc(gl::LEQUAL);
 
-        self.mesh.draw(shader_program)?;
+            self.mesh.draw(shader_program)?;
 
-        gl::DepthFunc(gl::LESS);
+            gl::DepthFunc(gl::LESS);
+        }
 
         Ok(())
     }

@@ -8,7 +8,8 @@ pub enum GlError{
     UniformNotFound(String, u32),
     ShaderCompileError(ShaderCompileType, u32, String),
     IoError(io::Error),
-    ImageError(image::ImageError)
+    ImageError(image::ImageError),
+    ObjLoadError(tobj::LoadError)
 }
 
 impl Display for GlError {
@@ -20,7 +21,8 @@ impl Display for GlError {
             GlError::ShaderCompileError(type_, id, error) =>
                 write!(f, "Shader '{}' with ID {} failed to compile:\n{}", type_, id, error),
             GlError::IoError(io_error) => write!(f, "{}", io_error),
-            GlError::ImageError(img_error) => write!(f, "{}", img_error)
+            GlError::ImageError(img_error) => write!(f, "{}", img_error),
+            GlError::ObjLoadError(obj_err) => write!(f, "{}", obj_err)
         }
     }
 }
@@ -42,5 +44,11 @@ impl From<io::Error> for GlError {
 impl From<image::ImageError> for GlError {
     fn from(err: image::ImageError) -> Self {
         GlError::ImageError(err)
+    }
+}
+
+impl From<tobj::LoadError> for GlError {
+    fn from(err: tobj::LoadError) -> Self {
+        GlError::ObjLoadError(err)
     }
 }

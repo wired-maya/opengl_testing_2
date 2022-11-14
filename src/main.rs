@@ -185,7 +185,7 @@ fn main() {
     let planet_model = Model::new(
         "assets/models/planet/planet.obj",
         planet_transforms
-    );
+    ).unwrap();
 
     let skybox = Skybox::new(vec![
         "assets/textures/skybox/right.jpg".to_owned(),
@@ -194,7 +194,7 @@ fn main() {
         "assets/textures/skybox/bottom.jpg".to_owned(),
         "assets/textures/skybox/front.jpg".to_owned(),
         "assets/textures/skybox/back.jpg".to_owned()
-    ]);
+    ]).unwrap();
 
     let uniform_buffer = UniformBuffer::new(
         &[&shader_program, &skybox_shader_program, &debug_shader_program, &light_shader_program],
