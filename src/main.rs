@@ -263,9 +263,9 @@ fn main() {
                 // Send some sample lights to lighting pass
                 lighting_pass_shader_program.use_program();
                 for (i, pos) in light_positions.iter().enumerate() {
-                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), pos);
-                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Color", i).as_str(), &light_colors[i]);
-                    lighting_pass_shader_program.set_float(format!("lights[{}].Radius", i).as_str(), light_radii[i]);
+                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), pos, false);
+                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Color", i).as_str(), &light_colors[i], false);
+                    lighting_pass_shader_program.set_float(format!("lights[{}].Radius", i).as_str(), light_radii[i], false);
                 }
 
                 // Already has a use program
@@ -283,7 +283,7 @@ fn main() {
 
                 // Set exposure
                 framebuffer_shader_program.use_program();
-                framebuffer_shader_program.set_float("exposure", 0.2);
+                framebuffer_shader_program.set_float("exposure", 0.2, false);
 
                 // Set light colour
                 // TODO: this should be done based on what light is currently rendering instead
@@ -344,7 +344,7 @@ fn main() {
             framebuffer.bind_buffer();
 
             shader_program.use_program();
-            shader_program.set_vector_3("viewPos", &camera.position.to_vec());
+            shader_program.set_vector_3("viewPos", &camera.position.to_vec(), false);
             planet_model.draw(&shader_program);
 
             if show_debug {

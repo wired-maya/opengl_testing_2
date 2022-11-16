@@ -518,7 +518,7 @@ impl Framebuffer {
                 gl::FRAMEBUFFER,
                 self.ping_pong_fbos[if self.ping_pong_hoz {1} else {0}]
             );
-            blur_shader_program.set_bool("horizontal", self.ping_pong_hoz).unwrap();
+            blur_shader_program.set_bool("horizontal", self.ping_pong_hoz, false).unwrap();
 
             self.mesh.textures[0].set_id(if self.ping_pong_first_iter {
                 self.tbos[1]

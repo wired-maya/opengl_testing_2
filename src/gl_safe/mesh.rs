@@ -133,18 +133,10 @@ impl Mesh {
     }
 
     pub fn reset_material(shader_program: &ShaderProgram) -> Result<(), GlError> {
-        Mesh::ignore_uniform_error(
-            shader_program.set_bool("material.has_diffuse", false)
-        )?;
-        Mesh::ignore_uniform_error(
-            shader_program.set_bool("material.has_specular", false)
-        )?;
-        Mesh::ignore_uniform_error(
-            shader_program.set_bool("material.has_normal", false)
-        )?;
-        Mesh::ignore_uniform_error(
-            shader_program.set_bool("material.has_displacement", false)
-        )?;
+        shader_program.set_bool("material.has_diffuse", false, true);
+        shader_program.set_bool("material.has_specular", false, true);
+        shader_program.set_bool("material.has_normal", false, true);
+        shader_program.set_bool("material.has_displacement", false, true);
 
         Ok(())
     }
@@ -154,24 +146,10 @@ impl Mesh {
 
         // TODO: make this a texture array ig? Ignores numbers for now (texture arrays are a thing!)
         let name = &texture.type_;
-        Mesh::ignore_uniform_error(
-            shader_program.set_int(format!("material.{}", name).as_str(), num as i32)
-        )?;
-        Mesh::ignore_uniform_error(
-            shader_program.set_bool(format!("material.has_{}", name).as_str(), true)
-        )?;
+        shader_program.set_int(format!("material.{}", name).as_str(), num as i32, true);
+        shader_program.set_bool(format!("material.has_{}", name).as_str(), true, true);
 
         Ok(())
-    }
-
-    // This is here to maintain speed and ergonomics when using Mesh, as not every shader uses
-    // every material uniform
-    fn ignore_uniform_error(err: Result<(), GlError>) -> Result<(), GlError> {
-        match err {
-            Ok(_) => Ok(()),
-            Err(GlError::UniformNotFound(_, _)) => Ok(()),
-            _ => err // Pass through
-        }
     }
 
     pub fn set_material(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
