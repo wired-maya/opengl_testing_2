@@ -11,6 +11,7 @@ mod error;
 mod vert_array;
 mod buffer_obj;
 mod texture;
+mod vertex;
 
 pub use shader_program::*;
 pub use camera::*;
@@ -25,3 +26,4 @@ pub use error::*;
 pub use vert_array::*;
 pub use buffer_obj::*;
 pub use texture::*;
+pub use vertex::*;
