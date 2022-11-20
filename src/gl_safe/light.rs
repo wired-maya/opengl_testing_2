@@ -42,11 +42,11 @@ impl DirLight {
     pub unsafe fn send_lighting_data(&self, shader_program: &ShaderProgram) {
         shader_program.use_program();
         
-        shader_program.set_vector_3("dirLightDir", &self.position);
+        shader_program.set_vector_3("dirLightDir", &self.position, false);
         
-        shader_program.set_vector_3("dirLight.ambient", &self.ambient);
-        shader_program.set_vector_3("dirLight.diffuse", &self.diffuse);
-        shader_program.set_vector_3("dirLight.specular", &self.specular);
+        shader_program.set_vector_3("dirLight.ambient", &self.ambient, false);
+        shader_program.set_vector_3("dirLight.diffuse", &self.diffuse, false);
+        shader_program.set_vector_3("dirLight.specular", &self.specular, false);
     }
 
     unsafe fn gen_depth_map(&mut self) {
@@ -101,7 +101,7 @@ impl DirLight {
 
         gl::ActiveTexture(gl::TEXTURE0 + shadow_map as u32);
 
-        shader_program.set_int("shadowMap", shadow_map);
+        shader_program.set_int("shadowMap", shadow_map, false);
 
         gl::BindTexture(gl::TEXTURE_2D, self.depth_map);
     }
@@ -133,7 +133,7 @@ impl DirLight {
 
         // Send to shader
         shader_program.use_program();
-        shader_program.set_mat4("lightSpaceMatrix", &light_space_matrix);
+        shader_program.set_mat4("lightSpaceMatrix", &light_space_matrix, false);
 
         // TODO: only run this when lighting position changes
     }
@@ -202,15 +202,15 @@ impl PointLight {
         // shader_program.set_float(format!("pointLights[{}].linear", self.array_position).as_str(), self.linear);
         // shader_program.set_float(format!("pointLights[{}].quadratic", self.array_position).as_str(), self.quadratic);
 
-        shader_program.set_vector_3("pointLightPosition", &self.position);
+        shader_program.set_vector_3("pointLightPosition", &self.position, false);
 
-        shader_program.set_vector_3("pointLight.ambient", &self.ambient);
-        shader_program.set_vector_3("pointLight.diffuse", &self.diffuse);
-        shader_program.set_vector_3("pointLight.specular", &self.specular);
+        shader_program.set_vector_3("pointLight.ambient", &self.ambient, false);
+        shader_program.set_vector_3("pointLight.diffuse", &self.diffuse, false);
+        shader_program.set_vector_3("pointLight.specular", &self.specular, false);
 
-        shader_program.set_float("pointLight.constant", self.constant);
-        shader_program.set_float("pointLight.linear", self.linear);
-        shader_program.set_float("pointLight.quadratic", self.quadratic);
+        shader_program.set_float("pointLight.constant", self.constant, false);
+        shader_program.set_float("pointLight.linear", self.linear, false);
+        shader_program.set_float("pointLight.quadratic", self.quadratic, false);
     }
 
     pub unsafe fn gen_depth_map(&mut self) {
@@ -266,7 +266,7 @@ impl PointLight {
 
         gl::ActiveTexture(gl::TEXTURE0 + shadow_map as u32);
 
-        shader_program.set_int("shadowCubeMap", shadow_map);
+        shader_program.set_int("shadowCubeMap", shadow_map, false);
 
         gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.depth_map);
     }
@@ -293,10 +293,10 @@ impl PointLight {
         // Send to shader
         shader_program.use_program();
         for (i, light_transform) in light_transforms.iter().enumerate() {
-            shader_program.set_mat4(format!("shadowMatrices[{}]", i).as_str(), light_transform);
+            shader_program.set_mat4(format!("shadowMatrices[{}]", i).as_str(), light_transform, false);
         }
-        shader_program.set_float("far_plane", far_plane);
-        shader_program.set_vector_3("lightPos", &self.position);
+        shader_program.set_float("far_plane", far_plane, false);
+        shader_program.set_vector_3("lightPos", &self.position, false);
 
         // TODO: only run this when lighting position changes
     }
@@ -324,18 +324,18 @@ impl _SpotLight {
     pub unsafe fn _send_data(&self, shader_program: &ShaderProgram) {
         shader_program.use_program();
         
-        shader_program.set_vector_3("spotLight.position", &self.position);
-        shader_program.set_vector_3("spotLight.direction", &self.direction);
+        shader_program.set_vector_3("spotLight.position", &self.position, false);
+        shader_program.set_vector_3("spotLight.direction", &self.direction, false);
 
-        shader_program.set_float("spotLight.cutOff", self.cutoff);
-        shader_program.set_float("spotLight.outerCutOff", self.outer_cutoff);
+        shader_program.set_float("spotLight.cutOff", self.cutoff, false);
+        shader_program.set_float("spotLight.outerCutOff", self.outer_cutoff, false);
 
-        shader_program.set_float("spotLight.constant", self.constant);
-        shader_program.set_float("spotLight.linear", self.linear);
-        shader_program.set_float("spotLight.quadratic", self.quadratic);
+        shader_program.set_float("spotLight.constant", self.constant, false);
+        shader_program.set_float("spotLight.linear", self.linear, false);
+        shader_program.set_float("spotLight.quadratic", self.quadratic, false);
 
-        shader_program.set_vector_3("spotLight.ambient", &self.ambient);
-        shader_program.set_vector_3("spotLight.diffuse", &self.diffuse);
-        shader_program.set_vector_3("spotLight.specular", &self.specular);
+        shader_program.set_vector_3("spotLight.ambient", &self.ambient, false);
+        shader_program.set_vector_3("spotLight.diffuse", &self.diffuse, false);
+        shader_program.set_vector_3("spotLight.specular", &self.specular, false);
     }
 }

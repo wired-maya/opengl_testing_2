@@ -1,32 +1,10 @@
 use std::rc::Rc;
 
-use cgmath::{Vector3, Vector2, Zero, Matrix4, vec2};
+use cgmath::{Vector3, Zero, Matrix4, vec2};
 use memoffset::offset_of;
-use super::{ShaderProgram, GlError, VertexArray, Buffer, Texture};
+use super::{ShaderProgram, GlError, VertexArray, Buffer, Texture, Vertex};
 
 // TODO: sort any meshes with alpha values and render them farthest to closest w/o depth buffer
-// TODO: make sure to move vertex and texture structs to their own files
-
-#[repr(C, packed)]
-pub struct Vertex {
-    pub position: Vector3<f32>,
-    pub normal: Vector3<f32>,
-    pub tex_coord: Vector2<f32>,
-    pub tangent: Vector3<f32>,
-    pub bitangent: Vector3<f32>
-}
-
-impl Default for Vertex {
-    fn default() -> Self {
-        Vertex {
-            position: Vector3::zero(),
-            normal: Vector3::zero(),
-            tex_coord: Vector2::zero(),
-            tangent: Vector3::zero(),
-            bitangent: Vector3::zero()
-        }
-    }
-}
 
 pub struct Mesh {
     pub textures: Vec<Rc<Texture>>,
@@ -133,18 +111,10 @@ impl Mesh {
     }
 
     pub fn reset_material(shader_program: &ShaderProgram) -> Result<(), GlError> {
-        Mesh::ignore_uniform_error(
-            shader_program.set_bool("material.has_diffuse", false)
-        )?;
-        Mesh::ignore_uniform_error(
-            shader_program.set_bool("material.has_specular", false)
-        )?;
-        Mesh::ignore_uniform_error(
-            shader_program.set_bool("material.has_normal", false)
-        )?;
-        Mesh::ignore_uniform_error(
-            shader_program.set_bool("material.has_displacement", false)
-        )?;
+        shader_program.set_bool("material.has_diffuse", false, true)?;
+        shader_program.set_bool("material.has_specular", false, true)?;
+        shader_program.set_bool("material.has_normal", false, true)?;
+        shader_program.set_bool("material.has_displacement", false, true)?;
 
         Ok(())
     }
@@ -154,24 +124,10 @@ impl Mesh {
 
         // TODO: make this a texture array ig? Ignores numbers for now (texture arrays are a thing!)
         let name = &texture.type_;
-        Mesh::ignore_uniform_error(
-            shader_program.set_int(format!("material.{}", name).as_str(), num as i32)
-        )?;
-        Mesh::ignore_uniform_error(
-            shader_program.set_bool(format!("material.has_{}", name).as_str(), true)
-        )?;
+        shader_program.set_int(format!("material.{}", name).as_str(), num as i32, true)?;
+        shader_program.set_bool(format!("material.has_{}", name).as_str(), true, true)?;
 
         Ok(())
-    }
-
-    // This is here to maintain speed and ergonomics when using Mesh, as not every shader uses
-    // every material uniform
-    fn ignore_uniform_error(err: Result<(), GlError>) -> Result<(), GlError> {
-        match err {
-            Ok(_) => Ok(()),
-            Err(GlError::UniformNotFound(_, _)) => Ok(()),
-            _ => err // Pass through
-        }
     }
 
     pub fn set_material(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
