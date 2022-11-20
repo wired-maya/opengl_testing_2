@@ -9,7 +9,8 @@ pub enum GlError{
     ShaderCompileError(ShaderCompileType, u32, String),
     IoError(io::Error),
     ImageError(image::ImageError),
-    ObjLoadError(tobj::LoadError)
+    ObjLoadError(tobj::LoadError),
+    UniformInvalidIndex(String, u32)
 }
 
 impl Display for GlError {
@@ -22,7 +23,10 @@ impl Display for GlError {
                 write!(f, "Shader '{}' with ID {} failed to compile:\n{}", type_, id, error),
             GlError::IoError(io_error) => write!(f, "{}", io_error),
             GlError::ImageError(img_error) => write!(f, "{}", img_error),
-            GlError::ObjLoadError(obj_err) => write!(f, "{}", obj_err)
+            GlError::ObjLoadError(obj_err) => write!(f, "{}", obj_err),
+            GlError::UniformInvalidIndex(ub_name, id) => {
+                write!(f, "Uniform block '{}' was not found in shader {}", ub_name, id)
+            }
         }
     }
 }

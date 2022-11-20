@@ -217,8 +217,20 @@ impl ShaderProgram {
         }
     }
 
-    pub fn get_id(&self) -> u32 {
-        return self.id;
+    pub fn bind_to_ubo(&self, name: &str) -> Result<(), GlError> {
+        let cstr = CString::new(name)?;
+
+        unsafe {
+            let uniform_block_index = gl::GetUniformBlockIndex(self.id, cstr.as_ptr());
+            
+            if uniform_block_index == gl::INVALID_INDEX {
+                return Err(GlError::UniformInvalidIndex(name.to_owned(), self.id));
+            }
+
+            gl::UniformBlockBinding(self.id, uniform_block_index, 0);
+        }
+
+        Ok(())
     }
 }
 

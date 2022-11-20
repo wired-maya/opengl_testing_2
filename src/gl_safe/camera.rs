@@ -103,7 +103,7 @@ impl Camera {
         }
     }
 
-    fn update_camera_vectors(&mut self) {
+    pub fn update_camera_vectors(&mut self) {
         let front = vec3(
             self.yaw.to_radians().cos() * self.pitch.to_radians().cos(),
             self.pitch.to_radians().sin(),

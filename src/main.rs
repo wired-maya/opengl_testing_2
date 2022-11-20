@@ -200,7 +200,7 @@ fn main() {
         &[&shader_program, &skybox_shader_program, &debug_shader_program, &light_shader_program],
         "Matrices",
         2 * std::mem::size_of::<Matrix4<f32>>() as u32
-    );
+    ).unwrap();
 
     let mut projection_transform = cgmath::perspective(
         Deg(45.0),
