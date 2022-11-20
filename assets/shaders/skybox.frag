@@ -8,7 +8,7 @@ struct Material {
     float shininess;
 };
 
-layout (location = 0) out vec4 FragColor;
+layout (location = 2) out vec4 FragColor;
 layout (location = 1) out vec4 BrightColor;
 
 in vec3 TexCoords;

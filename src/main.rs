@@ -14,7 +14,7 @@ use self::rand::Rng;
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
 const MSAA: u32 = 4;
-const SHADOW_RES: u32 = 1024;
+const _SHADOW_RES: u32 = 1024;
 
 fn main() {
     let mut width = WIDTH;
@@ -263,9 +263,9 @@ fn main() {
                 // Send some sample lights to lighting pass
                 lighting_pass_shader_program.use_program();
                 for (i, pos) in light_positions.iter().enumerate() {
-                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), pos, false);
-                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Color", i).as_str(), &light_colors[i], false);
-                    lighting_pass_shader_program.set_float(format!("lights[{}].Radius", i).as_str(), light_radii[i], false);
+                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), pos, false).unwrap();
+                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Color", i).as_str(), &light_colors[i], false).unwrap();
+                    lighting_pass_shader_program.set_float(format!("lights[{}].Radius", i).as_str(), light_radii[i], false).unwrap();
                 }
 
                 // Already has a use program
@@ -283,7 +283,7 @@ fn main() {
 
                 // Set exposure
                 framebuffer_shader_program.use_program();
-                framebuffer_shader_program.set_float("exposure", 0.2, false);
+                framebuffer_shader_program.set_float("exposure", 0.2, false).unwrap();
 
                 // Set light colour
                 // TODO: this should be done based on what light is currently rendering instead
@@ -345,17 +345,17 @@ fn main() {
 
             shader_program.use_program();
             shader_program.set_vector_3("viewPos", &camera.position.to_vec(), false);
-            planet_model.draw(&shader_program);
+            planet_model.draw(&shader_program).unwrap();
 
             if show_debug {
                 debug_shader_program.use_program();
-                planet_model.draw(&debug_shader_program);
+                planet_model.draw(&debug_shader_program).unwrap();
             }
 
             // END - DRAW MODELS HERE
 
             // Drawn last so it only is drawn over unused pixels, improving performance
-            // skybox.draw(&skybox_shader_program);
+            skybox.draw(&skybox_shader_program).unwrap();
 
             // Draw framebuffer
             framebuffer.draw(
@@ -460,7 +460,7 @@ fn process_events(
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
             glfw::WindowEvent::Key(Key::R, _, Action::Press, _) => {
                 for i in 0..shader_programs.len() {
-                    shader_programs[i].reload();
+                    shader_programs[i].reload().unwrap();
                 }
 
                 *should_resend_data = true;
@@ -493,9 +493,7 @@ fn process_events(
                     500.0
                 );
 
-                unsafe {
-                    uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
-                }
+                uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
             }
             _ => {}
         }

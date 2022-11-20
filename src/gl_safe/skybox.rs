@@ -6,7 +6,7 @@ use super::{Texture, Mesh, Vertex, ShaderProgram, GlError};
 pub struct Skybox {
     pub mesh: Mesh
 }
-// TODO: Currently not working
+
 impl Skybox {
     pub fn new(faces: Vec<String>) -> Result<Skybox, GlError> {
         // Cube definition
@@ -88,6 +88,7 @@ impl Skybox {
             // Change depth func so test values pass when they are equal to the buffer's content
             gl::DepthFunc(gl::LEQUAL);
 
+            shader_program.use_program();
             self.mesh.draw(shader_program)?;
 
             gl::DepthFunc(gl::LESS);
