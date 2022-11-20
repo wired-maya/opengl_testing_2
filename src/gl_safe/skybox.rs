@@ -6,7 +6,7 @@ use super::{Texture, Mesh, Vertex, ShaderProgram, GlError};
 pub struct Skybox {
     pub mesh: Mesh
 }
-
+// TODO: Currently not working
 impl Skybox {
     pub fn new(faces: Vec<String>) -> Result<Skybox, GlError> {
         // Cube definition

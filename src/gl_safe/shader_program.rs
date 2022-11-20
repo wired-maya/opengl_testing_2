@@ -166,6 +166,8 @@ impl ShaderProgram {
         unsafe { gl::UseProgram(self.id) } // Cannot error as program always exists by this point
     }
 
+    // TODO: add ignore_not_found parameter to optimize by reducing checks (if ignore is set to true, there is one
+    // TODO: check at the if in this function, rather than the one check here and the check in Mesh)
     pub unsafe fn set_uniform<F: Fn(i32)>(&self, name: &str, uniform_func: F) -> Result<(), GlError> {
         let cstr = CString::new(name)?;
         let location = gl::GetUniformLocation(self.id, cstr.as_ptr());
