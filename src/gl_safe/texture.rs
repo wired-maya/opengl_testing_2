@@ -1,11 +1,10 @@
-use std::cell::RefCell;
-
-use super::GlError;
+use std::rc::Rc;
+use super::{GlError, Framebuffer};
 use image::DynamicImage::*;
 
 pub struct Texture {
-    pub id: RefCell<u32>, // TODO: Refcell until framebuffer is rewritten, so it can mutate id
-    pub target: gl::types::GLenum, // TODO: also needs to become private after framebuffer rewrite
+    id: u32,
+    target: gl::types::GLenum,
     pub type_: String,
     pub path: String
 }
@@ -44,15 +43,15 @@ impl Texture {
 
     pub fn from_file_2d(path: &str, type_: &str) -> Result<Texture, GlError> {
         let mut texture = Texture {
-            id: RefCell::new(0),
+            id: 0,
             target: gl::TEXTURE_2D,
             type_: type_.to_owned(),
             path: path.to_owned()
         };
     
         unsafe {
-            gl::GenTextures(1, texture.id.get_mut());
-            gl::BindTexture(texture.target, *texture.id.borrow());
+            gl::GenTextures(1, &mut texture.id);
+            gl::BindTexture(texture.target, texture.id);
             
             Texture::from_file_to_bound(path, texture.target)?;
             
@@ -68,15 +67,15 @@ impl Texture {
 
     pub fn from_file_cubemap(faces: Vec<String>) -> Result<Texture, GlError> {
         let mut texture = Texture {
-            id: RefCell::new(0),
+            id: 0,
             target: gl::TEXTURE_CUBE_MAP,
             type_: "diffuse".to_owned(),
             path: "".to_owned()
         };
 
         unsafe {
-            gl::GenTextures(1, texture.id.get_mut());
-            gl::BindTexture(texture.target, *texture.id.borrow());
+            gl::GenTextures(1, &mut texture.id);
+            gl::BindTexture(texture.target, texture.id);
 
             for (i, face) in faces.iter().enumerate() {
                 Texture::from_file_to_bound(face, gl::TEXTURE_CUBE_MAP_POSITIVE_X + i as u32)?;
@@ -92,23 +91,65 @@ impl Texture {
         Ok(texture)
     }
 
+    // Doesn't need GlError since this only generates gl callback errors
+    // Assumes framebuffer is bound
+    pub fn for_framebuffer(framebuffer: &mut Framebuffer, type_: &str) -> (u32, Rc<Texture>) {
+        let mut texture = Texture {
+            id: 0,
+            type_: type_.into(),
+            path: "".into(),
+            target: gl::TEXTURE_2D
+        };
+
+        // Get number of new texture
+        let num: u32 = framebuffer.len() as u32;
+
+        unsafe {
+            gl::GenTextures(1, &mut texture.id);
+            gl::BindTexture(texture.target, texture.id);
+
+            // Create empty texture
+            gl::TexImage2D(
+                texture.target,
+                0,
+                gl::RGBA16F as i32,
+                framebuffer.width,
+                framebuffer.height,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                std::ptr::null()
+            );
+
+            // Nearest just for simplicity
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+
+            // Bind to framebuffer
+            gl::BindTexture(texture.target, 0);
+            gl::FramebufferTexture(
+                gl::FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT0 + num,
+                texture.id,
+                0
+            );
+        }
+
+        (gl::COLOR_ATTACHMENT0 + num, Rc::new(texture))
+    }
+
     pub fn ready_texture(&self, num: u32) {
         unsafe {
             gl::ActiveTexture(gl::TEXTURE0 + num);
-            gl::BindTexture(self.target, *self.id.borrow());
+            gl::BindTexture(self.target, self.id);
         }
-    }
-
-    // TODO: Temp until framebuffer is rewritten
-    pub fn set_id(&self, id: u32) {
-        *self.id.borrow_mut() = id;
     }
 }
 
 impl Drop for Texture {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteTextures(1, &*self.id.borrow());
+            gl::DeleteTextures(1, &self.id);
         }
     }
 }

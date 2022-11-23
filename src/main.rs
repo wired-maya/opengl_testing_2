@@ -175,7 +175,7 @@ fn main() {
         }
     }
 
-    let mut framebuffer = Framebuffer::new(
+    let mut framebuffer = RenderPipeline::new(
         width,
         height,
         MSAA,
@@ -430,7 +430,7 @@ fn process_events(
     camera: &mut Camera,
     width: &mut u32,
     height: &mut u32,
-    framebuffer: &mut Framebuffer,
+    framebuffer: &mut RenderPipeline,
     uniform_buffer: &UniformBuffer,
     shader_programs: &mut [&mut ShaderProgram],
     should_resend_data: &mut bool,

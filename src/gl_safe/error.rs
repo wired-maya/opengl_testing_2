@@ -10,7 +10,8 @@ pub enum GlError{
     IoError(io::Error),
     ImageError(image::ImageError),
     ObjLoadError(tobj::LoadError),
-    UniformInvalidIndex(String, u32)
+    UniformInvalidIndex(String, u32),
+    FramebufferNotComplete(u32)
 }
 
 impl Display for GlError {
@@ -26,6 +27,9 @@ impl Display for GlError {
             GlError::ObjLoadError(obj_err) => write!(f, "{}", obj_err),
             GlError::UniformInvalidIndex(ub_name, id) => {
                 write!(f, "Uniform block '{}' was not found in shader {}", ub_name, id)
+            },
+            GlError::FramebufferNotComplete(id) => {
+                write!(f, "Framebuffer '{}' is not complete!", id)
             }
         }
     }

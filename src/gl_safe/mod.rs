@@ -1,6 +1,6 @@
 mod shader_program;
 mod camera;
-mod framebuffer;
+mod render_pipeline;
 mod light;
 mod mesh;
 mod model;
@@ -12,10 +12,12 @@ mod vert_array;
 mod buffer_obj;
 mod texture;
 mod vertex;
+mod framebuffer;
+mod render_buffer;
 
 pub use shader_program::*;
 pub use camera::*;
-pub use framebuffer::*;
+pub use render_pipeline::*;
 pub use light::*;
 pub use mesh::*;
 pub use model::*;
@@ -27,3 +29,5 @@ pub use vert_array::*;
 pub use buffer_obj::*;
 pub use texture::*;
 pub use vertex::*;
+pub use framebuffer::*;
+pub use render_buffer::*;
