@@ -177,9 +177,7 @@ fn main() {
 
     let mut framebuffer = RenderPipeline::new(
         width,
-        height,
-        MSAA,
-        &light_positions
+        height
     );
 
     let planet_model = Model::new(
@@ -249,7 +247,7 @@ fn main() {
         if should_resend_data {
             unsafe {
                 // Set this as the rendered framebuffer, it then handles switching
-                framebuffer.bind_buffer();
+                framebuffer.bind();
 
                 // Use needs to be called before setting these even if you have the location
                 // shader_program.use_program();
@@ -341,7 +339,7 @@ fn main() {
             // backpack_model.draw(&cube_depth_shader_program);
 
             // Draw to regular framebuffer for an actual scene
-            framebuffer.bind_buffer();
+            framebuffer.bind();
 
             shader_program.use_program();
             shader_program.set_vector_3("viewPos", &camera.position.to_vec(), false);
