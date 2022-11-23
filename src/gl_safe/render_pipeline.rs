@@ -25,6 +25,14 @@ pub struct RenderPipeline {
 // TODO: with the main render pipeline struct handling resizing, sending data, hot recompiling
 // TODO: shaders, etc, maybe make framebuffer struct a generic struct you can spin the rest
 // TODO: off of.
+// TODO: Render pipeline could also just draw to provided framebuffer instead of having it hard-coded to
+// TODO: allow for more flexibility, as well as the default framebuffer/main rendering pipeline being
+// TODO: where everything is drawn to. Could have render pipeline have its own final quad so default
+// TODO: pipeline is static? Either way, needs to have functions to draw to selected quad or framebuffer
+// TODO: to allow for the widget system to work with this. Might be able to have the renderpipeline trait
+// TODO: have a required "draw" function that returns a ref to the final framebuffer in the chain,
+// TODO: then have default implemented functions that can draw to x framebuffer/quad/etc. that can be
+// TODO: overriden.
 impl RenderPipeline {
     pub fn new(width: u32, height: u32, msaa: u32, light_positions: &Vec<Vector3<f32>>) -> RenderPipeline {
         // TODO: somehow make g_buffer multisampled?
