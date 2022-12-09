@@ -9,8 +9,8 @@ pub struct Framebuffer {
     textures: Vec<Rc<Texture>>,
     draw_buffers: Vec<gl::types::GLenum>,
     quad: Mesh,
-    pub width: i32,
-    pub height: i32,
+    width: i32,
+    height: i32,
     pub render_buffer: Option<RenderBuffer>
 }
 
@@ -136,6 +136,25 @@ impl Framebuffer {
 
         Ok(())
     }
+
+    pub fn get_size(&self) -> (i32, i32) {
+        return (self.width, self.height);
+    }
+
+    pub fn set_size(&mut self, width: i32, height: i32) {
+        self.width = width;
+        self.height = height;
+
+        unsafe {
+            for texture in self.textures.iter() {
+                texture.resize(width, height);
+            }
+
+            if let Some(rbo) = &self.render_buffer {
+                rbo.resize(width, height);
+            }
+        }
+    }
 }
 
 impl Drop for Framebuffer {
@@ -148,29 +167,41 @@ impl Drop for Framebuffer {
 
 // TODO: move to its own file
 // TODO: see if you can make this all static
+// TODO: add options for what you want to clear, so it can be used standalone as well
+// TODO: see if there is a way to make this part of the normal framebuffer class, actually
 pub struct DefaultFramebuffer {
-    pub quad: Mesh
+    pub quad: Mesh,
+    width: i32,
+    height: i32
 }
 
 impl DefaultFramebuffer {
-    pub fn new() -> DefaultFramebuffer {
+    pub fn new(width: i32, height: i32) -> DefaultFramebuffer {
         // Create quad mesh for framebuffer
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
         let quad = create_quad(model_transforms);
 
-        DefaultFramebuffer { quad }
+        DefaultFramebuffer { quad, width, height }
     }
 
-    pub fn bind() {
+    pub fn bind(&self) {
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+            gl::Viewport(0, 0, self.width, self.height);
+            // gl::ClearColor(1.0, 0.0, 1.0, 1.0);
+            // gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
     }
 
+    // Expects depth testing to be off
     pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
-        DefaultFramebuffer::bind();
-
+        self.bind();
         shader_program.use_program();
         self.quad.draw(shader_program)
+    }
+
+    pub fn resize(&mut self, width: i32, height: i32) {
+        self.width = width;
+        self.height = height;
     }
 }

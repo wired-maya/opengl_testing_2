@@ -11,6 +11,8 @@ impl RenderBuffer {
             id: 0
         };
 
+        let (width, height) = framebuffer.get_size();
+
         unsafe {
             gl::GenRenderbuffers(1, &mut renderbuffer.id);
             gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer.id);
@@ -18,8 +20,8 @@ impl RenderBuffer {
             gl::RenderbufferStorage(
                 gl::RENDERBUFFER,
                 gl::DEPTH24_STENCIL8,
-                framebuffer.width,
-                framebuffer.height
+                width,
+                height
             );
             
             gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
@@ -33,6 +35,17 @@ impl RenderBuffer {
         }
 
         framebuffer.render_buffer = Some(renderbuffer);
+    }
+
+    pub unsafe fn resize(&self, width: i32, height: i32) {
+        gl::BindRenderbuffer(gl::RENDERBUFFER, self.id);
+        gl::RenderbufferStorage(
+            gl::RENDERBUFFER,
+            gl::DEPTH24_STENCIL8,
+            width,
+            height
+        );
+        gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
     }
 }
 

@@ -103,6 +103,7 @@ impl Texture {
 
         // Get number of new texture
         let num: u32 = framebuffer.len() as u32;
+        let (width, height) = framebuffer.get_size();
 
         unsafe {
             gl::GenTextures(1, &mut texture.id);
@@ -113,8 +114,8 @@ impl Texture {
                 texture.target,
                 0,
                 gl::RGBA16F as i32,
-                framebuffer.width,
-                framebuffer.height,
+                width,
+                height,
                 0,
                 gl::RGBA,
                 gl::UNSIGNED_BYTE,
@@ -143,6 +144,25 @@ impl Texture {
             gl::ActiveTexture(gl::TEXTURE0 + num);
             gl::BindTexture(self.target, self.id);
         }
+    }
+
+    // TODO: Make resize inline as well since it will play during animations of 3D scenes
+    // Unsafe because you need to know what you are doing so that you can resize without a mutable borrow
+    pub unsafe fn resize(&self, width: i32, height: i32) {
+        gl::BindTexture(self.target, self.id);
+        // Resizes texture on same ID
+        gl::TexImage2D(
+            self.target,
+            0,
+            gl::RGBA16F as i32,
+            width,
+            height,
+            0,
+            gl::RGBA,
+            gl::UNSIGNED_BYTE,
+            std::ptr::null()
+        );
+        gl::BindTexture(self.target, 0);
     }
 }
 

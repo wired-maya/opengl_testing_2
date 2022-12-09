@@ -11,21 +11,18 @@ use gl_safe::*;
 use cgmath::{prelude::*, vec3,  Deg, Point3, Matrix4, Vector3};
 use self::rand::Rng;
 
-const WIDTH: u32 = 800;
-const HEIGHT: u32 = 600;
+const WIDTH: i32 = 800;
+const HEIGHT: i32 = 600;
 const MSAA: u32 = 4;
 const _SHADOW_RES: u32 = 1024;
 
 fn main() {
-    let mut width = WIDTH;
-    let mut height = HEIGHT;
-
     // Timing
     let mut delta_time: f32; // Time between current frame and last frame
     let mut last_frame: f32 = 0.0;
 
-    let mut last_x = width as f32 / 2.0;
-    let mut last_y = height as f32 / 2.0;
+    let mut last_x = WIDTH as f32 / 2.0;
+    let mut last_y = HEIGHT as f32 / 2.0;
 
     let mut first_mouse = true;
 
@@ -39,8 +36,8 @@ fn main() {
     #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
     
     let (mut window, events) = glfw.create_window(
-        width,
-        height,
+        WIDTH as u32,
+        HEIGHT as u32,
         "LearnOpenGL",
         glfw::WindowMode::Windowed
     ).expect("Failed to create GLFW window");
@@ -175,11 +172,6 @@ fn main() {
         }
     }
 
-    let mut framebuffer = RenderPipeline::new(
-        width,
-        height
-    );
-
     let planet_model = Model::new(
         "assets/models/planet/planet.obj",
         planet_transforms
@@ -200,12 +192,27 @@ fn main() {
         2 * std::mem::size_of::<Matrix4<f32>>() as u32
     ).unwrap();
 
+    let mut framebuffer = View3DRenderPipeline::new(
+        WIDTH,
+        HEIGHT,
+        &shader_program,
+        &lighting_pass_shader_program,
+        &blur_shader_program,
+        vec![&planet_model],
+        &camera,
+        skybox,
+        &skybox_shader_program,
+        &uniform_buffer
+    );
+
     let mut projection_transform = cgmath::perspective(
         Deg(45.0),
-        width as f32 / height as f32,
+        WIDTH as f32 / HEIGHT as f32,
         0.1,
         500.0
     );
+
+    let mut default_framebuffer = DefaultFramebuffer::new(WIDTH, HEIGHT);
 
     let mut should_resend_data = true;
     let mut show_debug = false;
@@ -220,27 +227,26 @@ fn main() {
             &mut window,
             &events,
             &delta_time,
-            &mut last_x,
-            &mut last_y,
-            &mut first_mouse,
-            &mut camera,
-            &mut width,
-            &mut height,
+            // &mut last_x,
+            // &mut last_y,
+            // &mut first_mouse,
+            // &mut camera,
             &mut framebuffer,
-            &uniform_buffer,
-            &mut [
-                &mut shader_program,
-                &mut framebuffer_shader_program,
-                &mut skybox_shader_program,
-                &mut depth_shader_program,
-                &mut cube_depth_shader_program,
-                &mut debug_shader_program,
-                &mut blur_shader_program,
-                &mut light_shader_program,
-                &mut lighting_pass_shader_program
-            ],
-            &mut should_resend_data,
-            &mut projection_transform,
+            &mut default_framebuffer,
+            // &uniform_buffer,
+            // &mut [
+            //     &mut shader_program,
+            //     &mut framebuffer_shader_program,
+            //     &mut skybox_shader_program,
+            //     &mut depth_shader_program,
+            //     &mut cube_depth_shader_program,
+            //     &mut debug_shader_program,
+            //     &mut blur_shader_program,
+            //     &mut light_shader_program,
+            //     &mut lighting_pass_shader_program
+            // ],
+            // &mut should_resend_data,
+            // &mut projection_transform,
             &mut show_debug
         );
 
@@ -292,78 +298,12 @@ fn main() {
             }
         }
 
-        unsafe {
-            let view_transform = camera.get_view_matrix();
+        default_framebuffer.quad.textures.clear();
+        framebuffer.draw_to_mesh(&mut default_framebuffer.quad).unwrap();
+        default_framebuffer.draw(&framebuffer_shader_program).unwrap();
 
-            uniform_buffer.write_data::<Matrix4<f32>>(
-                view_transform.as_ptr() as *const gl::types::GLvoid,
-                std::mem::size_of::<Matrix4<f32>>() as u32
-            );
-
-            // START - DRAW MODELS HERE
-
-            // // Fix peter panning
-            // gl::CullFace(gl::FRONT);
-
-            // // Draw to depth buffer for lighting
-            // dir_light.bind_buffer();
-
-            // depth_shader_program.use_program();
-            // planet_model.draw(&depth_shader_program);
-            // rock_model.draw(&depth_shader_program);
-            // wall_quad.draw(&depth_shader_program);
-            // toy_quad.draw(&depth_shader_program);
-
-            // // Reset
-            // gl::CullFace(gl::BACK);
-
-            // // Floor, doesn't cast shadows so don't cull front faces
-            // backpack_model.draw(&depth_shader_program);
-
-            // // Fix peter panning
-            // gl::CullFace(gl::FRONT);
-
-            // // Draw to depth buffer for lighting
-            // point_light.bind_buffer();
-
-            // cube_depth_shader_program.use_program();
-            // planet_model.draw(&cube_depth_shader_program);
-            // rock_model.draw(&cube_depth_shader_program);
-            // wall_quad.draw(&cube_depth_shader_program);
-            // toy_quad.draw(&cube_depth_shader_program);
-
-            // // Reset
-            // gl::CullFace(gl::BACK);
-
-            // // Floor, doesn't cast shadows so don't cull front faces
-            // backpack_model.draw(&cube_depth_shader_program);
-
-            // Draw to regular framebuffer for an actual scene
-            framebuffer.bind();
-
-            shader_program.use_program();
-            shader_program.set_vector_3("viewPos", &camera.position.to_vec(), false);
-            planet_model.draw(&shader_program).unwrap();
-
-            if show_debug {
-                debug_shader_program.use_program();
-                planet_model.draw(&debug_shader_program).unwrap();
-            }
-
-            // END - DRAW MODELS HERE
-
-            // Drawn last so it only is drawn over unused pixels, improving performance
-            skybox.draw(&skybox_shader_program).unwrap();
-
-            // Draw framebuffer
-            framebuffer.draw(
-                &framebuffer_shader_program,
-                &blur_shader_program,
-                &lighting_pass_shader_program
-            );
-        }
-
-        window.swap_buffers();
+        // You can get a window pointer, you might be able to use that to have multithreading
+        window.swap_buffers(); // Can be called from separate threads apparently?
         glfw.poll_events();
     }
 
@@ -422,91 +362,76 @@ fn process_events(
     window: &mut glfw::Window,
     events: &Receiver<(f64, glfw::WindowEvent)>,
     delta_time: &f32,
-    last_x: &mut f32,
-    last_y: &mut f32,
-    first_mouse: &mut bool,
-    camera: &mut Camera,
-    width: &mut u32,
-    height: &mut u32,
-    framebuffer: &mut RenderPipeline,
-    uniform_buffer: &UniformBuffer,
-    shader_programs: &mut [&mut ShaderProgram],
-    should_resend_data: &mut bool,
-    projection_transform: &mut Matrix4<f32>,
+    // last_x: &mut f32,
+    // last_y: &mut f32,
+    // first_mouse: &mut bool,
+    // camera: &Camera,
+    render_pipeline: &mut View3DRenderPipeline,
+    default_framebuffer: &mut DefaultFramebuffer,
+    // uniform_buffer: &UniformBuffer,
+    // shader_programs: &mut [&mut ShaderProgram],
+    // should_resend_data: &mut bool,
+    // projection_transform: &mut Matrix4<f32>,
     show_debug: &mut bool
 ) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
-            glfw::WindowEvent::FramebufferSize(window_width, window_height) => {
-                *width = window_width as u32;
-                *height = window_height as u32;
-
-                unsafe {
-                    gl::Viewport(0, 0, window_width, window_height);
-                    *projection_transform = cgmath::perspective(
-                        Deg(camera.zoom),
-                        *width as f32 / *height as f32,
-                        0.1,
-                        500.0
-                    );
-                    
-                    uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
-
-                    framebuffer.resize(*width, *height);
-                }
+            glfw::WindowEvent::FramebufferSize(width, height) => {
+                render_pipeline.set_size(width, height).unwrap();
+                default_framebuffer.resize(width, height);
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
             glfw::WindowEvent::Key(Key::R, _, Action::Press, _) => {
-                for i in 0..shader_programs.len() {
-                    shader_programs[i].reload().unwrap();
-                }
+                // for i in 0..shader_programs.len() {
+                //     shader_programs[i].reload().unwrap();
+                // }
 
-                *should_resend_data = true;
+                // *should_resend_data = true;
             }
             glfw::WindowEvent::Key(Key::E, _, Action::Press, _) => {
                 *show_debug = !*show_debug;
             }
             glfw::WindowEvent::CursorPos(x, y) => {
-                if *first_mouse {
-                    *last_x = x as f32;
-                    *last_y = y as f32;
-                    *first_mouse = false;
-                }
+                // if *first_mouse {
+                //     *last_x = x as f32;
+                //     *last_y = y as f32;
+                //     *first_mouse = false;
+                // }
 
-                let x_offset = x as f32 - *last_x;
-                let y_offset = *last_y - y as f32;
+                // let x_offset = x as f32 - *last_x;
+                // let y_offset = *last_y - y as f32;
 
-                *last_x = x as f32;
-                *last_y = y as f32;
+                // *last_x = x as f32;
+                // *last_y = y as f32;
 
-                camera.process_mouse_movement(x_offset, y_offset, true);
+                // camera.process_mouse_movement(x_offset, y_offset, true);
             }
             glfw::WindowEvent::Scroll(_x_offset, y_offset) => {
-                camera.process_mouse_scroll(y_offset as f32);
+                // camera.process_mouse_scroll(y_offset as f32);
 
-                *projection_transform = cgmath::perspective(
-                    Deg(camera.zoom),
-                    *width as f32 / *height as f32,
-                    0.1,
-                    500.0
-                );
+                // *projection_transform = cgmath::perspective(
+                //     Deg(camera.zoom),
+                //     *width as f32 / *height as f32,
+                //     0.1,
+                //     500.0
+                // );
 
-                uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
+                // uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
             }
             _ => {}
         }
     }
 
-    if window.get_key(Key::W) == Action::Press {
-        camera.process_keyboard(CameraMovement::FORWARD, *delta_time);
-    }
-    if window.get_key(Key::S) == Action::Press {
-        camera.process_keyboard(CameraMovement::BACKWARD, *delta_time);
-    }
-    if window.get_key(Key::A) == Action::Press {
-        camera.process_keyboard(CameraMovement::LEFT, *delta_time);
-    }
-    if window.get_key(Key::D) == Action::Press {
-        camera.process_keyboard(CameraMovement::RIGHT, *delta_time);
-    }
+    // if window.get_key(Key::W) == Action::Press {
+    //     camera.process_keyboard(CameraMovement::FORWARD, *delta_time);
+    // }
+    // if window.get_key(Key::S) == Action::Press {
+    //     camera.process_keyboard(CameraMovement::BACKWARD, *delta_time);
+    // }
+    // if window.get_key(Key::A) == Action::Press {
+    //     camera.process_keyboard(CameraMovement::LEFT, *delta_time);
+    // }
+    // if window.get_key(Key::D) == Action::Press {
+    //     camera.process_keyboard(CameraMovement::RIGHT, *delta_time);
+    // }
 }

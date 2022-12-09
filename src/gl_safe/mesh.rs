@@ -7,7 +7,7 @@ use super::{ShaderProgram, GlError, VertexArray, Buffer, Texture, Vertex};
 // TODO: sort any meshes with alpha values and render them farthest to closest w/o depth buffer
 
 pub struct Mesh {
-    pub textures: Vec<Rc<Texture>>,
+    pub textures: Vec<Rc<Texture>>, // TODO: Use data types with less overhead, like array instead of Vec<> (though do research if indexing is really slower)
     pub vao: VertexArray,
     pub vbo: Buffer<Vertex>,
     pub ebo: Buffer<u32>,
@@ -133,13 +133,15 @@ impl Mesh {
     pub fn set_material(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
         Mesh::reset_material(shader_program)?;
 
+        // TODO: Use a while loop here with an explicit iterator to avoid resizing i, benchmark and test if it's more optimized
         for (i, texture) in self.textures.iter().enumerate() {
-            Mesh::set_texture(texture, shader_program, i as u32)?; // TODO: resizing is expensive, see if there is a way to not do that
+            Mesh::set_texture(texture, shader_program, i as u32)?;
         }
 
         Ok(())
     }
 
+    // TODO: supposedly inline functions are faster, draw calls should probably all be like this?
     pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
         self.set_material(shader_program)?;
         self.vao.draw_elements(self.ebo.len() as i32, self.tbo.len() as i32);
