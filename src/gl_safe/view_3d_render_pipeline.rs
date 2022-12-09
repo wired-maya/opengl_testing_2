@@ -21,7 +21,7 @@ pub struct View3DRenderPipeline<'a> {
     width: i32,
     height: i32,
     models: Vec<&'a Model>,
-    camera: &'a Camera,
+    pub camera: Camera,
     skybox: Skybox,
     skybox_shader_program: &'a ShaderProgram,
     uniform_buffer: &'a UniformBuffer
@@ -35,7 +35,7 @@ impl<'a> View3DRenderPipeline<'a> {
         lighting_pass_shader_program: &'a ShaderProgram,
         blur_shader_program: &'a ShaderProgram,
         models: Vec<&'a Model>,
-        camera: &'a Camera,
+        camera: Camera,
         skybox: Skybox,
         skybox_shader_program: &'a ShaderProgram,
         uniform_buffer: &'a UniformBuffer

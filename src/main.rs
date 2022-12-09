@@ -199,7 +199,7 @@ fn main() {
         &lighting_pass_shader_program,
         &blur_shader_program,
         vec![&planet_model],
-        &camera,
+        camera,
         skybox,
         &skybox_shader_program,
         &uniform_buffer
@@ -227,9 +227,9 @@ fn main() {
             &mut window,
             &events,
             &delta_time,
-            // &mut last_x,
-            // &mut last_y,
-            // &mut first_mouse,
+            &mut last_x,
+            &mut last_y,
+            &mut first_mouse,
             // &mut camera,
             &mut framebuffer,
             &mut default_framebuffer,
@@ -362,9 +362,9 @@ fn process_events(
     window: &mut glfw::Window,
     events: &Receiver<(f64, glfw::WindowEvent)>,
     delta_time: &f32,
-    // last_x: &mut f32,
-    // last_y: &mut f32,
-    // first_mouse: &mut bool,
+    last_x: &mut f32,
+    last_y: &mut f32,
+    first_mouse: &mut bool,
     // camera: &Camera,
     render_pipeline: &mut View3DRenderPipeline,
     default_framebuffer: &mut DefaultFramebuffer,
@@ -381,57 +381,38 @@ fn process_events(
                 default_framebuffer.resize(width, height);
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
-            glfw::WindowEvent::Key(Key::R, _, Action::Press, _) => {
-                // for i in 0..shader_programs.len() {
-                //     shader_programs[i].reload().unwrap();
-                // }
-
-                // *should_resend_data = true;
-            }
             glfw::WindowEvent::Key(Key::E, _, Action::Press, _) => {
                 *show_debug = !*show_debug;
             }
             glfw::WindowEvent::CursorPos(x, y) => {
-                // if *first_mouse {
-                //     *last_x = x as f32;
-                //     *last_y = y as f32;
-                //     *first_mouse = false;
-                // }
+                if *first_mouse {
+                    *last_x = x as f32;
+                    *last_y = y as f32;
+                    *first_mouse = false;
+                }
 
-                // let x_offset = x as f32 - *last_x;
-                // let y_offset = *last_y - y as f32;
+                let x_offset = x as f32 - *last_x;
+                let y_offset = *last_y - y as f32;
 
-                // *last_x = x as f32;
-                // *last_y = y as f32;
+                *last_x = x as f32;
+                *last_y = y as f32;
 
-                // camera.process_mouse_movement(x_offset, y_offset, true);
-            }
-            glfw::WindowEvent::Scroll(_x_offset, y_offset) => {
-                // camera.process_mouse_scroll(y_offset as f32);
-
-                // *projection_transform = cgmath::perspective(
-                //     Deg(camera.zoom),
-                //     *width as f32 / *height as f32,
-                //     0.1,
-                //     500.0
-                // );
-
-                // uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
+                render_pipeline.camera.process_mouse_movement(x_offset, y_offset, true);
             }
             _ => {}
         }
     }
 
-    // if window.get_key(Key::W) == Action::Press {
-    //     camera.process_keyboard(CameraMovement::FORWARD, *delta_time);
-    // }
-    // if window.get_key(Key::S) == Action::Press {
-    //     camera.process_keyboard(CameraMovement::BACKWARD, *delta_time);
-    // }
-    // if window.get_key(Key::A) == Action::Press {
-    //     camera.process_keyboard(CameraMovement::LEFT, *delta_time);
-    // }
-    // if window.get_key(Key::D) == Action::Press {
-    //     camera.process_keyboard(CameraMovement::RIGHT, *delta_time);
-    // }
+    if window.get_key(Key::W) == Action::Press {
+        render_pipeline.camera.process_keyboard(CameraMovement::FORWARD, *delta_time);
+    }
+    if window.get_key(Key::S) == Action::Press {
+        render_pipeline.camera.process_keyboard(CameraMovement::BACKWARD, *delta_time);
+    }
+    if window.get_key(Key::A) == Action::Press {
+        render_pipeline.camera.process_keyboard(CameraMovement::LEFT, *delta_time);
+    }
+    if window.get_key(Key::D) == Action::Press {
+        render_pipeline.camera.process_keyboard(CameraMovement::RIGHT, *delta_time);
+    }
 }
