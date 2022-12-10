@@ -3,6 +3,8 @@ use cgmath::{Matrix, Matrix4};
 use super::{Model, Skybox, ShaderProgram, UniformBuffer, Camera, RenderPipeline, GlError};
 
 // TODO: add lights, need a light trait
+// TODO: Scene trait with a simple 3d scene struct, so you can have other scenes (like 2d scenes)
+// TODO: See if qsort is fast enough that  to allow me to sort models based on distance from the camera every frame, enabling transparency
 pub struct Scene {
     pub models: Vec<Model>,
     pub model_shader_program: ShaderProgram,

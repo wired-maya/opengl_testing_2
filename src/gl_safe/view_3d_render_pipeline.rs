@@ -1,14 +1,10 @@
 use std::rc::Rc;
-use cgmath::{Matrix4, Matrix, Deg};
-use super::{Framebuffer, ShaderProgram, GlError, RenderPipeline, Texture, Model, Camera, Skybox, UniformBuffer};
+use super::{Framebuffer, ShaderProgram, GlError, RenderPipeline, Texture};
 
 // TODO: Implement multisampling
-// TODO: refactor so models, camera, skybox, that kinda stuff, is held in a scene struct instead
-// TODO: Scene trait with a simple 3d scene struct, so you can have other scenes (like 2d scenes)
-// TODO: See if qsort is fast enough that  to allow me to sort models based on distance from the camera every frame, enabling transparency
 pub struct View3DRenderPipeline {
-    g_framebuffer: Framebuffer,
-    framebuffer: Framebuffer,
+    deffered_fb: Framebuffer,
+    lighting_pass_fb: Framebuffer,
     lighting_pass_shader_program: ShaderProgram,
     ping_framebuffer: Framebuffer,
     pong_framebuffer: Framebuffer,
@@ -27,7 +23,7 @@ impl View3DRenderPipeline {
         blur_shader_program: ShaderProgram,
     ) -> View3DRenderPipeline {
         // Create g_buffer for deferred shading
-        let g_framebuffer = Framebuffer::new(
+        let deffered_fb = Framebuffer::new(
             width,
             height,
             3,
@@ -35,7 +31,7 @@ impl View3DRenderPipeline {
         ).unwrap();
 
         // Create framebuffer with second colour attachment for lighting calculations and bloom
-        let mut framebuffer = Framebuffer::new(
+        let mut lighting_pass_fb = Framebuffer::new(
             width,
             height,
             2,
@@ -57,12 +53,12 @@ impl View3DRenderPipeline {
         ).unwrap();
 
         // Link all the framebuffers together
-        framebuffer.link_to_fb(&g_framebuffer);
+        lighting_pass_fb.link_to_fb(&deffered_fb);
         // The rest are linked in draw call
 
         View3DRenderPipeline {
-            g_framebuffer,
-            framebuffer,
+            deffered_fb,
+            lighting_pass_fb,
             lighting_pass_shader_program,
             ping_framebuffer,
             pong_framebuffer,
@@ -79,7 +75,7 @@ impl RenderPipeline for View3DRenderPipeline {
     fn bind(&self) {
         unsafe {
             gl::Viewport(0, 0, self.width as i32, self.height as i32);
-            self.g_framebuffer.bind();
+            self.deffered_fb.bind();
             gl::Clear(gl::DEPTH_BUFFER_BIT);
         }
     }
@@ -87,7 +83,7 @@ impl RenderPipeline for View3DRenderPipeline {
     fn draw(&mut self) -> Result<(), GlError> {
         unsafe { gl::Disable(gl::DEPTH_TEST) };
 
-        self.framebuffer.draw(&self.lighting_pass_shader_program)?;
+        self.lighting_pass_fb.draw(&self.lighting_pass_shader_program)?;
 
         // ------------------
         // Draw gaussian blur
@@ -105,7 +101,7 @@ impl RenderPipeline for View3DRenderPipeline {
 
             if self.ping_pong_first_iter {
                 self.ping_framebuffer.unlink();
-                self.ping_framebuffer.link_push(self.framebuffer.get(1).unwrap());
+                self.ping_framebuffer.link_push(self.lighting_pass_fb.get(1).unwrap());
                 self.ping_framebuffer.draw(&self.blur_shader_program)?;
             } else if self.ping_pong_hoz {
                 self.ping_framebuffer.unlink();
@@ -134,8 +130,8 @@ impl RenderPipeline for View3DRenderPipeline {
         self.height = height;
 
         // Resize FBs
-        self.g_framebuffer.set_size(width, height);
-        self.framebuffer.set_size(width, height);
+        self.deffered_fb.set_size(width, height);
+        self.lighting_pass_fb.set_size(width, height);
         self.ping_framebuffer.set_size(width, height);
         self.pong_framebuffer.set_size(width, height);
 
@@ -144,24 +140,24 @@ impl RenderPipeline for View3DRenderPipeline {
 
     fn get_link(&self) -> Result<Vec<Rc<Texture>>, GlError> {
         return Ok(
-            vec![self.framebuffer.get(0).unwrap(), self.ping_framebuffer.get(0).unwrap()]
+            vec![self.lighting_pass_fb.get(0).unwrap(), self.ping_framebuffer.get(0).unwrap()]
         );
     }
 
     fn link_to(&mut self, output: Vec<Rc<Texture>>) -> Result<(), GlError> {
         for texture in output {
-            self.g_framebuffer.link_push(texture);
+            self.deffered_fb.link_push(texture);
         }
 
         Ok(())
     }
 
     fn unlink(&mut self) {
-        self.g_framebuffer.unlink();
+        self.deffered_fb.unlink();
     }
 
     fn link_push(&mut self, texture: Rc<Texture>) -> Result<(), GlError> {
-        self.g_framebuffer.link_push(texture);
+        self.deffered_fb.link_push(texture);
 
         Ok(())
     }
