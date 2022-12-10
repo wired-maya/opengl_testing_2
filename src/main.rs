@@ -26,9 +26,6 @@ fn main() {
 
     let mut first_mouse = true;
 
-    let mut camera = Camera::default();
-    camera.position = Point3 { x: 0.0, y: 0.0, z: 1.0 };
-
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
@@ -80,7 +77,7 @@ fn main() {
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
     }
 
-    let mut shader_program = ShaderProgram::new(
+    let mut model_shader_program = ShaderProgram::new(
         "assets/shaders/shader.vert".to_string(),
         "assets/shaders/deffered_shader.frag".to_string(),
         // Some("assets/shaders/shader.geom".to_string())
@@ -187,29 +184,16 @@ fn main() {
     ]).unwrap();
 
     let uniform_buffer = UniformBuffer::new(
-        &[&shader_program, &skybox_shader_program, &debug_shader_program, &light_shader_program],
+        &[&model_shader_program, &skybox_shader_program, &debug_shader_program, &light_shader_program],
         "Matrices",
         2 * std::mem::size_of::<Matrix4<f32>>() as u32
     ).unwrap();
 
-    let mut framebuffer = View3DRenderPipeline::new(
+    let render_pipeline = View3DRenderPipeline::new(
         WIDTH,
         HEIGHT,
-        &shader_program,
-        &lighting_pass_shader_program,
-        &blur_shader_program,
-        vec![&planet_model],
-        camera,
-        skybox,
-        &skybox_shader_program,
-        &uniform_buffer
-    );
-
-    let projection_transform = cgmath::perspective(
-        Deg(45.0),
-        WIDTH as f32 / HEIGHT as f32,
-        0.1,
-        500.0
+        lighting_pass_shader_program,
+        blur_shader_program
     );
 
     let mut default_framebuffer = DefaultFramebuffer::new(WIDTH, HEIGHT);
@@ -217,7 +201,20 @@ fn main() {
     let mut should_resend_data = true;
     let mut show_debug = false;
 
-    default_framebuffer.quad.textures = framebuffer.get_link().unwrap();
+    default_framebuffer.quad.textures = render_pipeline.get_link().unwrap();
+
+    let mut camera = Camera::new(WIDTH as f32 / HEIGHT as f32, &uniform_buffer);
+    camera.position = Point3 { x: 0.0, y: 0.0, z: 1.0 };
+
+    let mut scene = Scene {
+        models: vec![planet_model],
+        model_shader_program,
+        skybox,
+        skybox_shader_program,
+        camera,
+        uniform_buffer,
+        render_pipeline: Box::new(render_pipeline),
+    };
 
     // Render loop, each iteration is a "frame"
     while !window.should_close() {
@@ -233,7 +230,7 @@ fn main() {
             &mut last_y,
             &mut first_mouse,
             // &mut camera,
-            &mut framebuffer,
+            &mut scene,
             &mut default_framebuffer,
             // &uniform_buffer,
             // &mut [
@@ -254,8 +251,6 @@ fn main() {
 
         if should_resend_data {
             unsafe {
-                // Set this as the rendered framebuffer, it then handles switching
-                framebuffer.bind();
 
                 // Use needs to be called before setting these even if you have the location
                 // shader_program.use_program();
@@ -267,12 +262,12 @@ fn main() {
                 // shader_program.set_float("pointLight.far_plane", 300.0); // Temp
 
                 // Send some sample lights to lighting pass
-                lighting_pass_shader_program.use_program();
-                for (i, pos) in light_positions.iter().enumerate() {
-                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), pos, false).unwrap();
-                    lighting_pass_shader_program.set_vector_3(format!("lights[{}].Color", i).as_str(), &light_colors[i], false).unwrap();
-                    lighting_pass_shader_program.set_float(format!("lights[{}].Radius", i).as_str(), light_radii[i], false).unwrap();
-                }
+                // lighting_pass_shader_program.use_program();
+                // for (i, pos) in light_positions.iter().enumerate() {
+                //     lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), pos, false).unwrap();
+                //     lighting_pass_shader_program.set_vector_3(format!("lights[{}].Color", i).as_str(), &light_colors[i], false).unwrap();
+                //     lighting_pass_shader_program.set_float(format!("lights[{}].Radius", i).as_str(), light_radii[i], false).unwrap();
+                // }
 
                 // Already has a use program
                 // TODO: simple rule should be to call use program before you pass it anywhere,
@@ -283,9 +278,6 @@ fn main() {
                 // dir_light.configure_shader_and_matrices(&shader_program);
 
                 // point_light.configure_shader_and_matrices(&cube_depth_shader_program);
-
-                // Set projection for all shaders that require it
-                uniform_buffer.write_data::<Matrix4<f32>>(projection_transform.as_ptr() as *const gl::types::GLvoid, 0);
 
                 // Set exposure
                 framebuffer_shader_program.use_program();
@@ -300,7 +292,7 @@ fn main() {
             }
         }
 
-        framebuffer.draw().unwrap();
+        scene.draw().unwrap();
         default_framebuffer.draw(&framebuffer_shader_program).unwrap();
 
         // You can get a window pointer, you might be able to use that to have multithreading
@@ -366,8 +358,7 @@ fn process_events(
     last_x: &mut f32,
     last_y: &mut f32,
     first_mouse: &mut bool,
-    // camera: &Camera,
-    render_pipeline: &mut View3DRenderPipeline,
+    scene: &mut Scene,
     default_framebuffer: &mut DefaultFramebuffer,
     // uniform_buffer: &UniformBuffer,
     // shader_programs: &mut [&mut ShaderProgram],
@@ -378,8 +369,9 @@ fn process_events(
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
-                render_pipeline.set_size(width, height).unwrap();
+                scene.render_pipeline.set_size(width, height).unwrap();
                 default_framebuffer.resize(width, height);
+                scene.camera.resize(width as f32 / height as f32, &scene.uniform_buffer);
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
             glfw::WindowEvent::Key(Key::E, _, Action::Press, _) => {
@@ -398,22 +390,22 @@ fn process_events(
                 *last_x = x as f32;
                 *last_y = y as f32;
 
-                render_pipeline.camera.process_mouse_movement(x_offset, y_offset, true);
+                scene.camera.process_mouse_movement(x_offset, y_offset, true);
             }
             _ => {}
         }
     }
 
     if window.get_key(Key::W) == Action::Press {
-        render_pipeline.camera.process_keyboard(CameraMovement::FORWARD, *delta_time);
+        scene.camera.process_keyboard(CameraMovement::FORWARD, *delta_time);
     }
     if window.get_key(Key::S) == Action::Press {
-        render_pipeline.camera.process_keyboard(CameraMovement::BACKWARD, *delta_time);
+        scene.camera.process_keyboard(CameraMovement::BACKWARD, *delta_time);
     }
     if window.get_key(Key::A) == Action::Press {
-        render_pipeline.camera.process_keyboard(CameraMovement::LEFT, *delta_time);
+        scene.camera.process_keyboard(CameraMovement::LEFT, *delta_time);
     }
     if window.get_key(Key::D) == Action::Press {
-        render_pipeline.camera.process_keyboard(CameraMovement::RIGHT, *delta_time);
+        scene.camera.process_keyboard(CameraMovement::RIGHT, *delta_time);
     }
 }

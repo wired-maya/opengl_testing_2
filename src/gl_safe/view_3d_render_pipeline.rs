@@ -6,38 +6,26 @@ use super::{Framebuffer, ShaderProgram, GlError, RenderPipeline, Texture, Model,
 // TODO: refactor so models, camera, skybox, that kinda stuff, is held in a scene struct instead
 // TODO: Scene trait with a simple 3d scene struct, so you can have other scenes (like 2d scenes)
 // TODO: See if qsort is fast enough that  to allow me to sort models based on distance from the camera every frame, enabling transparency
-pub struct View3DRenderPipeline<'a> {
+pub struct View3DRenderPipeline {
     g_framebuffer: Framebuffer,
-    shader_program: &'a ShaderProgram,
     framebuffer: Framebuffer,
-    lighting_pass_shader_program: &'a ShaderProgram,
+    lighting_pass_shader_program: ShaderProgram,
     ping_framebuffer: Framebuffer,
     pong_framebuffer: Framebuffer,
-    blur_shader_program: &'a ShaderProgram,
+    blur_shader_program: ShaderProgram,
     ping_pong_hoz: bool,
     ping_pong_first_iter: bool,
     width: i32,
-    height: i32,
-    models: Vec<&'a Model>,
-    pub camera: Camera,
-    skybox: Skybox,
-    skybox_shader_program: &'a ShaderProgram,
-    uniform_buffer: &'a UniformBuffer
+    height: i32
 }
 
-impl<'a> View3DRenderPipeline<'a> {
+impl View3DRenderPipeline {
     pub fn new(
         width: i32,
         height: i32,
-        shader_program: &'a ShaderProgram,
-        lighting_pass_shader_program: &'a ShaderProgram,
-        blur_shader_program: &'a ShaderProgram,
-        models: Vec<&'a Model>,
-        camera: Camera,
-        skybox: Skybox,
-        skybox_shader_program: &'a ShaderProgram,
-        uniform_buffer: &'a UniformBuffer
-    ) -> View3DRenderPipeline<'a> {
+        lighting_pass_shader_program: ShaderProgram,
+        blur_shader_program: ShaderProgram,
+    ) -> View3DRenderPipeline {
         // Create g_buffer for deferred shading
         let g_framebuffer = Framebuffer::new(
             width,
@@ -74,7 +62,6 @@ impl<'a> View3DRenderPipeline<'a> {
 
         View3DRenderPipeline {
             g_framebuffer,
-            shader_program,
             framebuffer,
             lighting_pass_shader_program,
             ping_framebuffer,
@@ -84,16 +71,11 @@ impl<'a> View3DRenderPipeline<'a> {
             ping_pong_first_iter: true,
             width,
             height,
-            models,
-            camera,
-            skybox,
-            skybox_shader_program,
-            uniform_buffer
         }
     }
 }
 
-impl<'a> RenderPipeline for View3DRenderPipeline<'a> {
+impl RenderPipeline for View3DRenderPipeline {
     fn bind(&self) {
         unsafe {
             gl::Viewport(0, 0, self.width as i32, self.height as i32);
@@ -103,29 +85,6 @@ impl<'a> RenderPipeline for View3DRenderPipeline<'a> {
     }
 
     fn draw(&mut self) -> Result<(), GlError> {
-        unsafe { gl::Enable(gl::DEPTH_TEST) };
-
-        // Update view transforms
-        let view_transform = self.camera.get_view_matrix();
-
-        self.uniform_buffer.write_data::<Matrix4<f32>>(
-            view_transform.as_ptr() as *const gl::types::GLvoid,
-            std::mem::size_of::<Matrix4<f32>>() as u32
-        );
-
-        // Draw all models
-        self.bind();
-        self.shader_program.use_program();
-        // TODO: Only used in forward shading
-        // self.shader_program.set_vector_3("viewPos", &self.camera.position.to_vec(), false)?;
-
-        for model in &self.models {
-            model.draw(self.shader_program)?;
-        }
-
-        // Drawn last so it only is drawn over unused pixels, improving performance
-        self.skybox.draw(self.skybox_shader_program)?;
-
         unsafe { gl::Disable(gl::DEPTH_TEST) };
 
         self.framebuffer.draw(&self.lighting_pass_shader_program)?;
@@ -179,15 +138,6 @@ impl<'a> RenderPipeline for View3DRenderPipeline<'a> {
         self.framebuffer.set_size(width, height);
         self.ping_framebuffer.set_size(width, height);
         self.pong_framebuffer.set_size(width, height);
-
-        // Resize camera
-        let proj_transform = cgmath::perspective(
-            Deg(self.camera.zoom),
-            self.width as f32 / self.height as f32,
-            0.1,
-            500.0
-        );
-        self.uniform_buffer.write_data::<Matrix4<f32>>(proj_transform.as_ptr() as *const gl::types::GLvoid, 0);
 
         Ok(())
     }

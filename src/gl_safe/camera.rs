@@ -1,4 +1,6 @@
-use cgmath::{Vector3, Point3, vec3, Zero, Matrix4, InnerSpace};
+use cgmath::{Vector3, Point3, vec3, Zero, Matrix4, InnerSpace, Deg, Matrix};
+
+use super::UniformBuffer;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum CameraMovement {
@@ -27,11 +29,12 @@ pub struct Camera {
     // Camera options
     pub movement_speed: f32,
     pub mouse_sensitivity: f32,
-    pub zoom: f32
+    pub zoom: f32,
+    aspect: f32,
 }
 
-impl Default for Camera {
-    fn default() -> Camera {
+impl Camera {
+    pub fn new(aspect: f32, ubo: &UniformBuffer) -> Camera {
         let mut camera = Camera {
             position: Point3 { x: 0.0, y: 0.0, z: 0.0 },
             front: vec3(0.0, 0.0, -1.0),
@@ -42,14 +45,14 @@ impl Default for Camera {
             pitch: PITCH,
             movement_speed: SPEED,
             mouse_sensitivity: SENSITIVITY,
-            zoom: FOV
+            zoom: FOV,
+            aspect
         };
         camera.update_camera_vectors();
+        camera.resize(aspect, ubo);
         camera
     }
-}
 
-impl Camera {
     pub fn get_view_matrix(&self) -> Matrix4<f32> {
         Matrix4::<f32>::look_to_rh(self.position, self.front, self.up)
     }
@@ -113,5 +116,18 @@ impl Camera {
         self.front = front.normalize();
         self.right = self.front.cross(self.world_up).normalize();
         self.up = self.right.cross(self.front).normalize();
+    }
+
+    pub fn resize(&mut self, aspect: f32, ubo: &UniformBuffer) {
+        self.aspect = aspect;
+
+        let proj_transform = cgmath::perspective(
+            Deg(self.zoom),
+            aspect,
+            0.1,
+            500.0
+        );
+
+        ubo.write_data::<Matrix4<f32>>(proj_transform.as_ptr() as *const gl::types::GLvoid, 0);
     }
 }

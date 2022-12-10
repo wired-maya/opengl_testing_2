@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use super::{GlError, Framebuffer, Texture, Mesh};
+use super::{GlError, Framebuffer, Texture, Mesh, UniformBuffer};
 
 pub trait RenderPipeline {
     fn bind(&self);
