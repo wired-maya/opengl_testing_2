@@ -86,13 +86,27 @@ impl Framebuffer {
         }
     }
 
+    pub fn get_link(&self) -> Vec<Rc<Texture>> {
+        let mut result = Vec::new();
+
+        for texture in self.textures.iter() {
+            result.push(Rc::clone(&texture));
+        }
+
+        result
+    }
+
+    pub fn link_to(&mut self, output: Vec<Rc<Texture>>) {
+        for texture in output {
+            self.quad.textures.push(texture);
+        }
+    }
+
     // framebuffer output -> self input
     // Does not clear to allow for multiple linking in a render pipeline,
     // AKA you have to do it
-    pub fn link_to(&mut self, framebuffer: &Framebuffer) {
-        for texture in framebuffer.textures.iter() {
-            self.quad.textures.push(Rc::clone(&texture));
-        }
+    pub fn link_to_fb(&mut self, framebuffer: &Framebuffer) {
+        self.link_to(framebuffer.get_link());
     }
 
     pub fn link_push(&mut self, texture: Rc<Texture>) {

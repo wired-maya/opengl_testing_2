@@ -1,8 +1,6 @@
 use std::rc::Rc;
-
-use cgmath::{EuclideanSpace, Matrix4, Matrix, Deg};
-
-use super::{Framebuffer, DefaultFramebuffer, ShaderProgram, GlError, RenderPipeline, Texture, Model, Camera, Skybox, UniformBuffer};
+use cgmath::{Matrix4, Matrix, Deg};
+use super::{Framebuffer, ShaderProgram, GlError, RenderPipeline, Texture, Model, Camera, Skybox, UniformBuffer};
 
 // TODO: Implement multisampling
 // TODO: refactor so models, camera, skybox, that kinda stuff, is held in a scene struct instead
@@ -71,7 +69,7 @@ impl<'a> View3DRenderPipeline<'a> {
         ).unwrap();
 
         // Link all the framebuffers together
-        framebuffer.link_to(&g_framebuffer);
+        framebuffer.link_to_fb(&g_framebuffer);
         // The rest are linked in draw call
 
         View3DRenderPipeline {
@@ -100,16 +98,11 @@ impl<'a> RenderPipeline for View3DRenderPipeline<'a> {
         unsafe {
             gl::Viewport(0, 0, self.width as i32, self.height as i32);
             self.g_framebuffer.bind();
-            
-            // Colour buffer does not need to be cleared when skybox is active
-            // gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-            // gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            
             gl::Clear(gl::DEPTH_BUFFER_BIT);
         }
     }
 
-    fn draw(&mut self) -> Result<Vec<Rc<Texture>>, GlError> {
+    fn draw(&mut self) -> Result<(), GlError> {
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
         // Update view transforms
@@ -147,6 +140,7 @@ impl<'a> RenderPipeline for View3DRenderPipeline<'a> {
 
         self.blur_shader_program.use_program();
 
+        // TODO: Could there be a way to do this in one FB? Would cut down on links
         for _ in 0..amount {
             self.blur_shader_program.set_bool("horizontal", self.ping_pong_hoz, false)?;
 
@@ -156,11 +150,11 @@ impl<'a> RenderPipeline for View3DRenderPipeline<'a> {
                 self.ping_framebuffer.draw(&self.blur_shader_program)?;
             } else if self.ping_pong_hoz {
                 self.ping_framebuffer.unlink();
-                self.ping_framebuffer.link_to(&self.pong_framebuffer);
+                self.ping_framebuffer.link_to_fb(&self.pong_framebuffer);
                 self.ping_framebuffer.draw(&self.blur_shader_program)?;
             } else {
                 self.pong_framebuffer.unlink();
-                self.pong_framebuffer.link_to(&self.ping_framebuffer);
+                self.pong_framebuffer.link_to_fb(&self.ping_framebuffer);
                 self.pong_framebuffer.draw(&self.blur_shader_program)?;
             }
 
@@ -168,11 +162,7 @@ impl<'a> RenderPipeline for View3DRenderPipeline<'a> {
             self.ping_pong_first_iter = false;
         }
 
-        Ok(vec![self.framebuffer.get(0).unwrap(), if self.ping_pong_hoz {
-            self.ping_framebuffer.get(0).unwrap()
-        } else {
-            self.pong_framebuffer.get(0).unwrap()
-        }])
+        Ok(())
     }
 
     // TODO: Change all sizes to have a struct instead so the tuple order isn't ambiguous?
@@ -198,6 +188,30 @@ impl<'a> RenderPipeline for View3DRenderPipeline<'a> {
             500.0
         );
         self.uniform_buffer.write_data::<Matrix4<f32>>(proj_transform.as_ptr() as *const gl::types::GLvoid, 0);
+
+        Ok(())
+    }
+
+    fn get_link(&self) -> Result<Vec<Rc<Texture>>, GlError> {
+        return Ok(
+            vec![self.framebuffer.get(0).unwrap(), self.ping_framebuffer.get(0).unwrap()]
+        );
+    }
+
+    fn link_to(&mut self, output: Vec<Rc<Texture>>) -> Result<(), GlError> {
+        for texture in output {
+            self.g_framebuffer.link_push(texture);
+        }
+
+        Ok(())
+    }
+
+    fn unlink(&mut self) {
+        self.g_framebuffer.unlink();
+    }
+
+    fn link_push(&mut self, texture: Rc<Texture>) -> Result<(), GlError> {
+        self.g_framebuffer.link_push(texture);
 
         Ok(())
     }

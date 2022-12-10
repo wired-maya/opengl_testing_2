@@ -205,7 +205,7 @@ fn main() {
         &uniform_buffer
     );
 
-    let mut projection_transform = cgmath::perspective(
+    let projection_transform = cgmath::perspective(
         Deg(45.0),
         WIDTH as f32 / HEIGHT as f32,
         0.1,
@@ -216,6 +216,8 @@ fn main() {
 
     let mut should_resend_data = true;
     let mut show_debug = false;
+
+    default_framebuffer.quad.textures = framebuffer.get_link().unwrap();
 
     // Render loop, each iteration is a "frame"
     while !window.should_close() {
@@ -298,8 +300,7 @@ fn main() {
             }
         }
 
-        default_framebuffer.quad.textures.clear();
-        framebuffer.draw_to_mesh(&mut default_framebuffer.quad).unwrap();
+        framebuffer.draw().unwrap();
         default_framebuffer.draw(&framebuffer_shader_program).unwrap();
 
         // You can get a window pointer, you might be able to use that to have multithreading
