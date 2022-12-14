@@ -2,6 +2,14 @@ use cgmath::{Vector3, Matrix4, vec3, point3, Deg, InnerSpace};
 
 use crate::gl_safe::ShaderProgram;
 
+use super::GlError;
+
+pub trait Light {
+    fn send_lighting_data(&self, shader_program: &ShaderProgram) -> Result<(), GlError>;
+    fn bind_buffer(&self);
+    fn bind_shadow_map(&self, shader_program: &ShaderProgram) -> Result<(), GlError>;
+}
+
 pub struct DirLight {
     pub position: Vector3<f32>,
 
