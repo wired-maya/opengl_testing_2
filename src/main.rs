@@ -17,15 +17,15 @@ const MSAA: u32 = 4;
 const _SHADOW_RES: u32 = 1024;
 
 // TODO: IMMEDIATE NEXT STEPS:
-// TODO:    Remove anything to do with lighting
 // TODO:    Do all other todos, especially things relating to texture storage
 // TODO:    Clean up every file, ending with Main
 // TODO:    Change this into a GL library crate
-// TODO:    Remove any uneccesary shaders, find a way to include defaults in library
+// TODO:    Remove any uneccesary shaders, optimizing and cleaning them up
+// TODO:    Find a way to include defaults in library
 // TODO:    Optimize what you have here
 // TODO: Create forward rendering pipeline
 // TODO: Implement transparency (see if qsort is fast enough to do it each frame for each model of the scene?)
-// TODO: Add simple and efficient lighting to everything
+// TODO: Add simple and efficient lighting to everything (do serious research when it comes to doing this on forward and deffered pipelines)
 // TODO: Create test suite
 
 fn main() {

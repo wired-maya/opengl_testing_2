@@ -1,7 +1,6 @@
 mod shader_program;
 mod camera;
 mod view_3d_render_pipeline;
-mod light;
 mod mesh;
 mod model;
 mod quad;
@@ -20,7 +19,6 @@ mod scene;
 pub use shader_program::*;
 pub use camera::*;
 pub use view_3d_render_pipeline::*;
-pub use light::*;
 pub use mesh::*;
 pub use model::*;
 pub use quad::*;
