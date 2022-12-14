@@ -237,7 +237,7 @@ fn main() {
         process_events(
             &mut window,
             &events,
-            &delta_time,
+            delta_time,
             &mut last_x,
             &mut last_y,
             &mut first_mouse,
@@ -366,7 +366,7 @@ extern "system" fn debug_message_callback(
 fn process_events(
     window: &mut glfw::Window,
     events: &Receiver<(f64, glfw::WindowEvent)>,
-    delta_time: &f32,
+    delta_time: f32,
     last_x: &mut f32,
     last_y: &mut f32,
     first_mouse: &mut bool,
@@ -409,15 +409,21 @@ fn process_events(
     }
 
     if window.get_key(Key::W) == Action::Press {
-        scene.camera.process_keyboard(CameraMovement::FORWARD, *delta_time);
+        scene.camera.process_keyboard(CameraMovement::FORWARD, delta_time);
     }
     if window.get_key(Key::S) == Action::Press {
-        scene.camera.process_keyboard(CameraMovement::BACKWARD, *delta_time);
+        scene.camera.process_keyboard(CameraMovement::BACKWARD, delta_time);
     }
     if window.get_key(Key::A) == Action::Press {
-        scene.camera.process_keyboard(CameraMovement::LEFT, *delta_time);
+        scene.camera.process_keyboard(CameraMovement::LEFT, delta_time);
     }
     if window.get_key(Key::D) == Action::Press {
-        scene.camera.process_keyboard(CameraMovement::RIGHT, *delta_time);
+        scene.camera.process_keyboard(CameraMovement::RIGHT, delta_time);
+    }
+    if window.get_key(Key::Space) == Action::Press {
+        scene.camera.process_keyboard(CameraMovement::UP, delta_time);
+    }
+    if window.get_key(Key::LeftControl) == Action::Press {
+        scene.camera.process_keyboard(CameraMovement::DOWN, delta_time);
     }
 }

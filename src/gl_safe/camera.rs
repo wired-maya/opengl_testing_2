@@ -6,8 +6,10 @@ use super::UniformBuffer;
 pub enum CameraMovement {
     FORWARD,
     BACKWARD,
+    RIGHT,
     LEFT,
-    RIGHT
+    UP,
+    DOWN
 }
 
 const YAW: f32 = -90.0;
@@ -59,20 +61,15 @@ impl Camera {
 
     pub fn process_keyboard(&mut self, direction: CameraMovement, delta_time: f32) {
         let velocity = self.movement_speed * delta_time;
-        if direction == CameraMovement::FORWARD {
-            self.position += self.front * velocity;
-        }
-        if direction == CameraMovement::BACKWARD {
-            self.position += -(self.front * velocity);
-        }
-        if direction == CameraMovement::LEFT {
-            self.position += -(self.right * velocity);
-        }
-        if direction == CameraMovement::RIGHT {
-            self.position += self.right * velocity;
-        }
 
-        // self.position.y = 10.0; // Temporary
+        self.position += match direction {
+            CameraMovement::FORWARD => self.front * velocity,
+            CameraMovement::BACKWARD => -(self.front * velocity),
+            CameraMovement::RIGHT => self.right * velocity,
+            CameraMovement::LEFT => -(self.right * velocity),
+            CameraMovement::UP => self.up * velocity,
+            CameraMovement::DOWN => -(self.up * velocity),
+        }
     }
 
     pub fn process_mouse_movement(&mut self, mut x_offset: f32, mut y_offset: f32, constrain_pitch: bool) {
