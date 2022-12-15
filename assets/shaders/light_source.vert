@@ -2,7 +2,7 @@
 
 layout (location = 0) in vec3 aPos;
 layout (location = 5) in mat4 model;
-layout (std140) uniform Matrices {
+layout (std140) uniform CameraMatrices {
     mat4 projection;
     mat4 view;
 };

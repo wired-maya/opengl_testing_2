@@ -5,7 +5,7 @@ layout (location = 2) in vec2 aTexCoord;
 layout (location = 3) in vec3 aTangent;
 layout (location = 4) in vec3 aBitangent;
 layout (location = 5) in mat4 model;
-layout (std140) uniform Matrices {
+layout (std140) uniform CameraMatrices {
     mat4 projection;
     mat4 view;
 };

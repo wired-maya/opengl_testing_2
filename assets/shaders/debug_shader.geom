@@ -1,7 +1,7 @@
 #version 330 core
 layout (triangles) in;
 layout (line_strip, max_vertices = 18) out;
-layout (std140) uniform Matrices {
+layout (std140) uniform CameraMatrices {
     mat4 projection;
     mat4 view;
 };

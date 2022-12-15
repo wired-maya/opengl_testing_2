@@ -1,6 +1,6 @@
 use cgmath::{Vector3, Point3, vec3, Zero, Matrix4, InnerSpace, Deg, Matrix};
 
-use super::UniformBuffer;
+use super::{UniformBuffer, GlError, ShaderProgram};
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum CameraMovement {
@@ -12,15 +12,15 @@ pub enum CameraMovement {
     DOWN
 }
 
-const YAW: f32 = -90.0;
-const PITCH: f32 = 0.0;
-// const SPEED: f32 = 2.5;
-const SPEED: f32 = 15.0;
-const SENSITIVITY: f32 = 0.1;
-const FOV: f32 = 45.0;
+pub enum CameraProjection {
+    PERSPECTIVE,
+    ORTHO
+}
 
 pub struct Camera {
     pub position: Point3<f32>,
+    pub uniform_buffer: Option<UniformBuffer>,
+    // Direction vectors
     pub front: Vector3<f32>,
     pub up: Vector3<f32>,
     pub right: Vector3<f32>,
@@ -31,32 +31,80 @@ pub struct Camera {
     // Camera options
     pub movement_speed: f32,
     pub mouse_sensitivity: f32,
-    pub zoom: f32,
-    aspect: f32,
+    pub fov: f32,
+    pub width: f32,
+    pub height: f32,
+    // Perspective options
+    pub near: f32,
+    pub far: f32,
+    pub projection: CameraProjection
 }
 
-impl Camera {
-    pub fn new(aspect: f32, ubo: &UniformBuffer) -> Camera {
-        let mut camera = Camera {
+impl Default for Camera {
+    fn default() -> Self {
+        Self {
             position: Point3 { x: 0.0, y: 0.0, z: 0.0 },
-            front: vec3(0.0, 0.0, -1.0),
+            uniform_buffer: None,
+            front: Vector3 { x: 0.0, y: 0.0, z: -1.0 },
             up: Vector3::zero(),
             right: Vector3::zero(),
             world_up: Vector3::unit_y(),
-            yaw: YAW,
-            pitch: PITCH,
-            movement_speed: SPEED,
-            mouse_sensitivity: SENSITIVITY,
-            zoom: FOV,
-            aspect
+            yaw: -90.0,
+            pitch: 0.0,
+            movement_speed: 15.0,
+            mouse_sensitivity: 0.1,
+            fov: 45.0,
+            width: 1920.0,
+            height: 1080.0,
+            near: 0.1,
+            far: 500.0,
+            projection: CameraProjection::PERSPECTIVE,
+        }
+    }
+}
+
+impl Camera {
+    pub fn new(width: i32, height: i32, fov: f32, shader_programs: Vec<&ShaderProgram>) -> Result<Camera, GlError> {
+        let mut camera = Camera {
+            width: width as f32,
+            height: height as f32,
+            fov,
+            ..Default::default()
         };
+        let uniform_buffer = UniformBuffer::new(
+            shader_programs,
+            "CameraMatrices",
+            2 * std::mem::size_of::<Matrix4<f32>>() as u32
+        )?;
+
+        camera.uniform_buffer = Some(uniform_buffer);
         camera.update_camera_vectors();
-        camera.resize(aspect, ubo);
-        camera
+        camera.send_proj()?;
+
+        Ok(camera)
     }
 
     pub fn get_view_matrix(&self) -> Matrix4<f32> {
         Matrix4::<f32>::look_to_rh(self.position, self.front, self.up)
+    }
+
+    pub fn get_proj_matrix(&self) -> Matrix4<f32> {
+        match self.projection {
+            CameraProjection::PERSPECTIVE => cgmath::perspective(
+                Deg(self.fov),
+                self.width / self.height,
+                self.near,
+                self.far
+            ),
+            CameraProjection::ORTHO => cgmath::ortho(
+                0.0,
+                self.width,
+                0.0,
+                self.height,
+                self.near,
+                self.far
+            ),
+        }
     }
 
     pub fn process_keyboard(&mut self, direction: CameraMovement, delta_time: f32) {
@@ -91,18 +139,6 @@ impl Camera {
         self.update_camera_vectors();
     }
 
-    pub fn process_mouse_scroll(&mut self, y_offset: f32) {
-        if self.zoom >= 1.0 && self.zoom <= 45.0 {
-            self.zoom -= y_offset;
-        }
-        if self.zoom <= 1.0 {
-            self.zoom = 1.0;
-        }
-        if self.zoom >= 45.0 {
-            self.zoom = 45.0;
-        }
-    }
-
     pub fn update_camera_vectors(&mut self) {
         let front = vec3(
             self.yaw.to_radians().cos() * self.pitch.to_radians().cos(),
@@ -115,16 +151,33 @@ impl Camera {
         self.up = self.right.cross(self.front).normalize();
     }
 
-    pub fn resize(&mut self, aspect: f32, ubo: &UniformBuffer) {
-        self.aspect = aspect;
+    pub fn send_view(&self) -> Result<(), GlError> {
+        let view_transform = self.get_view_matrix();
 
-        let proj_transform = cgmath::perspective(
-            Deg(self.zoom),
-            aspect,
-            0.1,
-            500.0
-        );
+        if let Some(ubo) = &self.uniform_buffer {
+            ubo.write_data::<Matrix4<f32>>(
+                view_transform.as_ptr() as *const gl::types::GLvoid,
+                std::mem::size_of::<Matrix4<f32>>() as u32
+            );
 
-        ubo.write_data::<Matrix4<f32>>(proj_transform.as_ptr() as *const gl::types::GLvoid, 0);
+            return Ok(());
+        }
+
+        Err(GlError::UniformBufferMissing)
+    }
+
+    pub fn send_proj(&self) -> Result<(), GlError> {
+        let proj_transform = self.get_proj_matrix();
+
+        if let Some(ubo) = &self.uniform_buffer {
+            ubo.write_data::<Matrix4<f32>>(
+                proj_transform.as_ptr() as *const gl::types::GLvoid,
+                0
+            );
+
+            return Ok(());
+        }
+
+        Err(GlError::UniformBufferMissing)
     }
 }

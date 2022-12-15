@@ -3,22 +3,28 @@ use super::GlError;
 
 // UBO can have multiple types of data, so it doesn't have a type
 pub struct UniformBuffer {
-    id: u32
+    id: u32,
+    name: String
 }
 
 impl UniformBuffer {
-    pub fn new(shader_programs: &[&ShaderProgram], name: &str, buffer_size: u32) -> Result<UniformBuffer, GlError> {
+    pub fn new(shader_programs: Vec<&ShaderProgram>, name: &str, buffer_size: u32) -> Result<UniformBuffer, GlError> {
         let mut uniform_buffer = UniformBuffer {
-            id: 0
+            id: 0,
+            name: String::from(name)
         };
 
-        for (_, shader_program) in shader_programs.iter().enumerate() {
-            shader_program.bind_to_ubo(name)?;
+        for shader_program in shader_programs.iter() {
+            uniform_buffer.register_shader_program(shader_program)?;
         }
 
         uniform_buffer.create_ubo(buffer_size);
 
         Ok(uniform_buffer)
+    }
+
+    pub fn register_shader_program(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
+        shader_program.bind_to_ubo(self.name.as_str())
     }
 
     pub fn create_ubo(&mut self, buffer_size: u32) {
@@ -41,3 +47,5 @@ impl UniformBuffer {
         }
     }
 }
+
+// TODO: delete when dropped

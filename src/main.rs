@@ -15,18 +15,30 @@ const WIDTH: i32 = 800;
 const HEIGHT: i32 = 600;
 const MSAA: u32 = 4;
 const _SHADOW_RES: u32 = 1024;
+const FOV: f32 = 45.0;
 
 // TODO: IMMEDIATE NEXT STEPS:
 // TODO:    Do all other todos, especially things relating to texture storage
 // TODO:    Clean up every file, ending with Main
 // TODO:    Change this into a GL library crate
 // TODO:    Remove any uneccesary shaders, optimizing and cleaning them up
-// TODO:    Find a way to include defaults in library
+// TODO:    Find a way to include shader defaults in library
+// TODO:    Solve all warnings
 // TODO:    Optimize what you have here
 // TODO: Create forward rendering pipeline
+// TODO: Create transform and position system
+// TODO:    Support both instanced and non instanced objects
+// TODO:        Both contain links to model that draws instanced objects and has the buffer data transforms (see if this has a performance impact for non-instanced draw objects)
+// TODO:        Instanced draw objects link to model and essentially just hold transormation info and index that is then updated in the model, and then the model needs to draw
+// TODO:        Non-instanced draw objects link to model and have their own draw function, overwriting the buffer data transforms with one transform and drawing (this would need to be set every draw)
+// TODO:        This system should allow for one model and one shader system, while allowing for efficient instanced rendering and actual individual rendered objects, which allows transparency
+// TODO:        For this, keep a table of loaded models to add references, and create objects directly from model path
+// TODO:    Update transform function that takes the object's position and rotation and makes it a transform matrix
 // TODO: Implement transparency (see if qsort is fast enough to do it each frame for each model of the scene?)
 // TODO: Add simple and efficient lighting to everything (do serious research when it comes to doing this on forward and deffered pipelines)
 // TODO: Create test suite
+// TODO: Comments that use better-comments styles
+// TODO: Create documentation using rust's documentation thing
 
 fn main() {
     // Timing
@@ -195,12 +207,6 @@ fn main() {
         "assets/textures/skybox/back.jpg".to_owned()
     ]).unwrap();
 
-    let uniform_buffer = UniformBuffer::new(
-        &[&model_shader_program, &skybox_shader_program, &debug_shader_program, &light_shader_program],
-        "Matrices",
-        2 * std::mem::size_of::<Matrix4<f32>>() as u32
-    ).unwrap();
-
     let render_pipeline = View3DRenderPipeline::new(
         WIDTH,
         HEIGHT,
@@ -215,7 +221,7 @@ fn main() {
 
     default_framebuffer.quad.textures = render_pipeline.get_link().unwrap();
 
-    let mut camera = Camera::new(WIDTH as f32 / HEIGHT as f32, &uniform_buffer);
+    let mut camera = Camera::new(WIDTH, HEIGHT, FOV, vec![&model_shader_program, &skybox_shader_program]).unwrap();
     camera.position = Point3 { x: 0.0, y: 0.0, z: 1.0 };
 
     let mut scene = Scene {
@@ -224,7 +230,6 @@ fn main() {
         skybox,
         skybox_shader_program,
         camera,
-        uniform_buffer,
         render_pipeline: Box::new(render_pipeline),
     };
 
@@ -381,9 +386,8 @@ fn process_events(
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
-                scene.render_pipeline.set_size(width, height).unwrap();
                 default_framebuffer.resize(width, height);
-                scene.camera.resize(width as f32 / height as f32, &scene.uniform_buffer);
+                scene.set_size(width, height);
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
             glfw::WindowEvent::Key(Key::E, _, Action::Press, _) => {

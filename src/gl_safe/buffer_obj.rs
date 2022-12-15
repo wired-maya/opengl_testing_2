@@ -39,11 +39,6 @@ impl<T> Buffer<T> {
     pub fn len(&self) -> usize {
         self.data.len()
     }
-
-    // TODO: add ways to change these during runtime,
-    // TODO: like for example changing transforms
-
-    // TODO: multiple buffer gen function
 }
 
 impl<T> Drop for Buffer<T> {

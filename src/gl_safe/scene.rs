@@ -1,6 +1,4 @@
-use cgmath::{Matrix, Matrix4};
-
-use super::{Model, Skybox, ShaderProgram, UniformBuffer, Camera, RenderPipeline, GlError};
+use super::{Model, Skybox, ShaderProgram, Camera, RenderPipeline, GlError};
 
 // TODO: add lights, need a light trait
 // TODO: Scene trait with a simple 3d scene struct, so you can have other scenes (like 2d scenes)
@@ -12,20 +10,22 @@ pub struct Scene {
     pub skybox_shader_program: ShaderProgram,
     pub camera: Camera,
     pub render_pipeline: Box<dyn RenderPipeline>,
-    pub uniform_buffer: UniformBuffer
 }
 
 impl Scene {
+    pub fn set_size(&mut self, width: i32, height: i32) -> Result<(), GlError> {
+        self.render_pipeline.set_size(width, height)?;
+        self.camera.width = width as f32;
+        self.camera.height = height as f32;
+        self.camera.send_proj()?;
+
+        Ok(())
+    }
+
     pub fn draw(&mut self) -> Result<(), GlError> {
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
-        // Update view transforms
-        let view_transform = self.camera.get_view_matrix();
-
-        self.uniform_buffer.write_data::<Matrix4<f32>>(
-            view_transform.as_ptr() as *const gl::types::GLvoid,
-            std::mem::size_of::<Matrix4<f32>>() as u32
-        );
+        self.camera.send_view()?;
 
         self.render_pipeline.bind();
         self.model_shader_program.use_program();

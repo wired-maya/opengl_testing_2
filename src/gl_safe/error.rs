@@ -11,7 +11,8 @@ pub enum GlError{
     ImageError(image::ImageError),
     ObjLoadError(tobj::LoadError),
     UniformInvalidIndex(String, u32),
-    FramebufferNotComplete(u32)
+    FramebufferNotComplete(u32),
+    UniformBufferMissing
 }
 
 impl Display for GlError {
@@ -30,7 +31,8 @@ impl Display for GlError {
             },
             GlError::FramebufferNotComplete(id) => {
                 write!(f, "Framebuffer '{}' is not complete!", id)
-            }
+            },
+            GlError::UniformBufferMissing => write!(f, "Uniform buffer is not present")
         }
     }
 }
