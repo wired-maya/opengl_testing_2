@@ -26,7 +26,7 @@ pub trait RenderPipeline {
         self.link_to(fb.get_link())
     }
     fn link_to_mesh(&mut self, mesh: &mut Mesh) -> Result<(), GlError> {
-        for texture in mesh.textures.iter() {
+        for texture in mesh.diffuse_textures.iter() {
             self.link_push(Rc::clone(&texture))?;
         }
 

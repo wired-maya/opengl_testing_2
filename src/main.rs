@@ -219,7 +219,7 @@ fn main() {
     let mut should_resend_data = true;
     let mut show_debug = false;
 
-    default_framebuffer.quad.textures = render_pipeline.get_link().unwrap();
+    default_framebuffer.quad.diffuse_textures = render_pipeline.get_link().unwrap();
 
     let mut camera = Camera::new(WIDTH, HEIGHT, FOV, vec![&model_shader_program, &skybox_shader_program]).unwrap();
     camera.position = Point3 { x: 0.0, y: 0.0, z: 1.0 };
@@ -413,21 +413,21 @@ fn process_events(
     }
 
     if window.get_key(Key::W) == Action::Press {
-        scene.camera.process_keyboard(CameraMovement::FORWARD, delta_time);
+        scene.camera.process_movement(CameraMovement::FORWARD, delta_time);
     }
     if window.get_key(Key::S) == Action::Press {
-        scene.camera.process_keyboard(CameraMovement::BACKWARD, delta_time);
+        scene.camera.process_movement(CameraMovement::BACKWARD, delta_time);
     }
     if window.get_key(Key::A) == Action::Press {
-        scene.camera.process_keyboard(CameraMovement::LEFT, delta_time);
+        scene.camera.process_movement(CameraMovement::LEFT, delta_time);
     }
     if window.get_key(Key::D) == Action::Press {
-        scene.camera.process_keyboard(CameraMovement::RIGHT, delta_time);
+        scene.camera.process_movement(CameraMovement::RIGHT, delta_time);
     }
     if window.get_key(Key::Space) == Action::Press {
-        scene.camera.process_keyboard(CameraMovement::UP, delta_time);
+        scene.camera.process_movement(CameraMovement::UP, delta_time);
     }
     if window.get_key(Key::LeftControl) == Action::Press {
-        scene.camera.process_keyboard(CameraMovement::DOWN, delta_time);
+        scene.camera.process_movement(CameraMovement::DOWN, delta_time);
     }
 }

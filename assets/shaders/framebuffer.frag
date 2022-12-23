@@ -3,17 +3,29 @@ out vec4 FragColor;
 
 in vec2 TexCoords;
 
+uniform float exposure;
+
+const float offset = 1.0 / 300.0;
+
+#define maxTextures 4
+
 struct Material {
-    sampler2D diffuse;
-    sampler2D specular; // This is just bloom layer
+    int diffuseCount;
+    sampler2D diffuse[maxTextures];
+
+    int specularCount;
+    sampler2D specular[maxTextures];
+    
+    int normalCount;
+    sampler2D normal[maxTextures];
+
+    int displacementCount;
+    sampler2D displacement[maxTextures];
+    
     float shininess;
 };
 
 uniform Material material;
-
-uniform float exposure;
-
-const float offset = 1.0 / 300.0;
 
 void main()
 { 
@@ -24,8 +36,8 @@ void main()
 
     // TODO: possibly calculate bloom based on tone mapped values so bloom is based on exposure 
     // HDR tone mapping
-    vec3 hdrColor = texture(material.diffuse, TexCoords).rgb;
-    vec3 bloomColor = texture(material.specular, TexCoords).rgb;
+    vec3 hdrColor = texture(material.diffuse[0], TexCoords).rgb;
+    vec3 bloomColor = texture(material.diffuse[1], TexCoords).rgb;
     hdrColor += bloomColor; // additive blending
     // Reinhard tone mapping
     // vec3 mapped = hdrColor / (hdrColor + vec3(1.0));

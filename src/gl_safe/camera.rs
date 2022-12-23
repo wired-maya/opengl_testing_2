@@ -107,7 +107,7 @@ impl Camera {
         }
     }
 
-    pub fn process_keyboard(&mut self, direction: CameraMovement, delta_time: f32) {
+    pub fn process_movement(&mut self, direction: CameraMovement, delta_time: f32) {
         let velocity = self.movement_speed * delta_time;
 
         self.position += match direction {

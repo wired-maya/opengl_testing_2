@@ -70,13 +70,11 @@ impl Skybox {
             2, 6, 3, 3, 6, 7
         ];
 
-        let textures = vec![
-            Rc::new(Texture::from_file_cubemap(faces)?)
-        ];
-
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
 
-        let mesh = Mesh::new(vertices, indices, textures, model_transforms);
+        let mut mesh = Mesh::new(vertices, indices, model_transforms);
+
+        mesh.diffuse_textures.push(Rc::new(Texture::from_file_cubemap(faces)?));
 
         let skybox = Skybox { mesh };
 

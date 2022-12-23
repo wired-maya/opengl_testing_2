@@ -5,7 +5,6 @@ use image::DynamicImage::*;
 pub struct Texture {
     id: u32,
     target: gl::types::GLenum,
-    pub type_: String,
     pub path: String
 }
 
@@ -41,11 +40,10 @@ impl Texture {
         Ok(())
     }
 
-    pub fn from_file_2d(path: &str, type_: &str) -> Result<Texture, GlError> {
+    pub fn from_file_2d(path: &str) -> Result<Texture, GlError> {
         let mut texture = Texture {
             id: 0,
             target: gl::TEXTURE_2D,
-            type_: type_.to_owned(),
             path: path.to_owned()
         };
     
@@ -69,7 +67,6 @@ impl Texture {
         let mut texture = Texture {
             id: 0,
             target: gl::TEXTURE_CUBE_MAP,
-            type_: "diffuse".to_owned(),
             path: "".to_owned()
         };
 
@@ -93,10 +90,9 @@ impl Texture {
 
     // Doesn't need GlError since this only generates gl callback errors
     // Assumes framebuffer is bound
-    pub fn for_framebuffer(framebuffer: &mut Framebuffer, type_: &str) -> (u32, Rc<Texture>) {
+    pub fn for_framebuffer(framebuffer: &mut Framebuffer) -> (u32, Rc<Texture>) {
         let mut texture = Texture {
             id: 0,
-            type_: type_.into(),
             path: "".into(),
             target: gl::TEXTURE_2D
         };

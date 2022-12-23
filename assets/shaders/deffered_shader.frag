@@ -5,22 +5,6 @@ layout (location = 2) out vec4 gAlbedoSpec;
 
 const float gamma = 2.2;
 
-struct Material {
-    bool has_diffuse;
-    sampler2D diffuse;
-
-    bool has_specular;
-    sampler2D specular;
-    
-    bool has_normal;
-    sampler2D normal;
-
-    bool has_displacement;
-    sampler2D displacement;
-    
-    float shininess;
-};
-
 in VS_OUT {
     vec2 texCoord;
     vec4 FragPosLightSpace;
@@ -33,6 +17,24 @@ in VS_OUT {
     vec3 viewPos;
     vec3 Normal;
 } fg_in;
+
+#define maxTextures 4
+
+struct Material {
+    int diffuseCount;
+    sampler2D diffuse[maxTextures];
+
+    int specularCount;
+    sampler2D specular[maxTextures];
+    
+    int normalCount;
+    sampler2D normal[maxTextures];
+
+    int displacementCount;
+    sampler2D displacement[maxTextures];
+    
+    float shininess;
+};
 
 uniform Material material;
 
@@ -47,8 +49,8 @@ void main() {
     gNormal = fg_in.Normal;
 
     // Store diffuse per-fragment color
-    gAlbedoSpec.rgb = material.has_diffuse ? texture(material.diffuse, fg_in.texCoord).rgb : vec3(0.0);
+    gAlbedoSpec.rgb = material.diffuseCount > 0 ? texture(material.diffuse[0], fg_in.texCoord).rgb : vec3(0.0);
 
     // Store specular intensity in the alpha component of gAlbedoSpec
-    gAlbedoSpec.a = material.has_specular ? texture(material.specular, fg_in.texCoord).r : 1.0;
+    gAlbedoSpec.a = material.specularCount > 0 ? texture(material.specular[0], fg_in.texCoord).r : 1.0;
 }

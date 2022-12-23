@@ -2,12 +2,15 @@ use std::rc::Rc;
 
 use cgmath::{Vector3, Zero, Matrix4, vec2};
 use memoffset::offset_of;
-use super::{ShaderProgram, GlError, VertexArray, Buffer, Texture, Vertex};
+use super::{ShaderProgram, GlError, VertexArray, Buffer, Vertex, Texture};
 
 // TODO: sort any meshes with alpha values and render them farthest to closest w/o depth buffer
 
 pub struct Mesh {
-    pub textures: Vec<Rc<Texture>>, // TODO: Use data types with less overhead, like array instead of Vec<> (though do research if indexing is really slower)
+    pub diffuse_textures: Vec<Rc<Texture>>,
+    pub specular_textures: Vec<Rc<Texture>>,
+    pub normal_textures: Vec<Rc<Texture>>,
+    pub displacement_textures: Vec<Rc<Texture>>,
     pub vao: VertexArray,
     pub vbo: Buffer<Vertex>,
     pub ebo: Buffer<u32>,
@@ -15,9 +18,13 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>, textures: Vec<Rc<Texture>>, model_transforms: Vec<Matrix4<f32>>) -> Mesh {
+    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>, model_transforms: Vec<Matrix4<f32>>) -> Mesh {
         let mut mesh = Mesh {
-            textures,
+            // TODO: Use data types with less overhead, like array instead of Vec<> (though do research if indexing is really slower)
+            diffuse_textures: Vec::new(),
+            specular_textures: Vec::new(),
+            normal_textures: Vec::new(),
+            displacement_textures: Vec::new(),
             vao: VertexArray::new(),
             vbo: Buffer::new(),
             ebo: Buffer::new(),
@@ -110,40 +117,48 @@ impl Mesh {
         }
     }
 
-    pub fn reset_material(shader_program: &ShaderProgram) -> Result<(), GlError> {
-        shader_program.set_bool("material.has_diffuse", false, true)?;
-        shader_program.set_bool("material.has_specular", false, true)?;
-        shader_program.set_bool("material.has_normal", false, true)?;
-        shader_program.set_bool("material.has_displacement", false, true)?;
-
-        Ok(())
-    }
-
-    pub fn set_texture(texture: &Texture, shader_program: &ShaderProgram, num: u32) -> Result<(), GlError> {
-        texture.ready_texture(num);
-
-        // TODO: make this a texture array ig? Ignores numbers for now (texture arrays are a thing!)
-        let name = &texture.type_;
-        shader_program.set_int(format!("material.{}", name).as_str(), num as i32, true)?;
-        shader_program.set_bool(format!("material.has_{}", name).as_str(), true, true)?;
-
-        Ok(())
-    }
-
-    pub fn set_material(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
-        Mesh::reset_material(shader_program)?;
-
+    fn set_textures(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
+        let mut i = 0;
+        // TODO: use if statements to make ignore not found false, possibly remove ignore not found
         // TODO: Use a while loop here with an explicit iterator to avoid resizing i, benchmark and test if it's more optimized
-        for (i, texture) in self.textures.iter().enumerate() {
-            Mesh::set_texture(texture, shader_program, i as u32)?;
+        for texture in self.diffuse_textures.iter() {
+            texture.ready_texture(i as u32);
+            shader_program.set_int(format!("material.diffuse[{}]", i).as_str(), i as i32, false)?;
+            i += 1;
         }
+
+        shader_program.set_int("material.diffuseCount", self.diffuse_textures.len() as i32, false)?;
+
+        for texture in self.specular_textures.iter() {
+            texture.ready_texture(i as u32);
+            shader_program.set_int(format!("material.specular[{}]", i).as_str(), i as i32, false)?;
+            i += 1;
+        }
+
+        shader_program.set_int("material.specularCount", self.specular_textures.len() as i32, false)?;
+
+        for texture in self.normal_textures.iter() {
+            texture.ready_texture(i as u32);
+            shader_program.set_int(format!("material.normal[{}]", i).as_str(), i as i32, false)?;
+            i += 1;
+        }
+
+        shader_program.set_int("material.normalCount", self.normal_textures.len() as i32, false)?;
+
+        for texture in self.displacement_textures.iter() {
+            texture.ready_texture(i as u32);
+            shader_program.set_int(format!("material.displacement[{}]", i).as_str(), i as i32, false)?;
+            i += 1;
+        }
+
+        shader_program.set_int("material.displacementCount", self.displacement_textures.len() as i32, false)?;
 
         Ok(())
     }
 
     // TODO: supposedly inline functions are faster, draw calls should probably all be like this?
     pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
-        self.set_material(shader_program)?;
+        self.set_textures(shader_program)?;
         self.vao.draw_elements(self.ebo.len() as i32, self.tbo.len() as i32);
 
         unsafe {

@@ -58,41 +58,42 @@ impl Model {
             }
 
             // Process material
-            let mut textures: Vec<Rc<Texture>> = Vec::new();
+            let mut gl_mesh = Mesh::new(vertices, indices, model_transforms.to_vec());
             if let Some(material_id) = mesh.material_id {
                 let material = &materials[material_id];
 
                 // Diffuse map
                 if !material.diffuse_texture.is_empty() {
-                    let texture = self.load_material_texture(&material.diffuse_texture, "diffuse")?;
-                    textures.push(texture);
+                    let texture = self.load_material_texture(&material.diffuse_texture)?;
+                    gl_mesh.diffuse_textures.push(texture);
                 }
                 // Specular map
                 if !material.specular_texture.is_empty() {
-                    let texture = self.load_material_texture(&material.specular_texture, "specular")?;
-                    textures.push(texture);
+                    let texture = self.load_material_texture(&material.specular_texture)?;
+                    gl_mesh.specular_textures.push(texture);
                 }
                 // Normal map
                 if !material.normal_texture.is_empty() {
-                    let texture = self.load_material_texture(&material.normal_texture, "normal")?;
-                    textures.push(texture);
+                    let texture = self.load_material_texture(&material.normal_texture)?;
+                    gl_mesh.normal_textures.push(texture);
                 }
+                // TODO: Shininess value is here, tho maybe implement shininess map???
             }
 
-            self.meshes.push(Mesh::new(vertices, indices, textures, model_transforms.to_vec()));
+            self.meshes.push(gl_mesh);
         }
 
         Ok(())
     }
 
-    pub fn load_material_texture(&mut self, path: &str, type_: &str) -> Result<Rc<Texture>, GlError> {
+    pub fn load_material_texture(&mut self, path: &str) -> Result<Rc<Texture>, GlError> {
         let texture = self.textures_loaded.iter().find(|t| t.path == path);
         if let Some(texture) = texture {
             return Ok(Rc::clone(texture));
         }
 
         let path = format!("{}/{}", &self.directory, path);
-        let texture = Rc::new(Texture::from_file_2d(&path, type_)?);
+        let texture = Rc::new(Texture::from_file_2d(&path)?);
         let result = Rc::clone(&texture);
 
         // Send owned RC to loaded textures, and reference to the actual mesh

@@ -53,16 +53,8 @@ impl Framebuffer {
 
     pub fn gen_textures(&mut self, n: usize) {
         unsafe {
-            // TODO: replace this with array textures in shader program
-            let available_types = vec![
-                "diffuse",
-                "specular",
-                "normal",
-                "displacement"
-            ];
-
-            for i in 0..n {
-                let (attachment, texture) = Texture::for_framebuffer(self, available_types[i]);
+            for _ in 0..n {
+                let (attachment, texture) = Texture::for_framebuffer(self);
                 
                 self.textures.push(texture);
                 self.draw_buffers.push(attachment);
@@ -98,7 +90,7 @@ impl Framebuffer {
 
     pub fn link_to(&mut self, output: Vec<Rc<Texture>>) {
         for texture in output {
-            self.quad.textures.push(texture);
+            self.quad.diffuse_textures.push(texture);
         }
     }
 
@@ -110,11 +102,11 @@ impl Framebuffer {
     }
 
     pub fn link_push(&mut self, texture: Rc<Texture>) {
-        self.quad.textures.push(texture);
+        self.quad.diffuse_textures.push(texture);
     }
 
     pub fn unlink(&mut self) {
-        self.quad.textures.clear();
+        self.quad.diffuse_textures.clear();
     }
 
     // Get output texture at index

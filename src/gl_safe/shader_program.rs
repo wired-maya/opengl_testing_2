@@ -166,6 +166,7 @@ impl ShaderProgram {
         unsafe { gl::UseProgram(self.id) } // Cannot error as program always exists by this point
     }
 
+    // TODO: Replace ignore not found with an unsafe version of each function that ignores it by default, as well a safe as one that doesn't
     // You can ignore if the uniform is not found, this allows drawing to shaders that dont use all textures while still keeping
     // the use of the mesh struct. It is included in the function to minimize the amount of branches
     pub unsafe fn set_uniform<F: Fn(i32)>(&self, name: &str, uniform_func: F, ignore_not_found: bool) -> Result<(), GlError> {

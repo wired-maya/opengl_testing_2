@@ -39,7 +39,6 @@ pub fn create_quad(model_transforms: Vec<Matrix4<f32>>) -> Mesh {
     let mesh = Mesh::new(
         vertices,
         indices,
-        Vec::new(),
         model_transforms
     );
 
@@ -51,28 +50,24 @@ pub fn create_quad_from_paths(
     norm_map: Option<&str>,
     disp_map: Option<&str>,
     model_transforms: Vec<Matrix4<f32>>
-) -> Result<Mesh, GlError> {
-    let mut textures: Vec<Rc<Texture>> = vec![];
-    
+) -> Result<Mesh, GlError> {    
+    let mut quad = create_quad(model_transforms);
+
     if let Some(diff_path) = diff_map {
-        textures.push(
-            Rc::new(Texture::from_file_2d(diff_path, "diffuse")?)
+        quad.diffuse_textures.push(
+            Rc::new(Texture::from_file_2d(diff_path)?)
         );
     }
     if let Some(norm_path) = norm_map {
-        textures.push(
-            Rc::new(Texture::from_file_2d(norm_path, "normal")?)
+        quad.normal_textures.push(
+            Rc::new(Texture::from_file_2d(norm_path)?)
         )
     };
     if let Some(disp_path) = disp_map {
-        textures.push(
-            Rc::new(Texture::from_file_2d(disp_path, "displacement")?)
+        quad.displacement_textures.push(
+            Rc::new(Texture::from_file_2d(disp_path)?)
         );
     }
-
-    let mut quad = create_quad(model_transforms);
-
-    quad.textures = textures;
 
     Ok(quad)
 }
