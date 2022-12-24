@@ -66,18 +66,28 @@ impl Model {
                 if !material.diffuse_texture.is_empty() {
                     let texture = self.load_material_texture(&material.diffuse_texture)?;
                     gl_mesh.diffuse_textures.push(texture);
+                } else {
+                    gl_mesh.diffuse = vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
                 }
                 // Specular map
                 if !material.specular_texture.is_empty() {
                     let texture = self.load_material_texture(&material.specular_texture)?;
                     gl_mesh.specular_textures.push(texture);
+                } else {
+                    gl_mesh.specular = vec3(material.specular[0], material.specular[1], material.specular[2]);
                 }
                 // Normal map
                 if !material.normal_texture.is_empty() {
                     let texture = self.load_material_texture(&material.normal_texture)?;
                     gl_mesh.normal_textures.push(texture);
                 }
-                // TODO: Shininess value is here, tho maybe implement shininess map???
+                // Shininess map
+                if !material.shininess_texture.is_empty() {
+                    let texture = self.load_material_texture(&material.shininess_texture)?;
+                    gl_mesh.shininess_textures.push(texture);
+                } else {
+                    gl_mesh.shininess = material.shininess; // Get all-mesh shininess if there is no map present
+                }
             }
 
             self.meshes.push(gl_mesh);

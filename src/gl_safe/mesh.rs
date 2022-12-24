@@ -8,9 +8,13 @@ use super::{ShaderProgram, GlError, VertexArray, Buffer, Vertex, Texture};
 
 pub struct Mesh {
     pub diffuse_textures: Vec<Rc<Texture>>,
+    pub diffuse: Vector3<f32>,
     pub specular_textures: Vec<Rc<Texture>>,
+    pub specular: Vector3<f32>,
     pub normal_textures: Vec<Rc<Texture>>,
     pub displacement_textures: Vec<Rc<Texture>>,
+    pub shininess_textures: Vec<Rc<Texture>>,
+    pub shininess: f32,
     pub vao: VertexArray,
     pub vbo: Buffer<Vertex>,
     pub ebo: Buffer<u32>,
@@ -22,9 +26,13 @@ impl Mesh {
         let mut mesh = Mesh {
             // TODO: Use data types with less overhead, like array instead of Vec<> (though do research if indexing is really slower)
             diffuse_textures: Vec::new(),
+            diffuse: Vector3 { x: 0.0, y: 0.0, z: 0.0},
             specular_textures: Vec::new(),
+            specular: Vector3 { x: 0.0, y: 0.0, z: 0.0},
             normal_textures: Vec::new(),
             displacement_textures: Vec::new(),
+            shininess_textures: Vec::new(),
+            shininess: 0.0,
             vao: VertexArray::new(),
             vbo: Buffer::new(),
             ebo: Buffer::new(),
@@ -118,40 +126,56 @@ impl Mesh {
     }
 
     fn set_textures(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
-        let mut i = 0;
-        // TODO: use if statements to make ignore not found false, possibly remove ignore not found
-        // TODO: Use a while loop here with an explicit iterator to avoid resizing i, benchmark and test if it's more optimized
+        let mut i: i32 = 0;
+        
+        // Diffuse
         for texture in self.diffuse_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.diffuse[{}]", i).as_str(), i as i32, true)?;
+            shader_program.set_int(format!("material.diffuse[{}]", i).as_str(), i, true)?;
             i += 1;
         }
-
         shader_program.set_int("material.diffuseCount", self.diffuse_textures.len() as i32, true)?;
+        if self.diffuse_textures.len() == 0 {
+            shader_program.set_vector_3("material.diffuseFloat", &self.diffuse, true)?;
+        }
 
+        // Specular
         for texture in self.specular_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.specular[{}]", i).as_str(), i as i32, true)?;
+            shader_program.set_int(format!("material.specular[{}]", i).as_str(), i, true)?;
             i += 1;
         }
-
         shader_program.set_int("material.specularCount", self.specular_textures.len() as i32, true)?;
+        if self.specular_textures.len() == 0 {
+            shader_program.set_vector_3("material.specularFloat", &self.specular, true)?;
+        }
 
+        // Normal
         for texture in self.normal_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.normal[{}]", i).as_str(), i as i32, true)?;
+            shader_program.set_int(format!("material.normal[{}]", i).as_str(), i, true)?;
             i += 1;
         }
-
         shader_program.set_int("material.normalCount", self.normal_textures.len() as i32, true)?;
 
+        // Displacement
         for texture in self.displacement_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.displacement[{}]", i).as_str(), i as i32, true)?;
+            shader_program.set_int(format!("material.displacement[{}]", i).as_str(), i, true)?;
             i += 1;
         }
-
         shader_program.set_int("material.displacementCount", self.displacement_textures.len() as i32, true)?;
+
+        // Shininess
+        for texture in self.shininess_textures.iter() {
+            texture.ready_texture(i as u32);
+            shader_program.set_int(format!("material.shininess[{}]", i).as_str(), i, true)?;
+            i += 1;
+        }
+        shader_program.set_int("material.shininessCount", self.shininess_textures.len() as i32, true)?;
+        if self.shininess_textures.len() == 0 {
+            shader_program.set_float("material.shininessFloat", self.shininess, true)?;
+        }
 
         Ok(())
     }

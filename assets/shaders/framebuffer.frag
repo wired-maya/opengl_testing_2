@@ -12,17 +12,21 @@ const float offset = 1.0 / 300.0;
 struct Material {
     int diffuseCount;
     sampler2D diffuse[maxTextures];
+    vec3 diffuseFloat;
 
     int specularCount;
     sampler2D specular[maxTextures];
+    vec3 specularFloat;
     
     int normalCount;
     sampler2D normal[maxTextures];
 
     int displacementCount;
     sampler2D displacement[maxTextures];
-    
-    float shininess;
+
+    int shininessCount;
+    sampler2D shininess[maxTextures];
+    float shininessFloat;
 };
 
 uniform Material material;
