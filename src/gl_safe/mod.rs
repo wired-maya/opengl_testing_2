@@ -15,6 +15,7 @@ mod framebuffer;
 mod render_buffer;
 mod render_pipeline;
 mod scene;
+mod view_3d_scene;
 
 pub use shader_program::*;
 pub use camera::*;
@@ -33,3 +34,4 @@ pub use framebuffer::*;
 pub use render_buffer::*;
 pub use render_pipeline::*;
 pub use scene::*;
+pub use view_3d_scene::*;

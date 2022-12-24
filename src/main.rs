@@ -224,7 +224,7 @@ fn main() {
     let mut camera = Camera::new(WIDTH, HEIGHT, FOV, vec![&model_shader_program, &skybox_shader_program]).unwrap();
     camera.position = Point3 { x: 0.0, y: 0.0, z: 1.0 };
 
-    let mut scene = Scene {
+    let mut scene = View3DScene {
         models: vec![planet_model],
         model_shader_program,
         skybox,
@@ -375,7 +375,7 @@ fn process_events(
     last_x: &mut f32,
     last_y: &mut f32,
     first_mouse: &mut bool,
-    scene: &mut Scene,
+    scene: &mut View3DScene,
     default_framebuffer: &mut Framebuffer,
     // uniform_buffer: &UniformBuffer,
     // shader_programs: &mut [&mut ShaderProgram],
