@@ -298,7 +298,7 @@ fn main() {
 
                 // Set exposure
                 framebuffer_shader_program.use_program();
-                framebuffer_shader_program.set_float("exposure", 0.2, false).unwrap();
+                framebuffer_shader_program.set_float("exposure", 0.2).unwrap();
 
                 // Set light colour
                 // TODO: this should be done based on what light is currently rendering instead

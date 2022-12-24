@@ -97,7 +97,7 @@ impl RenderPipeline for View3DRenderPipeline {
 
         // TODO: Could there be a way to do this in one FB? Would cut down on links
         for _ in 0..amount {
-            self.blur_shader_program.set_bool("horizontal", self.ping_pong_hoz, false)?;
+            self.blur_shader_program.set_bool("horizontal", self.ping_pong_hoz)?;
 
             if self.ping_pong_first_iter {
                 self.ping_framebuffer.unlink();

@@ -166,14 +166,12 @@ impl ShaderProgram {
         unsafe { gl::UseProgram(self.id) } // Cannot error as program always exists by this point
     }
 
-    // TODO: Replace ignore not found with an unsafe version of each function that ignores it by default, as well a safe as one that doesn't
-    // You can ignore if the uniform is not found, this allows drawing to shaders that dont use all textures while still keeping
-    // the use of the mesh struct. It is included in the function to minimize the amount of branches
-    pub unsafe fn set_uniform<F: Fn(i32)>(&self, name: &str, uniform_func: F, ignore_not_found: bool) -> Result<(), GlError> {
+    // Safe functions check whetehr the uniform exists, and passes an error
+    pub unsafe fn set_uniform<F: Fn(i32)>(&self, name: &str, uniform_func: F) -> Result<(), GlError> {
         let cstr = CString::new(name)?;
         let location = gl::GetUniformLocation(self.id, cstr.as_ptr());
 
-        if !ignore_not_found && location == -1 {
+        if location == -1 {
             return Err(GlError::UniformNotFound(name.to_owned(), self.id));
         }
 
@@ -182,39 +180,85 @@ impl ShaderProgram {
         Ok(())
     }
 
-    pub fn set_bool(&self, name: &str, value: bool, ignore_not_found: bool) -> Result<(), GlError> {
+    pub fn set_bool(&self, name: &str, value: bool) -> Result<(), GlError> {
         unsafe {
-            self.set_uniform(name, |location| gl::Uniform1i(location, value as gl::types::GLint), ignore_not_found)
+            self.set_uniform(name, |location| gl::Uniform1i(location, value as gl::types::GLint))
         }
     }
 
-    pub fn set_int(&self, name: &str, value: i32, ignore_not_found: bool) -> Result<(), GlError> {
+    pub fn set_int(&self, name: &str, value: i32) -> Result<(), GlError> {
         unsafe {
-            self.set_uniform(name, |location| gl::Uniform1i(location, value as gl::types::GLint), ignore_not_found)
+            self.set_uniform(name, |location| gl::Uniform1i(location, value as gl::types::GLint))
         }
     }
 
-    pub fn set_float(&self, name: &str, value: f32, ignore_not_found: bool) -> Result<(), GlError> {
+    pub fn set_float(&self, name: &str, value: f32) -> Result<(), GlError> {
         unsafe {
-            self.set_uniform(name, |location| gl::Uniform1f(location, value as gl::types::GLfloat), ignore_not_found)
+            self.set_uniform(name, |location| gl::Uniform1f(location, value as gl::types::GLfloat))
         }
     }
 
-    pub fn set_vector_3(&self, name: &str, value: &Vector3<f32>, ignore_not_found: bool) -> Result<(), GlError> {
+    pub fn set_vector_3(&self, name: &str, value: &Vector3<f32>) -> Result<(), GlError> {
         unsafe {
-            self.set_uniform(name, |location| gl::Uniform3fv(location, 1, value.as_ptr()), ignore_not_found)
+            self.set_uniform(name, |location| gl::Uniform3fv(location, 1, value.as_ptr()))
         }
     }
 
-    pub fn set_vec3(&self, name: &str, x: f32, y: f32, z: f32, ignore_not_found: bool) -> Result<(), GlError> {
+    pub fn set_vec3(&self, name: &str, x: f32, y: f32, z: f32) -> Result<(), GlError> {
         unsafe {
-            self.set_uniform(name, |location| gl::Uniform3f(location, x, y, z), ignore_not_found)
+            self.set_uniform(name, |location| gl::Uniform3f(location, x, y, z))
         }
     }
 
-    pub fn set_mat4(&self, name: &str, value: &Matrix4<f32>, ignore_not_found: bool) -> Result<(), GlError> {
+    pub fn set_mat4(&self, name: &str, value: &Matrix4<f32>) -> Result<(), GlError> {
         unsafe {
-            self.set_uniform(name, |location| gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()), ignore_not_found)
+            self.set_uniform(name, |location| gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()))
+        }
+    }
+
+    // Unsafe versions do not check whether the uniforms are present
+    pub unsafe fn set_uniform_unsafe<F: Fn(i32)>(&self, name: &str, uniform_func: F) -> Result<(), GlError> {
+        let cstr = CString::new(name)?;
+        let location = gl::GetUniformLocation(self.id, cstr.as_ptr());
+
+        uniform_func(location);
+
+        Ok(())
+    }
+
+    pub unsafe fn set_bool_unsafe(&self, name: &str, value: bool) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform_unsafe(name, |location| gl::Uniform1i(location, value as gl::types::GLint))
+        }
+    }
+
+    pub unsafe fn set_int_unsafe(&self, name: &str, value: i32) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform_unsafe(name, |location| gl::Uniform1i(location, value as gl::types::GLint))
+        }
+    }
+
+    pub unsafe fn set_float_unsafe(&self, name: &str, value: f32) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform_unsafe(name, |location| gl::Uniform1f(location, value as gl::types::GLfloat))
+        }
+    }
+
+    pub unsafe fn set_vector_3_unsafe(&self, name: &str, value: &Vector3<f32>) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform_unsafe(name, |location| gl::Uniform3fv(location, 1, value.as_ptr()))
+        }
+    }
+
+    pub unsafe fn set_vec3_unsafe(&self, name: &str, x: f32, y: f32, z: f32) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform_unsafe(name, |location| gl::Uniform3f(location, x, y, z))
+        }
+    }
+
+    pub unsafe fn set_mat4_unsafe(&self, name: &str, value: &Matrix4<f32>) -> Result<(), GlError> {
+        unsafe {
+            self.set_uniform_unsafe(name, |location| gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()))
         }
     }
 

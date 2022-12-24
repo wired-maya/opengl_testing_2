@@ -125,56 +125,56 @@ impl Mesh {
         }
     }
 
-    fn set_textures(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
+    unsafe fn set_textures(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
         let mut i: i32 = 0;
         
         // Diffuse
         for texture in self.diffuse_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.diffuse[{}]", i).as_str(), i, true)?;
+            shader_program.set_int_unsafe(format!("material.diffuse[{}]", i).as_str(), i)?;
             i += 1;
         }
-        shader_program.set_int("material.diffuseCount", self.diffuse_textures.len() as i32, true)?;
+        shader_program.set_int_unsafe("material.diffuseCount", self.diffuse_textures.len() as i32)?;
         if self.diffuse_textures.len() == 0 {
-            shader_program.set_vector_3("material.diffuseFloat", &self.diffuse, true)?;
+            shader_program.set_vector_3_unsafe("material.diffuseFloat", &self.diffuse)?;
         }
 
         // Specular
         for texture in self.specular_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.specular[{}]", i).as_str(), i, true)?;
+            shader_program.set_int_unsafe(format!("material.specular[{}]", i).as_str(), i)?;
             i += 1;
         }
-        shader_program.set_int("material.specularCount", self.specular_textures.len() as i32, true)?;
+        shader_program.set_int_unsafe("material.specularCount", self.specular_textures.len() as i32)?;
         if self.specular_textures.len() == 0 {
-            shader_program.set_vector_3("material.specularFloat", &self.specular, true)?;
+            shader_program.set_vector_3_unsafe("material.specularFloat", &self.specular)?;
         }
 
         // Normal
         for texture in self.normal_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.normal[{}]", i).as_str(), i, true)?;
+            shader_program.set_int_unsafe(format!("material.normal[{}]", i).as_str(), i)?;
             i += 1;
         }
-        shader_program.set_int("material.normalCount", self.normal_textures.len() as i32, true)?;
+        shader_program.set_int_unsafe("material.normalCount", self.normal_textures.len() as i32)?;
 
         // Displacement
         for texture in self.displacement_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.displacement[{}]", i).as_str(), i, true)?;
+            shader_program.set_int_unsafe(format!("material.displacement[{}]", i).as_str(), i)?;
             i += 1;
         }
-        shader_program.set_int("material.displacementCount", self.displacement_textures.len() as i32, true)?;
+        shader_program.set_int_unsafe("material.displacementCount", self.displacement_textures.len() as i32)?;
 
         // Shininess
         for texture in self.shininess_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.shininess[{}]", i).as_str(), i, true)?;
+            shader_program.set_int_unsafe(format!("material.shininess[{}]", i).as_str(), i)?;
             i += 1;
         }
-        shader_program.set_int("material.shininessCount", self.shininess_textures.len() as i32, true)?;
+        shader_program.set_int_unsafe("material.shininessCount", self.shininess_textures.len() as i32)?;
         if self.shininess_textures.len() == 0 {
-            shader_program.set_float("material.shininessFloat", self.shininess, true)?;
+            shader_program.set_float_unsafe("material.shininessFloat", self.shininess)?;
         }
 
         Ok(())
@@ -182,10 +182,10 @@ impl Mesh {
 
     // TODO: supposedly inline functions are faster, draw calls should probably all be like this?
     pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
-        self.set_textures(shader_program)?;
-        self.vao.draw_elements(self.ebo.len() as i32, self.tbo.len() as i32);
-
         unsafe {
+            self.set_textures(shader_program)?;
+            self.vao.draw_elements(self.ebo.len() as i32, self.tbo.len() as i32);
+
             // Set back to defaults once configured
             gl::ActiveTexture(gl::TEXTURE0);
         }
