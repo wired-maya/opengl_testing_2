@@ -48,4 +48,10 @@ impl UniformBuffer {
     }
 }
 
-// TODO: delete when dropped
+impl Drop for UniformBuffer {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteBuffers(1, &self.id);
+        }
+    }
+}

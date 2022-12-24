@@ -16,8 +16,6 @@ impl VertexArray {
         vert_array
     }
 
-    // TODO: Gen multiple function?
-
     pub fn bind_array(&self) {
         unsafe {
             gl::BindVertexArray(self.id);

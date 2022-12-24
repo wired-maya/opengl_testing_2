@@ -1,7 +1,6 @@
 use std::rc::Rc;
 use super::{Framebuffer, ShaderProgram, GlError, RenderPipeline, Texture};
 
-// TODO: Implement multisampling
 pub struct View3DRenderPipeline {
     deffered_fb: Framebuffer,
     lighting_pass_fb: Framebuffer,
@@ -120,7 +119,6 @@ impl RenderPipeline for View3DRenderPipeline {
         Ok(())
     }
 
-    // TODO: Change all sizes to have a struct instead so the tuple order isn't ambiguous?
     fn get_height(&self) -> (i32, i32) {
         return (self.width, self.height);
     }

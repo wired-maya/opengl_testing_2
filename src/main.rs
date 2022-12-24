@@ -6,20 +6,16 @@ extern crate rand;
 mod gl_safe;
 
 use self::glfw::{Context, Key, Action};
-use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice};
+use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error};
 use gl_safe::*;
-use cgmath::{prelude::*, vec3,  Deg, Point3, Matrix4, Vector3};
+use cgmath::{vec3, Point3, Matrix4, Vector3};
 use self::rand::Rng;
 
 const WIDTH: i32 = 800;
 const HEIGHT: i32 = 600;
-const MSAA: u32 = 4;
-const _SHADOW_RES: u32 = 1024;
 const FOV: f32 = 45.0;
 
 // TODO: IMMEDIATE NEXT STEPS:
-// TODO:    Do all other todos, especially things relating to texture storage
-// TODO:    Clean up every file, ending with Main
 // TODO:    Change this into a GL library crate
 // TODO:    Remove any uneccesary shaders, optimizing and cleaning them up
 // TODO:    Find a way to include shader defaults in library
@@ -36,30 +32,29 @@ const FOV: f32 = 45.0;
 // TODO:    Update transform function that takes the object's position and rotation and makes it a transform matrix
 // TODO: Implement transparency (see if qsort is fast enough to do it each frame for each model of the scene?)
 // TODO: Add simple and efficient lighting to everything (do serious research when it comes to doing this on forward and deffered pipelines)
+// TODO: Implement multisampling on all render pipelines (maybe make multisampled versions of them?)
 // TODO: Create test suite
 // TODO: Comments that use better-comments styles
 // TODO: Create documentation using rust's documentation thing
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     // Timing
     let mut delta_time: f32; // Time between current frame and last frame
     let mut last_frame: f32 = 0.0;
 
     let mut last_x = WIDTH as f32 / 2.0;
     let mut last_y = HEIGHT as f32 / 2.0;
-
     let mut first_mouse = true;
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-    // glfw.window_hint(glfw::WindowHint::Samples(Some(MSAA))); // Useless since using custom framebuffer
     #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
     
     let (mut window, events) = glfw.create_window(
         WIDTH as u32,
         HEIGHT as u32,
-        "LearnOpenGL",
+        "opengl_testing_2",
         glfw::WindowMode::Windowed
     ).expect("Failed to create GLFW window");
 
@@ -93,60 +88,33 @@ fn main() {
             Some(debug_message_callback),
             std::ptr::null()
         );
-
-        // Enable multisampling
-        // gl::Enable(gl::MULTISAMPLE);
-
-        // Draw in wireframe
-        // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
     }
 
-    let mut model_shader_program = ShaderProgram::new(
+    let model_shader_program = ShaderProgram::new(
         "assets/shaders/shader.vert".to_string(),
         "assets/shaders/deffered_shader.frag".to_string(),
-        // Some("assets/shaders/shader.geom".to_string())
         None
-    ).unwrap();
-    let mut framebuffer_shader_program = ShaderProgram::new(
+    )?;
+    let framebuffer_shader_program = ShaderProgram::new(
         "assets/shaders/framebuffer.vert".to_string(),
         "assets/shaders/framebuffer.frag".to_string(),
         None
-    ).unwrap();
-    let mut skybox_shader_program = ShaderProgram::new(
+    )?;
+    let skybox_shader_program = ShaderProgram::new(
         "assets/shaders/skybox.vert".to_string(),
         "assets/shaders/skybox.frag".to_string(),
         None
-    ).unwrap();
-    let mut depth_shader_program = ShaderProgram::new(
-        "assets/shaders/depth.vert".to_string(),
-        "assets/shaders/depth.frag".to_string(),
-        None
-    ).unwrap();
-    let mut cube_depth_shader_program = ShaderProgram::new(
-        "assets/shaders/cube_depth_shader.vert".to_string(),
-        "assets/shaders/cube_depth_shader.frag".to_string(),
-        Some("assets/shaders/cube_depth_shader.geom".to_string())
-    ).unwrap();
-    let mut debug_shader_program = ShaderProgram::new(
-        "assets/shaders/debug_shader.vert".to_string(),
-        "assets/shaders/debug_shader.frag".to_string(),
-        Some("assets/shaders/debug_shader.geom".to_string())
-    ).unwrap();
-    let mut blur_shader_program = ShaderProgram::new(
+    )?;
+    let blur_shader_program = ShaderProgram::new(
         "assets/shaders/framebuffer.vert".to_string(),
         "assets/shaders/gaussian_blur.frag".to_string(),
         None
-    ).unwrap();
-    let mut light_shader_program = ShaderProgram::new(
-        "assets/shaders/light_source.vert".to_string(),
-        "assets/shaders/light_source.frag".to_string(),
-        None
-    ).unwrap();
-    let mut lighting_pass_shader_program = ShaderProgram::new(
+    )?;
+    let lighting_pass_shader_program = ShaderProgram::new(
         "assets/shaders/framebuffer.vert".to_string(),
         "assets/shaders/lighting_pass_shader.frag".to_string(),
         None
-    ).unwrap();
+    )?;
 
     let distance_scale = 2.0;
 
@@ -196,7 +164,7 @@ fn main() {
     let planet_model = Model::new(
         "assets/models/planet/planet.obj",
         planet_transforms
-    ).unwrap();
+    )?;
 
     let skybox = Skybox::new(vec![
         "assets/textures/skybox/right.jpg".to_owned(),
@@ -205,7 +173,7 @@ fn main() {
         "assets/textures/skybox/bottom.jpg".to_owned(),
         "assets/textures/skybox/front.jpg".to_owned(),
         "assets/textures/skybox/back.jpg".to_owned()
-    ]).unwrap();
+    ])?;
 
     let render_pipeline = View3DRenderPipeline::new(
         WIDTH,
@@ -215,9 +183,6 @@ fn main() {
     );
 
     let mut default_framebuffer = Framebuffer::new_default(WIDTH, HEIGHT);
-
-    let mut should_resend_data = true;
-    let mut show_debug = false;
 
     default_framebuffer.link_to(render_pipeline.get_link().unwrap());
 
@@ -233,7 +198,11 @@ fn main() {
         render_pipeline: Box::new(render_pipeline),
     };
 
-    // Render loop, each iteration is a "frame"
+    // Set exposure
+    framebuffer_shader_program.use_program();
+    framebuffer_shader_program.set_float("exposure", 0.2).unwrap();
+
+    // Render loop, each iteration is a frame
     while !window.should_close() {
         let current_frame = glfw.get_time() as f32;
         delta_time = current_frame - last_frame;
@@ -246,82 +215,22 @@ fn main() {
             &mut last_x,
             &mut last_y,
             &mut first_mouse,
-            // &mut camera,
             &mut scene,
-            &mut default_framebuffer,
-            // &uniform_buffer,
-            // &mut [
-            //     &mut shader_program,
-            //     &mut framebuffer_shader_program,
-            //     &mut skybox_shader_program,
-            //     &mut depth_shader_program,
-            //     &mut cube_depth_shader_program,
-            //     &mut debug_shader_program,
-            //     &mut blur_shader_program,
-            //     &mut light_shader_program,
-            //     &mut lighting_pass_shader_program
-            // ],
-            // &mut should_resend_data,
-            // &mut projection_transform,
-            &mut show_debug
-        );
+            &mut default_framebuffer
+        )?;
 
-        if should_resend_data {
-            unsafe {
-
-                // Use needs to be called before setting these even if you have the location
-                // shader_program.use_program();
-                // shader_program.set_float("material.shininess", 32.0);
-
-                // Send light data to shader
-                // dir_light.send_lighting_data(&shader_program);
-                // point_light.send_lighting_data(&shader_program);
-                // shader_program.set_float("pointLight.far_plane", 300.0); // Temp
-
-                // Send some sample lights to lighting pass
-                // lighting_pass_shader_program.use_program();
-                // for (i, pos) in light_positions.iter().enumerate() {
-                //     lighting_pass_shader_program.set_vector_3(format!("lights[{}].Position", i).as_str(), pos, false).unwrap();
-                //     lighting_pass_shader_program.set_vector_3(format!("lights[{}].Color", i).as_str(), &light_colors[i], false).unwrap();
-                //     lighting_pass_shader_program.set_float(format!("lights[{}].Radius", i).as_str(), light_radii[i], false).unwrap();
-                // }
-
-                // Already has a use program
-                // TODO: simple rule should be to call use program before you pass it anywhere,
-                // TODO: therefore to reduce calls to it, remove it from struct functions and
-                // TODO: make it manual
-                // TODO: Also make this a uniform buffer to reduce calls
-                // dir_light.configure_shader_and_matrices(&depth_shader_program);
-                // dir_light.configure_shader_and_matrices(&shader_program);
-
-                // point_light.configure_shader_and_matrices(&cube_depth_shader_program);
-
-                // Set exposure
-                framebuffer_shader_program.use_program();
-                framebuffer_shader_program.set_float("exposure", 0.2).unwrap();
-
-                // Set light colour
-                // TODO: this should be done based on what light is currently rendering instead
-                // light_shader_program.use_program();
-                // light_shader_program.set_vector_3("diffuse", &dir_light.diffuse);
-
-                should_resend_data = false;
-            }
-        }
-
-        scene.draw().unwrap();
-        default_framebuffer.draw(&framebuffer_shader_program).unwrap();
+        scene.draw()?;
+        default_framebuffer.draw(&framebuffer_shader_program)?;
 
         // You can get a window pointer, you might be able to use that to have multithreading
         window.swap_buffers(); // Can be called from separate threads apparently?
         glfw.poll_events();
     }
 
-    // TODO: Delete GL objects when they exit scope
+    Ok(())
 }
 
-// TODO: use this function for all logging so logging level can be changed easily
-// TODO: e.g. min_severity property (throw options in a struct?)
+// TODO: Global logging level enum that is checked here and other places to see how much to log
 // Callback function intended to be called from C
 extern "system" fn debug_message_callback(
     source: u32,
@@ -376,23 +285,15 @@ fn process_events(
     last_y: &mut f32,
     first_mouse: &mut bool,
     scene: &mut View3DScene,
-    default_framebuffer: &mut Framebuffer,
-    // uniform_buffer: &UniformBuffer,
-    // shader_programs: &mut [&mut ShaderProgram],
-    // should_resend_data: &mut bool,
-    // projection_transform: &mut Matrix4<f32>,
-    show_debug: &mut bool
-) {
+    default_framebuffer: &mut Framebuffer
+) -> Result<(), GlError> {
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
+                scene.set_size(width, height)?;
                 default_framebuffer.set_size(width, height);
-                scene.set_size(width, height);
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
-            glfw::WindowEvent::Key(Key::E, _, Action::Press, _) => {
-                *show_debug = !*show_debug;
-            }
             glfw::WindowEvent::CursorPos(x, y) => {
                 if *first_mouse {
                     *last_x = x as f32;
@@ -430,4 +331,6 @@ fn process_events(
     if window.get_key(Key::LeftControl) == Action::Press {
         scene.camera.process_movement(CameraMovement::DOWN, delta_time);
     }
+
+    Ok(())
 }
