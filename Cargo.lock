@@ -146,7 +146,7 @@ dependencies = [
  "autocfg",
  "cfg-if",
  "crossbeam-utils",
- "memoffset",
+ "memoffset 0.6.5",
  "once_cell",
  "scopeguard",
 ]
@@ -277,9 +277,9 @@ dependencies = [
 
 [[package]]
 name = "glfw"
-version = "0.45.0"
+version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90751c70bf04fa3aaf85bbe27cf8865059c786d04e25aa2762ea7d59df2be675"
+checksum = "272c146dce140cc75d8c586d9b25c4feb4781f941277c0465e76eba2b11e12e8"
 dependencies = [
  "bitflags",
  "glfw-sys",
@@ -405,6 +405,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "memoffset"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d61c719bcfbcf5d62b3a09efa6088de8c54bc0bfcd3ea7ae39fcc186108b8de1"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -484,11 +493,8 @@ dependencies = [
  "cgmath",
  "gl",
  "glfw",
- "image",
- "memoffset",
  "rand",
  "silver_gl",
- "tobj",
 ]
 
 [[package]]
@@ -628,9 +634,8 @@ version = "0.1.0"
 dependencies = [
  "cgmath",
  "gl",
- "glfw",
  "image",
- "memoffset",
+ "memoffset 0.8.0",
  "rand",
  "tobj",
 ]

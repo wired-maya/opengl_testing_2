@@ -1,6 +1,5 @@
 extern crate gl;
 extern crate glfw;
-extern crate image;
 extern crate rand;
 extern crate silver_gl;
 
