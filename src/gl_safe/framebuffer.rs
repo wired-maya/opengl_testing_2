@@ -1,7 +1,5 @@
 use std::rc::Rc;
-
 use cgmath::{Matrix4, vec3};
-
 use super::{GlError, Texture, RenderBuffer, Mesh, create_quad, ShaderProgram};
 
 pub struct Framebuffer {
@@ -21,19 +19,7 @@ impl Framebuffer {
         tex_num: usize,
         has_rb: bool
     ) -> Result<Framebuffer, GlError> {
-        // Create quad mesh for framebuffer
-        let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
-        let quad = create_quad(model_transforms);
-        
-        let mut framebuffer = Framebuffer {
-            id: 0,
-            textures: Vec::new(),
-            draw_buffers: Vec::new(),
-            quad,
-            width,
-            height,
-            render_buffer: None,
-        };
+        let mut framebuffer = Framebuffer::new_default(width, height);
 
         unsafe {
             gl::GenFramebuffers(1, &mut framebuffer.id);
@@ -49,6 +35,22 @@ impl Framebuffer {
         Framebuffer::unbind();
 
         Ok(framebuffer)
+    }
+
+    pub fn new_default(width: i32, height: i32) -> Framebuffer {
+        // Create quad mesh for framebuffer
+        let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
+        let quad = create_quad(model_transforms);
+
+        Framebuffer {
+            id: 0,
+            textures: Vec::new(),
+            draw_buffers: Vec::new(),
+            quad,
+            width,
+            height,
+            render_buffer: None,
+        }
     }
 
     pub fn gen_textures(&mut self, n: usize) {
@@ -168,46 +170,5 @@ impl Drop for Framebuffer {
         unsafe {
             gl::DeleteFramebuffers(1, &self.id);
         }
-    }
-}
-
-// TODO: move to its own file
-// TODO: see if you can make this all static
-// TODO: add options for what you want to clear, so it can be used standalone as well
-// TODO: see if there is a way to make this part of the normal framebuffer class, actually
-pub struct DefaultFramebuffer {
-    pub quad: Mesh,
-    width: i32,
-    height: i32
-}
-
-impl DefaultFramebuffer {
-    pub fn new(width: i32, height: i32) -> DefaultFramebuffer {
-        // Create quad mesh for framebuffer
-        let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
-        let quad = create_quad(model_transforms);
-
-        DefaultFramebuffer { quad, width, height }
-    }
-
-    pub fn bind(&self) {
-        unsafe {
-            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-            gl::Viewport(0, 0, self.width, self.height);
-            // gl::ClearColor(1.0, 0.0, 1.0, 1.0);
-            // gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
-    }
-
-    // Expects depth testing to be off
-    pub fn draw(&self, shader_program: &ShaderProgram) -> Result<(), GlError> {
-        self.bind();
-        shader_program.use_program();
-        self.quad.draw(shader_program)
-    }
-
-    pub fn resize(&mut self, width: i32, height: i32) {
-        self.width = width;
-        self.height = height;
     }
 }

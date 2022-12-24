@@ -123,35 +123,35 @@ impl Mesh {
         // TODO: Use a while loop here with an explicit iterator to avoid resizing i, benchmark and test if it's more optimized
         for texture in self.diffuse_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.diffuse[{}]", i).as_str(), i as i32, false)?;
+            shader_program.set_int(format!("material.diffuse[{}]", i).as_str(), i as i32, true)?;
             i += 1;
         }
 
-        shader_program.set_int("material.diffuseCount", self.diffuse_textures.len() as i32, false)?;
+        shader_program.set_int("material.diffuseCount", self.diffuse_textures.len() as i32, true)?;
 
         for texture in self.specular_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.specular[{}]", i).as_str(), i as i32, false)?;
+            shader_program.set_int(format!("material.specular[{}]", i).as_str(), i as i32, true)?;
             i += 1;
         }
 
-        shader_program.set_int("material.specularCount", self.specular_textures.len() as i32, false)?;
+        shader_program.set_int("material.specularCount", self.specular_textures.len() as i32, true)?;
 
         for texture in self.normal_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.normal[{}]", i).as_str(), i as i32, false)?;
+            shader_program.set_int(format!("material.normal[{}]", i).as_str(), i as i32, true)?;
             i += 1;
         }
 
-        shader_program.set_int("material.normalCount", self.normal_textures.len() as i32, false)?;
+        shader_program.set_int("material.normalCount", self.normal_textures.len() as i32, true)?;
 
         for texture in self.displacement_textures.iter() {
             texture.ready_texture(i as u32);
-            shader_program.set_int(format!("material.displacement[{}]", i).as_str(), i as i32, false)?;
+            shader_program.set_int(format!("material.displacement[{}]", i).as_str(), i as i32, true)?;
             i += 1;
         }
 
-        shader_program.set_int("material.displacementCount", self.displacement_textures.len() as i32, false)?;
+        shader_program.set_int("material.displacementCount", self.displacement_textures.len() as i32, true)?;
 
         Ok(())
     }

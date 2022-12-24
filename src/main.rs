@@ -214,12 +214,12 @@ fn main() {
         blur_shader_program
     );
 
-    let mut default_framebuffer = DefaultFramebuffer::new(WIDTH, HEIGHT);
+    let mut default_framebuffer = Framebuffer::new_default(WIDTH, HEIGHT);
 
     let mut should_resend_data = true;
     let mut show_debug = false;
 
-    default_framebuffer.quad.diffuse_textures = render_pipeline.get_link().unwrap();
+    default_framebuffer.link_to(render_pipeline.get_link().unwrap());
 
     let mut camera = Camera::new(WIDTH, HEIGHT, FOV, vec![&model_shader_program, &skybox_shader_program]).unwrap();
     camera.position = Point3 { x: 0.0, y: 0.0, z: 1.0 };
@@ -376,7 +376,7 @@ fn process_events(
     last_y: &mut f32,
     first_mouse: &mut bool,
     scene: &mut Scene,
-    default_framebuffer: &mut DefaultFramebuffer,
+    default_framebuffer: &mut Framebuffer,
     // uniform_buffer: &UniformBuffer,
     // shader_programs: &mut [&mut ShaderProgram],
     // should_resend_data: &mut bool,
@@ -386,7 +386,7 @@ fn process_events(
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
-                default_framebuffer.resize(width, height);
+                default_framebuffer.set_size(width, height);
                 scene.set_size(width, height);
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
