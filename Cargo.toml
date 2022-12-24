@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 gl = "0.14.0"
 glfw = "0.45.0"
+silver_gl = {path = "../silver_gl"}
 image = "0.24.3"
 cgmath = "0.18.0"
 tobj = "3.2.3"

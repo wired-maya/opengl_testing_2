@@ -2,40 +2,17 @@ extern crate gl;
 extern crate glfw;
 extern crate image;
 extern crate rand;
-
-mod gl_safe;
+extern crate silver_gl;
 
 use self::glfw::{Context, Key, Action};
 use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error};
-use gl_safe::*;
+use silver_gl::*;
 use cgmath::{vec3, Point3, Matrix4, Vector3};
 use self::rand::Rng;
 
 const WIDTH: i32 = 800;
 const HEIGHT: i32 = 600;
 const FOV: f32 = 45.0;
-
-// TODO: IMMEDIATE NEXT STEPS:
-// TODO:    Change this into a GL library crate
-// TODO:    Remove any uneccesary shaders, optimizing and cleaning them up
-// TODO:    Find a way to include shader defaults in library
-// TODO:    Solve all warnings
-// TODO:    Optimize what you have here
-// TODO: Create forward rendering pipeline
-// TODO: Create transform and position system
-// TODO:    Support both instanced and non instanced objects
-// TODO:        Both contain links to model that draws instanced objects and has the buffer data transforms (see if this has a performance impact for non-instanced draw objects)
-// TODO:        Instanced draw objects link to model and essentially just hold transormation info and index that is then updated in the model, and then the model needs to draw
-// TODO:        Non-instanced draw objects link to model and have their own draw function, overwriting the buffer data transforms with one transform and drawing (this would need to be set every draw)
-// TODO:        This system should allow for one model and one shader system, while allowing for efficient instanced rendering and actual individual rendered objects, which allows transparency
-// TODO:        For this, keep a table of loaded models to add references, and create objects directly from model path
-// TODO:    Update transform function that takes the object's position and rotation and makes it a transform matrix
-// TODO: Implement transparency (see if qsort is fast enough to do it each frame for each model of the scene?)
-// TODO: Add simple and efficient lighting to everything (do serious research when it comes to doing this on forward and deffered pipelines)
-// TODO: Implement multisampling on all render pipelines (maybe make multisampled versions of them?)
-// TODO: Create test suite
-// TODO: Comments that use better-comments styles
-// TODO: Create documentation using rust's documentation thing
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Timing
