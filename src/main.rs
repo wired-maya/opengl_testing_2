@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut first_mouse = true;
 
     let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-    glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
+    glfw.window_hint(glfw::WindowHint::ContextVersion(4, 5));
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
     #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
     
@@ -156,7 +156,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         HEIGHT,
         lighting_pass_shader_program,
         blur_shader_program
-    );
+    )?;
 
     let mut default_framebuffer = Framebuffer::new_default(WIDTH, HEIGHT);
 
