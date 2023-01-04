@@ -197,7 +197,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let mut matrix = Matrix4::<f32>::from_translation(vec3(0.0, current_frame.sin(), 0.0));
         matrix = matrix * Matrix4::<f32>::from_scale(distance_scale / 10.0);
-        scene.models[0].set_transform_index(matrix, 0);
+        scene.models[0].tbo.set_data_index(matrix, 0);
 
         scene.draw()?;
         default_framebuffer.draw(&framebuffer_shader_program)?;
