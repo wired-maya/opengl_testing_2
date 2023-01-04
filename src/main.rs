@@ -271,7 +271,7 @@ fn process_events(
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
                 scene.set_size(width, height)?;
-                default_framebuffer.set_size(width, height);
+                default_framebuffer.set_size(width, height)?;
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
             glfw::WindowEvent::CursorPos(x, y) => {
