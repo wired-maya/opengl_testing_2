@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 gl = "0.14.0"
 glfw = "0.48.0"
-silver_gl = {path = "../silver_gl"}
+silver_gl = {path = "../../silver_gl"}
 cgmath = "0.18.0"
 rand = "0.8.5"
