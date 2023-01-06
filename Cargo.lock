@@ -93,6 +93,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cinema_skylight_engine"
+version = "0.1.0"
+dependencies = [
+ "cgmath",
+ "gl",
+ "glfw",
+ "rand",
+ "silver_gl",
+]
+
+[[package]]
 name = "cmake"
 version = "0.1.48"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -491,6 +502,7 @@ name = "opengl_testing_2"
 version = "0.1.0"
 dependencies = [
  "cgmath",
+ "cinema_skylight_engine",
  "gl",
  "glfw",
  "rand",

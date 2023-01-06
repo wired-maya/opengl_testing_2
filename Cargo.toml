@@ -9,5 +9,6 @@ edition = "2021"
 gl = "0.14.0"
 glfw = "0.48.0"
 silver_gl = {path = "../../silver_gl"}
+cinema_skylight_engine = {path = ".."}
 cgmath = "0.18.0"
 rand = "0.8.5"

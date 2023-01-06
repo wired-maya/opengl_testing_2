@@ -2,12 +2,14 @@ extern crate gl;
 extern crate glfw;
 extern crate rand;
 extern crate silver_gl;
+extern crate cinema_skylight_engine;
 
 use self::glfw::{Context, Key, Action};
 use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error};
 use silver_gl::*;
 use cgmath::{vec3, Point3, Matrix4, Vector3};
 use self::rand::Rng;
+use cinema_skylight_engine::{*, window_utils::GlWindow};
 
 const WIDTH: i32 = 800;
 const HEIGHT: i32 = 600;
@@ -22,29 +24,37 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_y = HEIGHT as f32 / 2.0;
     let mut first_mouse = true;
 
-    let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-    glfw.window_hint(glfw::WindowHint::ContextVersion(4, 5));
-    glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-    #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
+    // let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+    // glfw.window_hint(glfw::WindowHint::ContextVersion(4, 5));
+    // glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
+    // #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
     
-    let (mut window, events) = glfw.create_window(
-        WIDTH as u32,
-        HEIGHT as u32,
-        "opengl_testing_2",
-        glfw::WindowMode::Windowed
-    ).expect("Failed to create GLFW window");
+    // let (mut window, events) = glfw.create_window(
+    //     WIDTH as u32,
+    //     HEIGHT as u32,
+    //     "opengl_testing_2",
+    //     glfw::WindowMode::Windowed
+    // ).expect("Failed to create GLFW window");
 
-    window.make_current();
-    window.set_key_polling(true);
-    window.set_framebuffer_size_polling(true);
-    window.set_cursor_pos_polling(true);
-    window.set_scroll_polling(true);
-    window.set_cursor_mode(glfw::CursorMode::Disabled);
+    // window.make_current();
+    // window.set_key_polling(true);
+    // window.set_framebuffer_size_polling(true);
+    // window.set_cursor_pos_polling(true);
+    // window.set_scroll_polling(true);
+    // window.set_cursor_mode(glfw::CursorMode::Disabled);
+
+    let window_conf = WindowConfig {
+        width: WIDTH as u32,
+        height: HEIGHT as u32,
+        title: String::from("engine test")
+    };
+
+    let mut gl_window = GlWindow::new(window_conf);
 
     // Set all OpenGL parameters
     unsafe {
         // Create GL context
-        gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+        gl::load_with(|symbol| gl_window.window.get_proc_address(symbol) as *const _);
 
         // Depth testing
         gl::Enable(gl::DEPTH_TEST);
@@ -179,14 +189,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     framebuffer_shader_program.set_float("exposure", 0.2).unwrap();
 
     // Render loop, each iteration is a frame
-    while !window.should_close() {
-        let current_frame = glfw.get_time() as f32;
+    while !gl_window.window.should_close() {
+        let current_frame = gl_window.glfw.get_time() as f32;
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
         process_events(
-            &mut window,
-            &events,
+            &mut gl_window.window,
+            &gl_window.events,
             delta_time,
             &mut last_x,
             &mut last_y,
@@ -203,8 +213,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         default_framebuffer.draw(&framebuffer_shader_program)?;
 
         // You can get a window pointer, you might be able to use that to have multithreading
-        window.swap_buffers(); // Can be called from separate threads apparently?
-        glfw.poll_events();
+        gl_window.window.swap_buffers(); // Can be called from separate threads apparently?
+        gl_window.glfw.poll_events();
     }
 
     Ok(())
