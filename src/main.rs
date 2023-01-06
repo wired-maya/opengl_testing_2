@@ -9,7 +9,7 @@ use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error};
 use silver_gl::*;
 use cgmath::{vec3, Point3, Matrix4, Vector3};
 use self::rand::Rng;
-use cinema_skylight_engine::{*, window_utils::GlWindow};
+use cinema_skylight_engine::*;
 
 const WIDTH: i32 = 800;
 const HEIGHT: i32 = 600;
@@ -24,32 +24,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_y = HEIGHT as f32 / 2.0;
     let mut first_mouse = true;
 
-    // let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-    // glfw.window_hint(glfw::WindowHint::ContextVersion(4, 5));
-    // glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-    // #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-    
-    // let (mut window, events) = glfw.create_window(
-    //     WIDTH as u32,
-    //     HEIGHT as u32,
-    //     "opengl_testing_2",
-    //     glfw::WindowMode::Windowed
-    // ).expect("Failed to create GLFW window");
-
-    // window.make_current();
-    // window.set_key_polling(true);
-    // window.set_framebuffer_size_polling(true);
-    // window.set_cursor_pos_polling(true);
-    // window.set_scroll_polling(true);
-    // window.set_cursor_mode(glfw::CursorMode::Disabled);
-
     let window_conf = WindowConfig {
         width: WIDTH as u32,
         height: HEIGHT as u32,
         title: String::from("engine test")
     };
 
-    let mut gl_window = GlWindow::new(window_conf);
+    let mut gl_window = EngineWindow::new(window_conf);
 
     // Set all OpenGL parameters
     unsafe {
