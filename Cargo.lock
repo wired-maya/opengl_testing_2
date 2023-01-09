@@ -99,8 +99,10 @@ dependencies = [
  "cgmath",
  "gl",
  "glfw",
+ "image",
  "rand",
  "silver_gl",
+ "tobj",
 ]
 
 [[package]]
@@ -646,10 +648,8 @@ version = "0.1.0"
 dependencies = [
  "cgmath",
  "gl",
- "image",
  "memoffset 0.8.0",
  "rand",
- "tobj",
 ]
 
 [[package]]
