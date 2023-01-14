@@ -57,30 +57,42 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
     }
 
-    let model_shader_program = ShaderProgram::new(
-        "assets/shaders/shader.vert".to_string(),
-        "assets/shaders/deffered_shader.frag".to_string(),
-        None
+    let mut resource_manager = ResourceManager::default();
+
+    let model_shader_program = resource_manager.load_shader_program(
+        ShaderPathBundle {
+            vertex: Some("assets/shaders/shader.vert".to_string()),
+            geometry: None,
+            fragment: Some("assets/shaders/deffered_shader.frag".to_string())
+        }
     )?;
-    let framebuffer_shader_program = ShaderProgram::new(
-        "assets/shaders/framebuffer.vert".to_string(),
-        "assets/shaders/framebuffer.frag".to_string(),
-        None
+    let framebuffer_shader_program = resource_manager.load_shader_program(
+        ShaderPathBundle {
+            vertex: Some("assets/shaders/framebuffer.vert".to_string()),
+            geometry: None,
+            fragment: Some("assets/shaders/framebuffer.frag".to_string())
+        }
     )?;
-    let skybox_shader_program = ShaderProgram::new(
-        "assets/shaders/skybox.vert".to_string(),
-        "assets/shaders/skybox.frag".to_string(),
-        None
+    let skybox_shader_program = resource_manager.load_shader_program(
+        ShaderPathBundle {
+            vertex: Some("assets/shaders/skybox.vert".to_string()),
+            geometry: None,
+            fragment: Some("assets/shaders/skybox.frag".to_string())
+        }
     )?;
-    let blur_shader_program = ShaderProgram::new(
-        "assets/shaders/framebuffer.vert".to_string(),
-        "assets/shaders/gaussian_blur.frag".to_string(),
-        None
+    let blur_shader_program = resource_manager.load_shader_program(
+        ShaderPathBundle {
+            vertex: Some("assets/shaders/framebuffer.vert".to_string()),
+            geometry: None,
+            fragment: Some("assets/shaders/gaussian_blur.frag".to_string())
+        }
     )?;
-    let lighting_pass_shader_program = ShaderProgram::new(
-        "assets/shaders/framebuffer.vert".to_string(),
-        "assets/shaders/lighting_pass_shader.frag".to_string(),
-        None
+    let lighting_pass_shader_program = resource_manager.load_shader_program(
+        ShaderPathBundle {
+            vertex: Some("assets/shaders/framebuffer.vert".to_string()),
+            geometry: None,
+            fragment: Some("assets/shaders/lighting_pass_shader.frag".to_string())
+        }
     )?;
 
     let distance_scale = 2.0;
@@ -128,19 +140,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let planet_model = Model::new(
-        "assets/models/planet/planet.obj",
-        planet_transforms
-    )?;
+    let planet_model = resource_manager.load_model("assets/models/planet/planet.obj")?;
+    // Temp until gameobject system is created
+    planet_model.borrow_mut().tbo.set_data_mut(planet_transforms);
 
-    let skybox = Skybox::new(vec![
-        "assets/textures/skybox/right.jpg".to_owned(),
-        "assets/textures/skybox/left.jpg".to_owned(),
-        "assets/textures/skybox/top.jpg".to_owned(),
-        "assets/textures/skybox/bottom.jpg".to_owned(),
-        "assets/textures/skybox/front.jpg".to_owned(),
-        "assets/textures/skybox/back.jpg".to_owned()
-    ])?;
+    let skybox = resource_manager.load_skybox("assets/textures/skybox/full.jpg")?;
 
     let render_pipeline = View3DRenderPipeline::new(
         WIDTH,
@@ -188,7 +192,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let mut matrix = Matrix4::<f32>::from_translation(vec3(0.0, current_frame.sin(), 0.0));
         matrix = matrix * Matrix4::<f32>::from_scale(distance_scale / 10.0);
-        scene.models[0].tbo.set_data_index(matrix, 0);
+        scene.models[0].borrow_mut().tbo.set_data_index(matrix, 0);
 
         scene.draw()?;
         default_framebuffer.draw(&framebuffer_shader_program)?;
