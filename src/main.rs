@@ -5,10 +5,9 @@ extern crate silver_gl;
 extern crate cinema_skylight_engine;
 
 use self::glfw::{Context, Key, Action};
-use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error};
+use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error, rc::Rc};
 use silver_gl::*;
-use cgmath::{vec3, Point3, Matrix4, Vector3};
-use self::rand::Rng;
+use cgmath::{vec3, Point3, Matrix4, SquareMatrix, Quaternion, Euler, Deg, Rad};
 use cinema_skylight_engine::*;
 
 const WIDTH: i32 = 800;
@@ -95,56 +94,27 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     )?;
 
-    let distance_scale = 2.0;
+    let mut world_obj = GameObject::new();
 
-    let mut light_positions: Vec<Vector3<f32>> = vec![];
-    let mut planet_transforms: Vec<Matrix4<f32>> = vec![];
-    let mut light_colors: Vec<Vector3<f32>> = vec![];
+    let skybox = resource_manager.load_skybox("assets/textures/skybox/full.jpg")?;
+    // let mut skybox_obj = GameObject::from_model(skybox);
+    // world_obj.children.push(skybox_obj);
+
+    let distance_scale = 2.0;
     let amount = 4;
 
-    let mut rnd = rand::thread_rng();
-
-    // Temp light radius, this will be handled per-light later
-    let constant = 1.0;
-    let linear = 0.7;
-    let quadratic = 1.8;
-    let mut light_radii = vec![];
+    let planet_model = resource_manager.load_model("assets/models/planet/planet.obj")?;
 
     for x in 0..amount {
         for z in 0..amount {
-            // Maybe add random offset to create a rough surface, perfect for showing off cool light?
-            let transform: Vector3<f32> = vec3(x as f32, 0.0, z as f32) * distance_scale;
-            let mut matrix = Matrix4::<f32>::from_translation(transform);
-            matrix = matrix * Matrix4::<f32>::from_scale(distance_scale / 10.0);
-            planet_transforms.push(matrix);
-            light_positions.push(transform + (vec3(0.5, 0.0, 0.5) * distance_scale));
+            let mut planet_obj = GameObject::from_model(Rc::clone(&planet_model));
 
-            // let color = if x % 2 == 0 { vec3(1.0, 0.0, 0.0) } 
-            // else { vec3(0.0, 1.0, 0.0) };
+            planet_obj.position = vec3(x as f32, 0.0, z as f32) * distance_scale;
+            planet_obj.scale = distance_scale / 10.0;
 
-            let random_nums = rnd.gen::<(f32, f32, f32)>();
-            let color = vec3(random_nums.0, random_nums.1, random_nums.2);
-
-            light_colors.push(color);
-
-            let light_max: f32 = f32::max(
-                f32::max(random_nums.0, random_nums.1),
-                random_nums.2
-            );
-            // This hurts to look at, I know...
-            let radius = (-linear + f32::sqrt(
-                linear * linear - 4.0 * quadratic * (constant - (256.0 / 5.0) * light_max)
-            )) / (2.0 * quadratic);
-
-            light_radii.push(radius);
+            world_obj.children.push(planet_obj);
         }
     }
-
-    let planet_model = resource_manager.load_model("assets/models/planet/planet.obj")?;
-    // Temp until gameobject system is created
-    planet_model.borrow_mut().tbo.set_data_mut(planet_transforms);
-
-    let skybox = resource_manager.load_skybox("assets/textures/skybox/full.jpg")?;
 
     let render_pipeline = View3DRenderPipeline::new(
         WIDTH,
@@ -190,10 +160,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             &mut default_framebuffer
         )?;
 
-        let mut matrix = Matrix4::<f32>::from_translation(vec3(0.0, current_frame.sin(), 0.0));
-        matrix = matrix * Matrix4::<f32>::from_scale(distance_scale / 10.0);
-        scene.models[0].borrow_mut().tbo.set_data_index(matrix, 0);
+        // let pos = vec3(0.0, current_frame.sin(), 0.0);
+        // world_obj.children[0].position = pos; // First planet
+        world_obj.children[0].rotation = Quaternion::from(Euler::new(Deg(0.0), Deg(current_frame * 25.0), Deg(0.0)));
 
+        world_obj.set_transform_to_drawable(Matrix4::identity());
         scene.draw()?;
         default_framebuffer.draw(&framebuffer_shader_program)?;
 
