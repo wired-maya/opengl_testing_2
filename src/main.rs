@@ -5,9 +5,9 @@ extern crate silver_gl;
 extern crate cinema_skylight_engine;
 
 use self::glfw::{Context, Key, Action};
-use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error, rc::Rc};
+use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error};
 use silver_gl::*;
-use cgmath::{vec3, Quaternion, Euler, Deg};
+use cgmath::vec4;
 use cinema_skylight_engine::*;
 
 const WIDTH: i32 = 1280;
@@ -66,59 +66,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     )?;
 
-    let render_pipeline = View3DRenderPipeline::new(
-        &mut resource_manager,
-        WIDTH,
-        HEIGHT,
-        ShaderPathBundle {
-            vertex: Some("assets/shaders/framebuffer.vert".to_string()),
-            geometry: None,
-            fragment: Some("assets/shaders/lighting_pass_shader.frag".to_string())
-        },
-        ShaderPathBundle {
-            vertex: Some("assets/shaders/framebuffer.vert".to_string()),
-            geometry: None,
-            fragment: Some("assets/shaders/gaussian_blur.frag".to_string())
-        }
-    )?;
-
-    let mut scene = View3DScene::new(
+    let mut scene = Widget2dScene::new(
         &mut resource_manager,
         ShaderPathBundle {
-            vertex: Some("assets/shaders/shader.vert".to_string()),
+            vertex: Some("assets/shaders/widget.vert".to_string()),
             geometry: None,
-            fragment: Some("assets/shaders/deffered_shader.frag".to_string())
-        },
-        "assets/textures/skybox/full.jpg",
-        ShaderPathBundle {
-            vertex: Some("assets/shaders/skybox.vert".to_string()),
-            geometry: None,
-            fragment: Some("assets/shaders/skybox.frag".to_string())
+            fragment: Some("assets/shaders/widget.frag".to_string())
         },
         CameraSize { width: WIDTH, height: HEIGHT, fov: FOV },
-        Box::new(render_pipeline)
+        Box::new(Widget2dRenderPipeline::new(WIDTH, HEIGHT)?),
+        vec4(0.0, 1.0, 0.0, 1.0)
     )?;
 
-    let distance_scale = 2.0;
-    let amount = 4;
-
-    let planet_model = resource_manager.load_model("assets/models/planet/planet.obj")?;
-
-    for x in 0..amount {
-        for z in 0..amount {
-            let mut planet_obj = GameObject::from_model(Rc::clone(&planet_model));
-
-            planet_obj.position = vec3(x as f32, 0.0, z as f32) * distance_scale;
-            planet_obj.scale = distance_scale / 10.0;
-
-            scene.world_obj.children.push(planet_obj);
-        }
-    }
-
-    scene.models.push(planet_model);
+    scene.set_widget_tree()?;
 
     let mut default_framebuffer = Framebuffer::new_default(WIDTH, HEIGHT);
-
     default_framebuffer.link_to(scene.render_pipeline.get_link().unwrap());
 
     // Set exposure
@@ -141,11 +103,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             &mut scene,
             &mut default_framebuffer
         )?;
-
-        // First planet
-        scene.world_obj.children[0].position = vec3(0.0, current_frame.sin(), 0.0);
-        scene.world_obj.children[0].scale = (current_frame * 3.0).cos() * 0.3;
-        scene.world_obj.children[0].rotation = Quaternion::from(Euler::new(Deg(0.0), Deg(current_frame * 100.0), Deg(0.0)));
 
         scene.draw()?;
         default_framebuffer.draw(&framebuffer_shader_program)?;
@@ -212,9 +169,9 @@ fn process_events(
     last_x: &mut f32,
     last_y: &mut f32,
     first_mouse: &mut bool,
-    scene: &mut View3DScene,
+    scene: &mut Widget2dScene,
     default_framebuffer: &mut Framebuffer
-) -> Result<(), GlError> {
+) -> Result<(), EngineError> {
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
@@ -235,30 +192,30 @@ fn process_events(
                 *last_x = x as f32;
                 *last_y = y as f32;
 
-                scene.camera.process_mouse_movement(x_offset, y_offset, true);
+                // scene.camera.process_mouse_movement(x_offset, y_offset, true);
             }
             _ => {}
         }
     }
 
-    if window.get_key(Key::W) == Action::Press {
-        scene.camera.process_movement(CameraMovement::FORWARD, delta_time);
-    }
-    if window.get_key(Key::S) == Action::Press {
-        scene.camera.process_movement(CameraMovement::BACKWARD, delta_time);
-    }
-    if window.get_key(Key::A) == Action::Press {
-        scene.camera.process_movement(CameraMovement::LEFT, delta_time);
-    }
-    if window.get_key(Key::D) == Action::Press {
-        scene.camera.process_movement(CameraMovement::RIGHT, delta_time);
-    }
-    if window.get_key(Key::Space) == Action::Press {
-        scene.camera.process_movement(CameraMovement::UP, delta_time);
-    }
-    if window.get_key(Key::LeftControl) == Action::Press {
-        scene.camera.process_movement(CameraMovement::DOWN, delta_time);
-    }
+    // if window.get_key(Key::W) == Action::Press {
+    //     scene.camera.process_movement(CameraMovement::FORWARD, delta_time);
+    // }
+    // if window.get_key(Key::S) == Action::Press {
+    //     scene.camera.process_movement(CameraMovement::BACKWARD, delta_time);
+    // }
+    // if window.get_key(Key::A) == Action::Press {
+    //     scene.camera.process_movement(CameraMovement::LEFT, delta_time);
+    // }
+    // if window.get_key(Key::D) == Action::Press {
+    //     scene.camera.process_movement(CameraMovement::RIGHT, delta_time);
+    // }
+    // if window.get_key(Key::Space) == Action::Press {
+    //     scene.camera.process_movement(CameraMovement::UP, delta_time);
+    // }
+    // if window.get_key(Key::LeftControl) == Action::Press {
+    //     scene.camera.process_movement(CameraMovement::DOWN, delta_time);
+    // }
 
     Ok(())
 }
