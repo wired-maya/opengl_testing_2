@@ -7,7 +7,7 @@ extern crate cinema_skylight_engine;
 use self::glfw::{Context, Key, Action};
 use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error};
 use silver_gl::*;
-use cgmath::vec4;
+use cgmath::{vec4, vec2, Quaternion, vec3};
 use cinema_skylight_engine::*;
 
 const WIDTH: i32 = 1280;
@@ -77,6 +77,43 @@ fn main() -> Result<(), Box<dyn Error>> {
         Box::new(Widget2dRenderPipeline::new(WIDTH, HEIGHT)?),
         vec4(0.0, 1.0, 0.0, 1.0)
     )?;
+
+    // Add a few widgets
+    let square_1 = BackgroundWidget {
+        colour: vec4(1.0, 0.0, 0.0, 1.0),
+        position: vec3(0.6, 0.2, 0.0),
+        width: 0.020,
+        height: 0.015,
+        ..Default::default()
+    };
+    let square_2 = BackgroundWidget {
+        colour: vec4(0.0, 0.0, 1.0, 1.0),
+        position: vec3(0.0, 0.0, 0.0),
+        width: 0.015,
+        height: 0.020,
+        ..Default::default()
+    };
+    let square_3 = BackgroundWidget {
+        colour: vec4(0.0, 0.0, 0.0, 1.0),
+        position: vec3(0.0, 0.0, 0.0),
+        width: 0.1,
+        height: 0.2,
+        rotation: Quaternion::new(0.0, -0.92, 0.40, 0.0),
+        ..Default::default()
+    };
+    let square_4 = BackgroundWidget {
+        colour: vec4(1.0, 0.0, 1.0, 1.0),
+        position: vec3(0.0, 0.0, 0.0),
+        width: 0.5,
+        height: 0.5,
+        ..Default::default()
+    };
+
+    scene.top_widget.children.push(Box::new(square_1));
+    scene.top_widget.children.push(Box::new(square_2));
+    scene.top_widget.children.push(Box::new(square_3));
+    scene.top_widget.children[2].get_children_mut().push(Box::new(square_4));
+
 
     scene.set_widget_tree()?;
 

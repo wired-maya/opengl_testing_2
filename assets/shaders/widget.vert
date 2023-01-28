@@ -7,7 +7,11 @@ layout (std140) uniform CameraMatrices {
     mat4 view;
 };
 
+flat out int instanceID;
+
 void main() {
+    instanceID = gl_InstanceID;
+
     vec4 vertex = vec4(aPos, 1.0);
     vec4 vertexView = view * model * vertex;
     gl_Position = projection * vertexView;
