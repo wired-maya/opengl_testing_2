@@ -34,7 +34,7 @@ void main() {
     if (instanceID == 1) {
         FragColor = texture(material.diffuse[0], TexCoords);
     }
-    else if (instanceID == 3) {
+    else if (instanceID == 4) {
         FragColor = texture(material.diffuse[1], TexCoords);
     } else {
         vec4 color = BackgroundWidgets[instanceID];

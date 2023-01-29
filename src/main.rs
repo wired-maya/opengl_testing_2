@@ -117,6 +117,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     scene_3d.models.push(planet_model);
 
+    let background = BackgroundWidget {
+        colour: vec4(0.0, 1.0, 0.0, 1.0),
+        width: WIDTH as f32,
+        height: HEIGHT as f32,
+        ..Default::default()
+    };
+
     let mut scene = Widget2dScene::new(
         &mut resource_manager,
         ShaderPathBundle {
@@ -126,7 +133,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
         CameraSize { width: WIDTH, height: HEIGHT, fov: FOV },
         Box::new(Widget2dRenderPipeline::new(WIDTH, HEIGHT)?),
-        vec4(0.0, 1.0, 0.0, 1.0)
+        Box::new(background)
     )?;
 
     // Add a few widgets
@@ -153,7 +160,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         position: vec2(0.5, 0.5),
         width: 0.2,
         height: 0.2,
-        // rotation: Quaternion::new(0.92, 0.0, 0.0, -0.39),
         ..Default::default()
     };
     let square_2 = BackgroundWidget {
@@ -164,10 +170,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         ..Default::default()
     };
 
-    scene.top_widget.children.push(Box::new(square_1));
-    scene.top_widget.children.push(Box::new(square_2));
-    scene.top_widget.children.push(Box::new(square_3));
-    scene.top_widget.children[2].get_children_mut().push(Box::new(square_4));
+    scene.widget.get_children_mut().push(Box::new(square_1));
+    scene.widget.get_children_mut().push(Box::new(square_2));
+    scene.widget.get_children_mut().push(Box::new(square_3));
+    scene.widget.get_children_mut()[2].get_children_mut().push(Box::new(square_4));
 
     scene.set_widget_tree()?;
 
@@ -205,9 +211,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         scene_3d.draw()?;
 
         // Some fun transforms cuz why not
-        scene.top_widget.children[0].set_position(vec2(0.3, 0.2 + (current_frame.sin() / 10.0)));
-        scene.top_widget.children[1].set_size(0.25 + (current_frame.sin() / 5.0), 0.15 - (current_frame.sin() / 10.0));
-        scene.top_widget.children[2].set_rotation(Quaternion::from(Euler::new(Deg(0.0), Deg(0.0), Deg(current_frame * 100.0))));
+        scene.widget.get_children_mut()[0].set_position(vec2(0.3, 0.2 + (current_frame.sin() / 10.0)));
+        scene.widget.get_children_mut()[1].set_size(0.25 + (current_frame.sin() / 5.0), 0.15 - (current_frame.sin() / 10.0));
+        scene.widget.get_children_mut()[2].set_rotation(Quaternion::from(Euler::new(Deg(0.0), Deg(0.0), Deg(current_frame * 100.0))));
 
         scene.set_widget_transforms()?;
 
