@@ -7,7 +7,7 @@ extern crate cinema_skylight_engine;
 use self::glfw::{Context, Key, Action};
 use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error};
 use silver_gl::*;
-use cgmath::{vec4, vec2, Quaternion, vec3};
+use cgmath::{vec4, vec2, Quaternion, Euler, Deg};
 use cinema_skylight_engine::*;
 
 const WIDTH: i32 = 1280;
@@ -81,29 +81,29 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Add a few widgets
     let square_1 = BackgroundWidget {
         colour: vec4(1.0, 0.0, 0.0, 1.0),
-        position: vec3(0.6, 0.2, 0.0),
-        width: 0.020,
-        height: 0.015,
+        position: vec2(0.3, 0.2),
+        width: 0.2,
+        height: 0.25,
         ..Default::default()
     };
     let square_2 = BackgroundWidget {
         colour: vec4(0.0, 0.0, 1.0, 1.0),
-        position: vec3(0.0, 0.0, 0.0),
-        width: 0.015,
-        height: 0.020,
+        position: vec2(0.15, 0.15),
+        width: 0.25,
+        height: 0.15,
         ..Default::default()
     };
     let square_3 = BackgroundWidget {
-        colour: vec4(0.0, 0.0, 0.0, 1.0),
-        position: vec3(0.0, 0.0, 0.0),
-        width: 0.1,
+        colour: vec4(0.5, 0.5, 0.5, 1.0),
+        position: vec2(0.5, 0.5),
+        width: 0.2,
         height: 0.2,
-        rotation: Quaternion::new(0.0, -0.92, 0.40, 0.0),
+        // rotation: Quaternion::new(0.92, 0.0, 0.0, -0.39),
         ..Default::default()
     };
     let square_4 = BackgroundWidget {
         colour: vec4(1.0, 0.0, 1.0, 1.0),
-        position: vec3(0.0, 0.0, 0.0),
+        position: vec2(0.25, 0.25),
         width: 0.5,
         height: 0.5,
         ..Default::default()
@@ -140,6 +140,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             &mut scene,
             &mut default_framebuffer
         )?;
+
+        // Some fun transforms cuz why not
+        scene.top_widget.children[0].set_position(vec2(0.3, 0.2 + (current_frame.sin() / 10.0)));
+        scene.top_widget.children[1].set_size(0.25 + (current_frame.sin() / 5.0), 0.15 - (current_frame.sin() / 10.0));
+        scene.top_widget.children[2].set_rotation(Quaternion::from(Euler::new(Deg(0.0), Deg(0.0), Deg(current_frame * 100.0))));
+
+        scene.set_widget_transforms()?;
 
         scene.draw()?;
         default_framebuffer.draw(&framebuffer_shader_program)?;

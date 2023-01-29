@@ -5,5 +5,9 @@ flat in int instanceID;
 uniform vec4 BackgroundWidgets[16];
 
 void main() {
-    FragColor = BackgroundWidgets[instanceID];
+    vec4 color = BackgroundWidgets[instanceID];
+
+    if (color.w == 0.0) discard;
+
+    FragColor = color;
 }
