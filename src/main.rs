@@ -9,6 +9,7 @@ use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error, rc:
 use silver_gl::*;
 use cgmath::{vec4, vec2, Quaternion, Euler, Deg, vec3};
 use cinema_skylight_engine::*;
+use cinema_skylight_engine::widgets::primitives::*;
 
 const WIDTH: i32 = 1280;
 const HEIGHT: i32 = 720;

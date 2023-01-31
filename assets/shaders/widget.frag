@@ -1,46 +1,44 @@
-#version 330 core
+#version 460 core
 out vec4 FragColor;
+in vec2 TexCoords;
 flat in int instanceID;
 
-uniform vec4 BackgroundWidgets[16];
+// In place of Enums
+const int Background = 1;
+const int Texture = 2;
+const int Border = 3;
 
-#define maxTextures 4
+// The index corresponds to the primitive's own info array
+struct Widget {
+    int type;
+    int index;
+};
 
+uniform Widget widgets[64];
+
+uniform vec4 backgroundWidgets[16];
+
+#define maxTextures 16
 struct Material {
     int diffuseCount;
     sampler2D diffuse[maxTextures];
-    vec3 diffuseFloat;
-
-    int specularCount;
-    sampler2D specular[maxTextures];
-    vec3 specularFloat;
-    
-    int normalCount;
-    sampler2D normal[maxTextures];
-
-    int displacementCount;
-    sampler2D displacement[maxTextures];
-
-    int shininessCount;
-    sampler2D shininess[maxTextures];
-    float shininessFloat;
 };
-
 uniform Material material;
 
-in vec2 TexCoords;
-
 void main() {
-    if (instanceID == 1) {
-        FragColor = texture(material.diffuse[0], TexCoords);
-    }
-    else if (instanceID == 4) {
-        FragColor = texture(material.diffuse[1], TexCoords);
-    } else {
-        vec4 color = BackgroundWidgets[instanceID];
+    Widget widget = widgets[instanceID];
 
-        if (color.w == 0.0) discard;
-
-        FragColor = color;
+    switch (widget.type) {
+        case Background:
+            vec4 color = backgroundWidgets[widget.index];
+            if (color.w == 0.0) discard;
+            FragColor = color;
+            break;
+        case Texture:
+            FragColor = texture(material.diffuse[widget.index], TexCoords);
+            break;
+        case Border:
+            discard;
+            break;
     }
 }
