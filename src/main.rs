@@ -11,8 +11,8 @@ use cgmath::{vec4, vec2, Quaternion, Euler, Deg, vec3};
 use cinema_skylight_engine::*;
 use cinema_skylight_engine::widgets::primitives::*;
 
-const WIDTH: i32 = 1280;
-const HEIGHT: i32 = 720;
+const WIDTH: i32 = 1920;
+const HEIGHT: i32 = 1080;
 const FOV: f32 = 45.0;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -139,7 +139,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Add a few widgets
     let mut square_1 = TextureWidget {
-        position: vec2(0.3, 0.2),
+        position: vec2(0.0, 0.0),
         width: 0.5,
         height: 0.5,
         ..Default::default()
@@ -147,36 +147,42 @@ fn main() -> Result<(), Box<dyn Error>> {
     let textures = scene_3d.render_pipeline.get_link().unwrap();
     square_1.set_texture(Rc::clone(textures.get(0).unwrap()))?;
 
-    let mut square_4 = TextureWidget {
-        position: vec2(0.25, 0.25),
-        width: 0.5,
-        height: 0.5,
-        ..Default::default()
-    };
-    let texture = resource_manager.load_texture_2d("assets/textures/awesomeface.png")?;
-    square_4.set_texture(texture)?;
+    // let mut square_4 = TextureWidget {
+    //     position: vec2(0.25, 0.25),
+    //     width: 0.5,
+    //     height: 0.5,
+    //     ..Default::default()
+    // };
+    // let texture = resource_manager.load_texture_2d("assets/textures/awesomeface.png")?;
+    // square_4.set_texture(texture)?;
 
-    let square_3 = BackgroundWidget {
-        colour: vec4(0.5, 0.5, 0.5, 1.0),
-        position: vec2(0.5, 0.5),
-        width: 0.2,
-        height: 0.2,
-        ..Default::default()
-    };
-    let square_2 = BackgroundWidget {
-        colour: vec4(0.0, 0.0, 1.0, 1.0),
-        position: vec2(0.15, 0.15),
-        width: 0.25,
-        height: 0.15,
-        ..Default::default()
-    };
+    // let square_3 = BackgroundWidget {
+    //     colour: vec4(0.5, 0.5, 0.5, 1.0),
+    //     position: vec2(0.5, 0.5),
+    //     width: 0.2,
+    //     height: 0.2,
+    //     ..Default::default()
+    // };
+    // let square_2 = BackgroundWidget {
+    //     colour: vec4(0.0, 0.0, 1.0, 1.0),
+    //     position: vec2(0.15, 0.15),
+    //     width: 0.25,
+    //     height: 0.15,
+    //     ..Default::default()
+    // };
 
     scene.widget.get_children_mut().push(Box::new(square_1));
-    scene.widget.get_children_mut().push(Box::new(square_2));
-    scene.widget.get_children_mut().push(Box::new(square_3));
-    scene.widget.get_children_mut()[2].get_children_mut().push(Box::new(square_4));
+    // scene.widget.get_children_mut().push(Box::new(square_2));
+    // scene.widget.get_children_mut().push(Box::new(square_3));
+    // scene.widget.get_children_mut()[2].get_children_mut().push(Box::new(square_4));
 
     scene.set_widget_tree()?;
+
+    scene.widget.get_children_mut()[0].set_size_pixels(1280.0, 720.0);
+
+    let (w, h) = scene.widget.get_children()[0].get_size();
+    let (pw, ph) = scene.widget.get_children()[0].get_size_pixels();
+    println!("Size: {}x{} pixels ({}x{})", pw, ph, w, h);
 
     let mut default_framebuffer = Framebuffer::new_default(WIDTH, HEIGHT);
     default_framebuffer.link_to(scene.render_pipeline.get_link().unwrap());
@@ -212,11 +218,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         scene_3d.draw()?;
 
         // Some fun transforms cuz why not
-        scene.widget.get_children_mut()[0].set_position(vec2(0.3, 0.2 + (current_frame.sin() / 10.0)));
-        scene.widget.get_children_mut()[1].set_size(0.25 + (current_frame.sin() / 5.0), 0.15 - (current_frame.sin() / 10.0));
-        scene.widget.get_children_mut()[2].set_rotation(Quaternion::from(Euler::new(Deg(0.0), Deg(0.0), Deg(current_frame * 100.0))));
+        // scene.widget.get_children_mut()[0].set_position(vec2(0.3, 0.2 + (current_frame.sin() / 10.0)));
+        // scene.widget.get_children_mut()[1].set_size(0.25 + (current_frame.sin() / 5.0), 0.15 - (current_frame.sin() / 10.0));
+        // scene.widget.get_children_mut()[2].set_rotation(Quaternion::from(Euler::new(Deg(0.0), Deg(0.0), Deg(current_frame * 100.0))));
 
-        scene.set_widget_transforms()?;
+        // scene.set_widget_transforms()?;
 
         scene.draw()?;
         default_framebuffer.draw(&framebuffer_shader_program)?;
