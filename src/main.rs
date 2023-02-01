@@ -185,6 +185,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         ..Default::default()
     };
 
+    scene.widget.get_children_mut().push(Box::new(border_1));
+
     scene.set_widget_tree()?;
 
     let mut default_framebuffer = Framebuffer::new_default(WIDTH, HEIGHT);
