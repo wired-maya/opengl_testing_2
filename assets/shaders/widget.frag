@@ -25,6 +25,12 @@ struct Material {
 };
 uniform Material material;
 
+struct BorderWidget {
+    vec4 colour;
+    float width;
+};
+uniform BorderWidget borderWidgets[16];
+
 void main() {
     Widget widget = widgets[instanceID];
 
@@ -38,6 +44,8 @@ void main() {
             FragColor = texture(material.diffuse[widget.index], TexCoords);
             break;
         case Border:
+            // TODO: Implement
+            // TODO: Maybe get frag pos and draw colour if within width/height of fragments?
             discard;
             break;
     }
