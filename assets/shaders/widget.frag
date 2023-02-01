@@ -27,7 +27,7 @@ uniform Material material;
 
 struct BorderWidget {
     vec4 colour;
-    float width;
+    vec4 widths;
 };
 uniform BorderWidget borderWidgets[16];
 
@@ -45,8 +45,18 @@ void main() {
             break;
         case Border:
             // TODO: Implement
-            // TODO: Maybe get frag pos and draw colour if within width/height of fragments?
-            discard;
+            // TODO: Use tex coords with reach edge of vec4 widths to see which fragments
+            // TODO: you draw and which you don't
+            BorderWidget widget = borderWidgets[widget.index];
+
+            if (
+                TexCoords.x <= widget.widths.x ||
+                TexCoords.x >= (1.0 - widget.widths.y) ||
+                TexCoords.y <= widget.widths.w ||
+                TexCoords.y >= (1.0 - widget.widths.z)
+            ) {
+                FragColor = widget.colour;
+            } else discard;
             break;
     }
 }
