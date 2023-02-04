@@ -137,55 +137,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         Box::new(background)
     )?;
 
-    // Add a few widgets
-    // let mut square_1 = TextureWidget {
-    //     position: vec2(0.0, 0.0),
-    //     width: 0.5,
-    //     height: 0.5,
-    //     ..Default::default()
-    // };
-    // let textures = scene_3d.render_pipeline.get_link().unwrap();
-    // square_1.set_texture(Rc::clone(textures.get(0).unwrap()))?;
+    let mut picture = PictureWidget::from_path(&mut resource_manager, "assets/textures/awesomeface.png")?;
 
-    // let mut square_4 = TextureWidget {
-    //     position: vec2(0.25, 0.25),
-    //     width: 0.5,
-    //     height: 0.5,
-    //     ..Default::default()
-    // };
-    // let texture = resource_manager.load_texture_2d("assets/textures/awesomeface.png")?;
-    // square_4.set_texture(texture)?;
+    picture.set_size(0.5, 0.5);
+    picture.set_position(vec2(0.25, 0.25));
+    picture.get_background_mut().colour = vec4(1.0, 0.0, 0.0, 1.0);
+    picture.get_border_mut().colour = vec4(0.0, 0.0, 1.0, 1.0);
 
-    // let square_3 = BackgroundWidget {
-    //     colour: vec4(0.5, 0.5, 0.5, 1.0),
-    //     position: vec2(0.5, 0.5),
-    //     width: 0.2,
-    //     height: 0.2,
-    //     ..Default::default()
-    // };
-    // let square_2 = BackgroundWidget {
-    //     colour: vec4(0.0, 0.0, 1.0, 1.0),
-    //     position: vec2(0.15, 0.15),
-    //     width: 0.25,
-    //     height: 0.15,
-    //     ..Default::default()
-    // };
-
-    // scene.widget.get_children_mut().push(Box::new(square_1));
-    // scene.widget.get_children_mut().push(Box::new(square_2));
-    // scene.widget.get_children_mut().push(Box::new(square_3));
-    // scene.widget.get_children_mut()[2].get_children_mut().push(Box::new(square_4));
-
-    let border_1 = BorderWidget {
-        position: vec2(0.25, 0.25),
-        width: 0.5,
-        height: 0.5,
-        colour: vec4(0.0, 0.0, 1.0, 1.0),
-        border_widths: vec4(0.1, 0.1, 0.1, 0.1),
-        ..Default::default()
-    };
-
-    scene.widget.get_children_mut().push(Box::new(border_1));
+    scene.widget.get_children_mut().push(Box::new(picture));
 
     scene.set_widget_tree()?;
 

@@ -41,12 +41,9 @@ void main() {
             FragColor = color;
             break;
         case Texture:
-            FragColor = texture(material.diffuse[widget.index], TexCoords);
+            FragColor = texture(material.diffuse[widget.index], -TexCoords);
             break;
         case Border:
-            // TODO: Implement
-            // TODO: Use tex coords with reach edge of vec4 widths to see which fragments
-            // TODO: you draw and which you don't
             BorderWidget widget = borderWidgets[widget.index];
 
             if (
