@@ -1,58 +1,64 @@
 #version 460 core
+#extension GL_ARB_bindless_texture : require
 out vec4 FragColor;
 in vec2 TexCoords;
 flat in int instanceID;
+layout (std430, binding = 0) buffer DataBufferArray {
+    uint dataBufferArray[];
+};
 
 // In place of Enums
 const int Background = 1;
 const int Texture = 2;
 const int Border = 3;
 
-// The index corresponds to the primitive's own info array
-struct Widget {
-    int type;
-    int index;
-};
-
-uniform Widget widgets[64];
-
-uniform vec4 backgroundWidgets[16];
-
-#define maxTextures 16
-struct Material {
-    int diffuseCount;
-    sampler2D diffuse[maxTextures];
-};
-uniform Material material;
-
-struct BorderWidget {
-    vec4 colour;
-    vec4 widths;
-};
-uniform BorderWidget borderWidgets[16];
-
 void main() {
-    Widget widget = widgets[instanceID];
+    int offset = instanceID * 256;
+    uint type = dataBufferArray[offset];
 
-    switch (widget.type) {
+    switch (type) {
         case Background:
-            vec4 color = backgroundWidgets[widget.index];
+            vec4 color = vec4(
+                uintBitsToFloat(dataBufferArray[offset + 1]),
+                uintBitsToFloat(dataBufferArray[offset + 2]),
+                uintBitsToFloat(dataBufferArray[offset + 3]),
+                uintBitsToFloat(dataBufferArray[offset + 4])
+            );
             if (color.w == 0.0) discard;
             FragColor = color;
             break;
         case Texture:
-            FragColor = texture(material.diffuse[widget.index], -TexCoords);
+            sampler2D tex = sampler2D(
+                uvec2(
+                    dataBufferArray[offset + 1],
+                    dataBufferArray[offset + 2]
+                )
+            );
+            FragColor = texture(tex, -TexCoords);
+            
             break;
         case Border:
-            BorderWidget widget = borderWidgets[widget.index];
+            vec4 border_widths = vec4(
+                uintBitsToFloat(dataBufferArray[offset + 5]),
+                uintBitsToFloat(dataBufferArray[offset + 6]),
+                uintBitsToFloat(dataBufferArray[offset + 7]),
+                uintBitsToFloat(dataBufferArray[offset + 8])
+            );
 
             if (
-                TexCoords.x <= widget.widths.x ||
-                TexCoords.x >= (1.0 - widget.widths.y) ||
-                TexCoords.y <= widget.widths.w ||
-                TexCoords.y >= (1.0 - widget.widths.z)
+                TexCoords.x <= border_widths.x ||
+                TexCoords.x >= (1.0 - border_widths.y) ||
+                TexCoords.y <= border_widths.w ||
+                TexCoords.y >= (1.0 - border_widths.z)
             ) {
-                FragColor = widget.colour;
+                vec4 color = vec4(
+                    uintBitsToFloat(dataBufferArray[offset + 1]),
+                    uintBitsToFloat(dataBufferArray[offset + 2]),
+                    uintBitsToFloat(dataBufferArray[offset + 3]),
+                    uintBitsToFloat(dataBufferArray[offset + 4])
+                );
+                if (color.w == 0.0) discard;
+                FragColor = color;
             } else discard;
             break;
     }

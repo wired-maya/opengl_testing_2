@@ -98,9 +98,9 @@ version = "0.1.0"
 dependencies = [
  "cgmath",
  "downcast-rs",
- "gl",
  "glfw",
  "image",
+ "memoffset 0.8.0",
  "rand",
  "silver_gl",
  "tobj",
@@ -276,15 +276,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gl"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a94edab108827d67608095e269cf862e60d920f144a5026d3dbcfd8b877fb404"
-dependencies = [
- "gl_generator",
-]
-
-[[package]]
 name = "gl_generator"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -297,9 +288,9 @@ dependencies = [
 
 [[package]]
 name = "glfw"
-version = "0.48.0"
+version = "0.51.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "272c146dce140cc75d8c586d9b25c4feb4781f941277c0465e76eba2b11e12e8"
+checksum = "919ebc7bdbf60a529689a5e58f80d9dcde27e3d2ab4f2f7ce711ec439fe789c5"
 dependencies = [
  "bitflags",
  "glfw-sys",
@@ -512,7 +503,6 @@ version = "0.1.0"
 dependencies = [
  "cgmath",
  "cinema_skylight_engine",
- "gl",
  "glfw",
  "rand",
  "silver_gl",
@@ -606,9 +596,9 @@ dependencies = [
 
 [[package]]
 name = "raw-window-handle"
-version = "0.4.3"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b800beb9b6e7d2df1fe337c9e3d04e3af22a124460fb4c30fcc22c9117cefb41"
+checksum = "ed7e3d950b66e19e0c372f3fa3fbbcf85b1746b571f74e0c2af6042a5c93420a"
 dependencies = [
  "cty",
 ]
@@ -654,7 +644,7 @@ name = "silver_gl"
 version = "0.1.0"
 dependencies = [
  "cgmath",
- "gl",
+ "gl_generator",
  "memoffset 0.8.0",
  "rand",
 ]

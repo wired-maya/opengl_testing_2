@@ -1,10 +1,9 @@
-extern crate gl;
 extern crate glfw;
 extern crate rand;
 extern crate silver_gl;
 extern crate cinema_skylight_engine;
 
-use self::glfw::{Context, Key, Action};
+use glfw::{Context, Key, Action};
 use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice, error::Error, rc::Rc};
 use silver_gl::*;
 use cgmath::{vec4, vec2, Quaternion, Euler, Deg, vec3};
@@ -183,15 +182,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // Some fun transforms cuz why not
         // scene.widget.get_children_mut()[0].set_position(vec2(0.3, 0.2 + (current_frame.sin() / 10.0)));
-        // scene.widget.get_children_mut()[1].set_size(0.25 + (current_frame.sin() / 5.0), 0.15 - (current_frame.sin() / 10.0));
+        scene.widget.get_children_mut()[0].set_size(0.25 + (current_frame.sin() / 5.0), 0.15 - (current_frame.sin() / 10.0));
         // scene.widget.get_children_mut()[2].set_rotation(Quaternion::from(Euler::new(Deg(0.0), Deg(0.0), Deg(current_frame * 100.0))));
 
-        // scene.set_widget_transforms()?;
+        scene.set_widget_transforms()?;
 
         scene.draw()?;
         default_framebuffer.draw(&framebuffer_shader_program)?;
 
         // You can get a window pointer, you might be able to use that to have multithreading
+        // https://docs.rs/glfw/0.51.0/glfw/struct.RenderContext.html
         gl_window.window.swap_buffers(); // Can be called from separate threads apparently?
         gl_window.glfw.poll_events();
     }

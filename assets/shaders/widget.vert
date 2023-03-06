@@ -10,6 +10,7 @@ layout (std140) uniform CameraMatrices {
 
 flat out int instanceID;
 out vec2 TexCoords;
+out uint dataBuffer[256];
 
 void main() {
     instanceID = gl_InstanceID;
