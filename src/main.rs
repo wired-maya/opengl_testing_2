@@ -56,7 +56,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
     }
 
-    let mut resource_manager = ResourceManager::default();
+    // let mut resource_manager = ResourceManager::new(gl_window.extension_supported("GL_ARB_bindless_texture"));
+    let mut resource_manager = ResourceManager::new(false); // TODO: temp to get this working
 
     let framebuffer_shader_program = resource_manager.load_shader_program(
         ShaderPathBundle {

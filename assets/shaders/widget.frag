@@ -1,5 +1,5 @@
 #version 460 core
-#extension GL_ARB_bindless_texture : require
+// #extension GL_ARB_bindless_texture : require
 out vec4 FragColor;
 in vec2 TexCoords;
 flat in int instanceID;
@@ -28,13 +28,14 @@ void main() {
             FragColor = color;
             break;
         case Texture:
-            sampler2D tex = sampler2D(
-                uvec2(
-                    dataBufferArray[offset + 1],
-                    dataBufferArray[offset + 2]
-                )
-            );
-            FragColor = texture(tex, -TexCoords);
+            // sampler2D tex = sampler2D(
+            //     uvec2(
+            //         dataBufferArray[offset + 1],
+            //         dataBufferArray[offset + 2]
+            //     )
+            // );
+            // FragColor = texture(tex, -TexCoords);
+            discard;
             
             break;
         case Border:
