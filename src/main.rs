@@ -23,43 +23,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_y = HEIGHT as f32 / 2.0;
     let mut first_mouse = true;
 
-    let window_conf = WindowConfig {
-        width: WIDTH as u32,
-        height: HEIGHT as u32,
-        title: String::from("engine test")
+    let engine_conf = CSEngineConfig {
+        width: WIDTH,
+        height: HEIGHT,
+        fov: FOV,
+        title: String::from("engine test"),
+        gl: GraphicsLibrary::OpenGL4_6,
+        capture_mouse: false
     };
 
-    let mut gl_window = EngineWindow::new(window_conf);
+    let mut engine = CSEngine::new(engine_conf);
 
-    // Set all OpenGL parameters
-    unsafe {
-        // Create GL context
-        gl::load_with(|symbol| gl_window.window.get_proc_address(symbol) as *const _);
-
-        // Depth testing
-        gl::Enable(gl::DEPTH_TEST);
-        gl::DepthFunc(gl::LESS);
-
-        // Blending
-        // gl::Enable(gl::BLEND);
-        // gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-        gl::Disable(gl::BLEND);
-
-        // Face culling
-        gl::Enable(gl::CULL_FACE);
-
-        // Enable debug with callback for simple error printing
-        gl::Enable(gl::DEBUG_OUTPUT);
-        gl::DebugMessageCallback(
-            Some(debug_message_callback),
-            std::ptr::null()
-        );
-    }
-
-    // let mut resource_manager = ResourceManager::new(gl_window.extension_supported("GL_ARB_bindless_texture"));
-    let mut resource_manager = ResourceManager::new(false); // TODO: temp to get this working
-
-    let framebuffer_shader_program = resource_manager.load_shader_program(
+    let framebuffer_shader_program = engine.resource_manager.load_shader_program(
         ShaderPathBundle {
             vertex: Some("assets/shaders/framebuffer.vert".to_string()),
             geometry: None,
@@ -126,7 +101,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let mut scene = Widget2dScene::new(
-        &mut resource_manager,
+        &mut engine.resource_manager,
         ShaderPathBundle {
             vertex: Some("assets/shaders/widget.vert".to_string()),
             geometry: None,
@@ -137,7 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Box::new(background)
     )?;
 
-    let mut picture = PictureWidget::from_path(&mut resource_manager, "assets/textures/awesomeface.png")?;
+    let mut picture = PictureWidget::from_path(&mut engine.resource_manager, "assets/textures/awesomeface.png")?;
 
     picture.set_size(0.5, 0.5);
     picture.set_position(vec2(0.25, 0.25));
@@ -157,14 +132,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     framebuffer_shader_program.set_float("exposure", 0.2).unwrap();
 
     // Render loop, each iteration is a frame
-    while !gl_window.window.should_close() {
-        let current_frame = gl_window.glfw.get_time() as f32;
+    while !engine.window.should_close() {
+        let current_frame = engine.glfw.get_time() as f32;
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
 
         process_events(
-            &mut gl_window.window,
-            &gl_window.events,
+            &mut engine.window,
+            &engine.events,
             delta_time,
             &mut last_x,
             &mut last_y,
@@ -193,58 +168,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // You can get a window pointer, you might be able to use that to have multithreading
         // https://docs.rs/glfw/0.51.0/glfw/struct.RenderContext.html
-        gl_window.window.swap_buffers(); // Can be called from separate threads apparently?
-        gl_window.glfw.poll_events();
+        engine.window.swap_buffers(); // Can be called from separate threads apparently?
+        engine.glfw.poll_events();
     }
 
     Ok(())
-}
-
-// TODO: Global logging level enum that is checked here and other places to see how much to log
-// Callback function intended to be called from C
-extern "system" fn debug_message_callback(
-    source: u32,
-    type_: u32,
-    _id: u32,
-    severity: u32,
-    length: i32,
-    message: *const i8,
-    _user_param: *mut c_void
-) {
-    let type_str = match type_ {
-        gl::DEBUG_TYPE_ERROR => "ERROR",
-        gl::DEBUG_TYPE_DEPRECATED_BEHAVIOR => "DEPRECATED_BEHAVIOR",
-        gl::DEBUG_TYPE_UNDEFINED_BEHAVIOR => "UNDEFINED_BEHAVIOR",
-        gl::DEBUG_TYPE_PORTABILITY => "PORTABILITY",
-        gl::DEBUG_TYPE_PERFORMANCE => "PERFORMANCE",
-        gl::DEBUG_TYPE_MARKER => "MARKER",
-        gl::DEBUG_TYPE_PUSH_GROUP => "PUSH_GROUP",
-        gl::DEBUG_TYPE_POP_GROUP => "POP_GROUP",
-        gl::DEBUG_TYPE_OTHER => "OTHER",
-        _ => "OTHER"
-    };
-    let source_str = match source {
-        gl::DEBUG_SOURCE_API => "API",
-        gl::DEBUG_SOURCE_WINDOW_SYSTEM => "WINDOW_SYSTEM",
-        gl::DEBUG_SOURCE_SHADER_COMPILER => "SHADER_COMPILER",
-        gl::DEBUG_SOURCE_THIRD_PARTY => "THIRD_PARTY",
-        gl::DEBUG_SOURCE_APPLICATION => "APPLICATION",
-        gl::DEBUG_SOURCE_OTHER => "OTHER",
-        _ => "OTHER"
-    };
-    let severity_str = match severity {
-        gl::DEBUG_SEVERITY_HIGH => "HIGH_SEVERITY",
-        gl::DEBUG_SEVERITY_MEDIUM => "MEDIUM_SEVERITY",
-        gl::DEBUG_SEVERITY_LOW => "LOW_SEVERITY",
-        gl::DEBUG_SEVERITY_NOTIFICATION => "NOTIFICATION",
-        _ => "UNKNOWN_SEVERITY"
-    };
-    let message_cstr = unsafe {
-        let buffer = slice::from_raw_parts(message as *const u8, length as usize);
-        CString::from_vec_unchecked(buffer.to_vec())
-    };
-
-    println!("{}::{}::{}::{}", type_str, source_str, severity_str, message_cstr.to_str().unwrap());
 }
 
 fn process_events(
