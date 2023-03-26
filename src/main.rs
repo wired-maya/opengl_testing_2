@@ -28,8 +28,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         height: HEIGHT,
         fov: FOV,
         title: String::from("engine test"),
-        gl: GraphicsLibrary::OpenGL4_6,
-        capture_mouse: false
+        capture_mouse: false,
+        ..Default::default()
     };
 
     let mut engine = CSEngine::new(engine_conf);
