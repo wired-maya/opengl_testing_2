@@ -42,6 +42,38 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     )?;
 
+    let background_shader_program = engine.resource_manager.load_shader_program(
+        ShaderPathBundle {
+            vertex: Some("assets/shaders/widgets/widget.vert".to_string()),
+            geometry: None,
+            fragment: Some("assets/shaders/widgets/background.frag".to_string())
+        }
+    )?;
+
+    let border_shader_program = engine.resource_manager.load_shader_program(
+        ShaderPathBundle {
+            vertex: Some("assets/shaders/widgets/widget.vert".to_string()),
+            geometry: None,
+            fragment: Some("assets/shaders/widgets/border.frag".to_string())
+        }
+    )?;
+
+    let texture_shader_program = engine.resource_manager.load_shader_program(
+        ShaderPathBundle {
+            vertex: Some("assets/shaders/widgets/widget.vert".to_string()),
+            geometry: None,
+            fragment: Some("assets/shaders/widgets/texture.frag".to_string())
+        }
+    )?;
+
+    let pass_shader_program = engine.resource_manager.load_shader_program(
+        ShaderPathBundle {
+            vertex: Some("assets/shaders/widgets/widget.vert".to_string()),
+            geometry: None,
+            fragment: Some("assets/shaders/widgets/pass.frag".to_string())
+        }
+    )?;
+
     // let render_pipeline = View3DRenderPipeline::new(
     //     &mut resource_manager,
     //     WIDTH,
@@ -93,35 +125,27 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // scene_3d.models.push(planet_model);
 
-    let background = BackgroundWidget {
-        colour: vec4(0.0, 1.0, 0.0, 1.0),
-        width: WIDTH as f32,
-        height: HEIGHT as f32,
-        ..Default::default()
-    };
+    let background = BackgroundWidget::new(Rc::clone(&background_shader_program), vec4(0.0, 1.0, 0.0, 1.0));
 
-    let mut scene = Widget2dScene::new(
-        &mut engine.resource_manager,
-        ShaderPathBundle {
-            vertex: Some("assets/shaders/widget.vert".to_string()),
-            geometry: None,
-            fragment: Some("assets/shaders/widget.frag".to_string())
-        },
-        CameraSize { width: WIDTH, height: HEIGHT, fov: FOV },
-        Box::new(Widget2dRenderPipeline::new(WIDTH, HEIGHT)?),
-        Box::new(background)
-    )?;
+    let mut scene = Widget2dScene::new(WIDTH, HEIGHT)?;
 
-    let mut picture = PictureWidget::from_path(&mut engine.resource_manager, "assets/textures/awesomeface.png")?;
+    let mut picture = PictureWidget::new(
+        pass_shader_program,
+        background_shader_program,
+        texture_shader_program,
+        border_shader_program,
+        vec4(0.1, 0.1, 0.1, 0.1),
+        vec4(1.0, 0.0, 0.0, 1.0),
+        engine.resource_manager.load_texture_2d("assets/textures/grass.png")?,
+        vec4(0.0, 0.0, 1.0, 1.0),
+        vec4(0.1, 0.1, 0.1, 0.1)
+    );
 
     picture.set_size(0.5, 0.5);
     picture.set_position(vec2(0.25, 0.25));
-    picture.get_background_mut().colour = vec4(1.0, 0.0, 0.0, 1.0);
-    picture.get_border_mut().colour = vec4(0.0, 0.0, 1.0, 1.0);
 
-    scene.widget.get_children_mut().push(Box::new(picture));
-
-    scene.set_widget_tree()?;
+    scene.children.push(Box::new(background));
+    scene.children.push(Box::new(picture));
 
     let mut default_framebuffer = Framebuffer::new_default(WIDTH, HEIGHT);
     default_framebuffer.link_to(scene.render_pipeline.get_link().unwrap());
@@ -158,12 +182,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // Some fun transforms cuz why not
         // scene.widget.get_children_mut()[0].set_position(vec2(0.3, 0.2 + (current_frame.sin() / 10.0)));
-        scene.widget.get_children_mut()[0].set_size(0.25 + (current_frame.sin() / 5.0), 0.15 - (current_frame.sin() / 10.0));
+        scene.children[1].set_size(0.25 + (current_frame.sin() / 5.0), 0.15 - (current_frame.sin() / 10.0));
         // scene.widget.get_children_mut()[2].set_rotation(Quaternion::from(Euler::new(Deg(0.0), Deg(0.0), Deg(current_frame * 100.0))));
 
-        scene.set_widget_transforms()?;
-
         scene.draw()?;
+
+        framebuffer_shader_program.use_program();
         default_framebuffer.draw(&framebuffer_shader_program)?;
 
         // You can get a window pointer, you might be able to use that to have multithreading
